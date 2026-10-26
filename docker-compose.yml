@@ -1,0 +1,80 @@
+# Ohh My Chicken! — three services:
+#   frontend  React build + SEO page server; proxies /api to the backend (public)
+#   backend   Express JSON API (internal only)
+#   db        PostgreSQL 16 (internal only)
+#
+#   cp .env.example .env      # set POSTGRES_PASSWORD (and ADMIN_PASSCODE)
+#   docker compose up -d --build
+#   open http://localhost:3000
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: omc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ohh_my_chicken
+    volumes:
+      - omc-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omc -d ohh_my_chicken"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+    # No published port: only the backend can reach the database.
+    # For local tools (psql, TablePlus) uncomment:
+    # ports: ["127.0.0.1:5432:5432"]
+
+  backend:
+    build: ./backend
+    image: ohh-my-chicken-backend:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://omc:${POSTGRES_PASSWORD}@db:5432/ohh_my_chicken
+      NODE_ENV: production
+      PORT: 4000
+      # Requests arrive through the frontend server.
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      ADMIN_PASSCODE: ${ADMIN_PASSCODE:-}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    # No published port: browsers reach the API through the frontend at /api.
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [backend, frontend]
+
+  frontend:
+    build: ./frontend
+    image: ohh-my-chicken-frontend:latest
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      BACKEND_URL: http://backend:4000
+      ADMIN_PATH: ${ADMIN_PATH:-admin}
+      # Public address for canonical URLs, sitemap and social cards (e.g. https://ohhmychicken.com).
+      PUBLIC_URL: ${PUBLIC_URL:-}
+      # Set when another proxy (Caddy, a load balancer…) sits in front.
+      TRUST_PROXY: ${FRONTEND_TRUST_PROXY:-}
+    ports:
+      - "${APP_PORT:-3000}:8080"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [frontend]
+
+volumes:
+  omc-data:
+
+networks:
+  backend:
+  frontend:

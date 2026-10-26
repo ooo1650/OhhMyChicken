@@ -1,0 +1,22 @@
+{
+  "name": "ohh-my-chicken-backend",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Ohh My Chicken! JSON API: Node.js + Express with PostgreSQL storage.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "dev": "node --env-file-if-exists=.env --watch src/index.js",
+    "db:init": "node --env-file-if-exists=.env src/db.js init",
+    "db:reset": "node --env-file-if-exists=.env src/db.js reset"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.16.3"
+  }
+}

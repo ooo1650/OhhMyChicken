@@ -1,14 +1,97 @@
 # Ohh My Chicken! 🍕🍗
 
-A single-page website for **Ohh My Chicken!**: giant pizzas up to 22", crispy fried chicken and MoMo.
+A website for **Ohh My Chicken!**: giant pizzas up to 22", crispy fried chicken and MoMo.
 
-It's a static site with no build step. You can open `index.html` directly, or serve the folder with any static host (Netlify, Vercel, GitHub Pages, cPanel…).
+It runs as separate services, each with its own Dockerfile:
+
+| Service | Folder | Tech | Exposed |
+| --- | --- | --- | --- |
+| **frontend** | [frontend/](frontend/) | React 19 + Vite, served by a small Node server that renders each page's SEO `<head>` and proxies `/api` to the backend | Yes (`APP_PORT`, default 3000) |
+| **backend** | [backend/](backend/) | Node.js + Express JSON API | No, only through the frontend at `/api` |
+| **db** | — | PostgreSQL 16 | No |
+
+The browser only talks to the frontend's origin, so the admin session cookie (`SameSite=Strict`) and the API's same-origin check work without CORS.
+
+The frontend builds two separate pages:
+
+- **Customer site** at `/`: home, menu, cart, chatbot. It contains no admin code or links.
+- **Staff dashboard** at `/admin/` (change it with `ADMIN_PATH`): menu manager, live orders, store settings and table QR stickers. It is its own bundle, so customers never download it.
+
+## Run with Docker (recommended)
+
+Requirements: Docker with Compose v2.
 
 ```bash
-npx http-server -c-1 .   # then open http://localhost:8080
+cp .env.example .env              # set POSTGRES_PASSWORD (and ADMIN_PASSCODE)
+docker compose up -d --build      # builds frontend + backend, starts them with Postgres
+open http://localhost:3000
 ```
 
-> Host it online before you print QR stickers. The QR code links to the page's own URL, so a `file://` or `localhost` link won't open on customers' phones.
+- The database lives in the `omc-data` volume and survives restarts and rebuilds. `docker compose down -v` deletes it.
+- Postgres isn't published to the host. Uncomment `ports` under `db` in [docker-compose.yml](docker-compose.yml) to connect with `psql` or a GUI.
+- Both containers run as non-root users with a read-only filesystem, no Linux capabilities and a `/healthz` healthcheck.
+- Logs: `docker compose logs -f backend` (or `frontend`). Rebuild one service after changes: `docker compose up -d --build frontend`.
+
+Each image also builds on its own: `docker build -t omc-backend ./backend`, `docker build -t omc-frontend ./frontend`. The frontend image takes `BACKEND_URL` (default `http://backend:4000`), `PUBLIC_URL` and `ADMIN_PATH` at runtime.
+
+Backups:
+
+```bash
+docker compose exec db pg_dump -U omc ohh_my_chicken > backup.sql
+docker compose exec -T db psql -U omc ohh_my_chicken < backup.sql   # restore
+```
+
+## Run without Docker (development)
+
+Requirements: Node.js 20.19+ and PostgreSQL 13+.
+
+```bash
+# Terminal 1: API on http://localhost:4000
+cd backend
+npm install
+cp .env.example .env          # then set DATABASE_URL
+npm run dev                   # applies the schema and seeds defaults on start
+
+# Terminal 2: site on http://localhost:5173 (dashboard at /admin/)
+cd frontend
+npm install
+npm run dev                   # Vite proxies /api to localhost:4000 (override with API_URL)
+
+# Or the production way: build, then the SEO server on http://localhost:8080
+npm run build && BACKEND_URL=http://localhost:4000 npm start
+```
+
+The Vite dev server skips the server-rendered `<head>` and inlined data (the app fetches them instead). Use `npm start` to check SEO output.
+
+`npm run db:reset` (in `backend/`) wipes everything (menu, settings, orders, passcode) and re-seeds the defaults. Schema changes are applied automatically on start-up, so existing databases upgrade in place.
+
+> Host it online before you print QR stickers. The QR code links to the page's own URL, so a `localhost` link won't open on customers' phones.
+
+### Environment
+
+Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the backend directly reads `backend/.env` ([backend/.env.example](backend/.env.example)).
+
+| Variable | Service | Purpose |
+| --- | --- | --- |
+| `POSTGRES_PASSWORD` | compose | Database password (required) |
+| `APP_PORT` | compose | Host port the site is published on (default `3000`) |
+| `PUBLIC_URL` | frontend | The site's public address, e.g. `https://ohhmychicken.com`. Used for canonical links, the sitemap and social previews. **Set it before going live** |
+| `ADMIN_PATH` | frontend | URL path of the staff dashboard (default `admin`). Use something hard to guess, e.g. `staff-7f3k` |
+| `BACKEND_URL` | frontend | Where `/api` is forwarded (default `http://backend:4000`) |
+| `FRONTEND_TRUST_PROXY` | compose → frontend | `1` when a proxy (Caddy, Nginx…) sits in front of the site |
+| `DATABASE_URL` | backend | Postgres connection string (set by compose) |
+| `PORT` | backend | API port (default `4000`) |
+| `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
+| `ADMIN_PASSCODE` | backend | Initial admin passcode (6+ characters), used only when the database is first seeded |
+| `SESSION_TTL_HOURS` | backend | Admin session length (default `12`) |
+| `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
+| `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
+| `TRUST_PROXY` | backend | Proxy hops in front of the API so rate limits see the real client IP. Compose sets `1` (the frontend server); use `2` if another proxy sits in front |
+| `ALLOWED_ORIGINS` | backend | Extra origins allowed to send write requests, comma-separated (rarely needed) |
+
+### Going live
+
+Put the frontend behind a reverse proxy that terminates HTTPS (Caddy, Nginx, Cloudflare, or your host's built-in TLS). Set `PUBLIC_URL` to your https address, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2` (your proxy + the frontend server). With Caddy it's one line: `your-domain.com { reverse_proxy localhost:3000 }`. The proxy must pass the original `Host` header (Caddy does by default).
 
 ## Features
 
@@ -17,37 +100,100 @@ npx http-server -c-1 .   # then open http://localhost:8080
 | **Hero** | Wavy SVG title that moves (animated `textPath`), a 22" pizza that slides and spins in, floating toppings with pointer parallax, and a delivery rider crossing the road (tap the road for an express run). |
 | **Offer pop-up** | Shows after 3 s, once per browser session. "Tap to copy" copies the code and applies it to the cart. You can edit it in Admin. |
 | **Size guide** | Interactive 12" / 15" / 18" / 22" picker that scales the pizza and compares areas. |
-| **Menu** | Every menu category, with instant search (by name, description, type or category), category tabs, diet chips (Veg / Chicken / Buff / Pork), and a variant picker for size, Steam/Fried or Half/Full. |
-| **QR tool** | Scannable QR code that opens the menu, with an optional table number (`#/menu?table=7`). Print a sheet of branded stickers or download a PNG. |
-| **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per device), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. |
+| **Menu** | Full-width menu with a sticky category bar that jumps to each section and highlights the one you're reading, instant search (name, description, type or category), diet filters with veg / non-veg marks, a size / option picker, and an Add button that turns into a quantity stepper. A floating "View order" bar shows the item count and subtotal. Opening `/menu?table=7` (from a table QR sticker) shows a table banner and pre-fills the table at checkout. |
+| **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per device), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
 | **Chatbot "Chicky"** | Built-in knowledge base covering greetings, opening hours with live open/closed status, size advice ("size for 12 people"), diet options, MoMo, prices for any dish (with add-to-cart buttons), delivery, ordering, deals and contact details. It reads the live menu, so Admin edits show up right away. |
-| **Admin** (`#/admin` or footer 🔒) | Passcode gate. **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and passcode. **Orders**: KPIs, top sellers and recent orders. |
+| **Staff dashboard** (`/admin/`) | Separate page with its own login screen, and a warning until the default passcode is changed. **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and passcode. **Orders**: live list (checks every 20 s, with a "new order" alert and a badge on the tab), status workflow *New → Preparing → Out for delivery → Done / Cancelled*, open/done/cancelled filters, tap-to-call phone numbers, KPIs, top sellers, and CSV export for Excel/Sheets. **QR codes**: a scannable code that opens the menu, with an optional table number; print a sheet of branded stickers or download a PNG. The offer pop-up can be previewed on the live site (`/?offer=1`). |
 
-The default admin passcode is **`ohh2026`**. Change it under *Store & Promo*.
+The default admin passcode is **`ohh2026`** (unless you set `ADMIN_PASSCODE` before the first run). Change it under *Store & Promo*: you'll need the current passcode, the new one must be 6+ characters, and every other device is signed out.
 
-## Important notes
+## SEO
+
+Target searches: *pizza restaurant in Kathmandu*, *pizza delivery*, *lunch*, *dinner*, *fried chicken*, *MoMo*, *veg pizza* and similar. The city comes from the dashboard, so the copy follows if you move or open elsewhere.
+
+| What | How |
+| --- | --- |
+| **Real, indexable URLs** | `/`, `/menu` and one landing page per category: `/menu/chicken-pizza`, `/menu/veg-pizza`, `/menu/pork-buff-pizza`, `/menu/fried-chicken`, `/menu/momo`. Each has its own H1 and intro. Old `/#/menu?table=7` links (printed QR stickers) redirect in the browser. |
+| **Server-rendered `<head>`** | Each page arrives with its own title (under 60 characters), meta description (under 160, whole sentences), canonical link, robots tag, Open Graph and Twitter card tags. They're built from the live menu and settings ([frontend/src/shared/seo.js](frontend/src/shared/seo.js)) and kept in sync during in-app navigation. |
+| **Structured data (JSON-LD)** | `Restaurant` on every page: address, geo, opening hours, phone, cuisines, price range, menu link, order action, social profiles. Menu pages add a full `Menu` with every dish, variant price and availability, plus `BreadcrumbList`. Home adds `WebSite` and an `FAQPage` matching the visible FAQ. |
+| **On-page content** | A visible keyword H1, a "Pizza restaurant in {city}" section on lunch, dinner and delivery (derived from opening hours and services), a 6-question FAQ, and a footer with category links plus name, address and phone. |
+| **Crawling** | Dynamic `/sitemap.xml` (with `lastmod` from the last menu or settings change) and `/robots.txt`. Unknown URLs return a real `404` with `noindex`. `/Menu/` and `/index.html` 301-redirect to the single canonical URL. The dashboard sends `noindex` and isn't listed anywhere. |
+| **Speed** | The menu and settings are inlined in the HTML (no API round trip before first paint), with gzip compression and year-long caching for hashed bundles. |
+| **Sharing & icons** | A 1200×630 social preview image, PNG app icons, an Apple touch icon and a web manifest. |
+
+No meta keywords tag: Google and Bing ignore it.
+
+**Things only you can do**, in this order:
+
+1. Set `PUBLIC_URL` and fill in **Dashboard → Store → Google & local search**: street, postal code, map pin (latitude/longitude), Google Maps link, social profiles, takeaway on or off.
+2. Create or claim your **Google Business Profile** (this drives "pizza near me" and the map pack). Use exactly the same name, address and phone as the site, the same categories (Pizza restaurant, Restaurant), and link the website and menu (`/menu`).
+3. Add the site to **Google Search Console** and **Bing Webmaster Tools**, then submit `https://your-domain/sitemap.xml`.
+4. Check a page with Google's **Rich Results Test** and the **Schema Markup Validator**.
+5. Ask happy customers for Google reviews. The site doesn't show ratings, because Google ignores self-published review stars for restaurants.
+6. Replace placeholder prices and the phone number before going live, since they're published in the structured data.
+
+## Security
+
+- **Admin auth is server-side.** The passcode is stored as a scrypt hash. Sessions are random 256-bit tokens in an `HttpOnly`, `SameSite=Strict` cookie (`__Host-` prefixed and `Secure` in production); only their SHA-256 is stored. 8 wrong passcodes lock that IP out for 15 minutes.
+- **The dashboard is a separate app** served only at `ADMIN_PATH`, with `X-Robots-Tag: noindex` and `Cache-Control: no-store`. The customer site ships none of its markup, code or styles.
+- **Every write endpoint** requires a session, a JSON body and a same-origin `Origin` header, which blocks cross-site request forgery.
+- **Inputs are validated on the server** (menu items, settings, orders). Order totals and discounts are recalculated server-side, so a tampered browser can't change prices.
+- **Headers**: the frontend server sends a strict Content-Security-Policy for the pages (scripts only from this origin; GSAP and the QR library are bundled, no CDN), `X-Frame-Options`, `nosniff` and `Referrer-Policy`. The API adds Helmet's headers with `default-src 'none'`, and HSTS in production.
+- **Rate limits**: 300 API requests/min per IP, 20 orders per 10 min per IP, plus the login lockout.
+- **CSV export** escapes cells starting with `=`, `+`, `-` or `@` so a customer's name can't inject a spreadsheet formula.
+- **Docker**: non-root users, read-only filesystems, all capabilities dropped. Only the frontend is published; the API and database sit on internal networks.
+
+Only the cart and the per-device "promo used" / "pop-up seen" flags stay in the customer's browser.
+
+## Notes
 
 - **Prices are placeholders** (in NPR). Set real prices in Admin → Menu Manager, then use *Export JSON* to keep a backup.
-- **Data is stored in the browser** (`localStorage`). Admin edits only show on the device and browser where they were made. To publish a menu for everyone, export the JSON and replace the defaults in `js/data.js`, or connect a backend or headless CMS.
-- **The admin passcode is a convenience gate, not real security.** It runs entirely in the browser. Use server-side auth before storing anything sensitive.
-- Update the phone, WhatsApp number and address in Admin (or in `js/data.js` → `SETTINGS`).
+- Update the phone, WhatsApp number and address in Admin (factory defaults are in `backend/src/defaults.js`).
+- Rate limits are kept in memory, which suits a single app instance. Move them to Redis if you run several backend replicas.
 
 ## Structure
 
 ```
-index.html        markup for every view, modal and drawer
-css/styles.css    brand tokens, fluid type (clamp), mobile-first layout
-js/data.js        default menu, categories, sizes, settings
-js/store.js       state, localStorage, pub/sub, cart & promo maths
-js/ui.js          helpers, accessible modals (focus trap / Esc), toast, confirm
-js/art.js         hand-built SVG pizza, rider, toppings, food icons
-js/hero.js        GSAP intro, wavy title, floaters, rider, size guide, reveals
-js/menu.js        customer menu, search & filters, add to cart
-js/qr.js          QR generation, sticker printing, PNG export
-js/cart.js        cart drawer, totals, WhatsApp checkout
-js/chatbot.js     Chicky's intents & UI
-js/admin.js       dashboard, menu CMS, settings, orders
-js/app.js         hash router, settings → DOM, offer pop-up
+docker-compose.yml        db + backend + frontend
+.env.example              settings for docker compose
+
+backend/                  Express JSON API (own Dockerfile, port 4000)
+  src/index.js            app: security headers, same-origin check, /api, /healthz
+  src/routes.js           JSON API (public: bootstrap, menu, settings, orders; admin: CMS, orders, CSV)
+  src/models.js           Postgres queries for menu, settings, orders
+  src/auth.js             admin login, session cookies, lockout, passcode change
+  src/limit.js            in-memory rate limiting
+  src/passcode.js         scrypt hashing
+  src/validate.js         input validation for items & settings
+  src/pricing.js          cart totals & promo maths (same rules as the browser)
+  src/db.js               pool, migrations, seeding, db:init / db:reset CLI
+  src/schema.sql          tables (idempotent; upgrades existing databases)
+  src/defaults.js         default menu, categories, sizes, settings
+
+frontend/                 React app + SEO page server (own Dockerfile, port 8080)
+  index.html, admin.html  the two pages (customer site, staff dashboard)
+  vite.config.js          two entry points, dev proxy for /api
+  server/index.js         serves the build, renders SEO <head> + inlined data, sitemap, robots, 404s, /api proxy
+  public/assets/          favicon, icon sprite, social preview image, app icons
+  public/site.webmanifest web app manifest
+  src/styles/             styles.css (brand, layout, components), admin.css (dashboard)
+  src/shared/             API client, formatting, icons, toast, accessible dialog hook
+  src/shared/seo.js       routes, titles, descriptions, FAQ and schema.org data (used by server and app)
+  src/site/               customer site
+    main.jsx, App.jsx     bootstrap, routes, page head, header, offer pop-up, 404, footer
+    router.jsx            path router on the History API
+    store.jsx             menu & settings, cart (localStorage), totals, shared UI state
+    Home.jsx              hero, size guide, lunch & dinner section, FAQ, reveals
+    Menu.jsx              search, category scroll-spy, diet filters, dish cards & steppers
+    Cart.jsx              cart drawer, floating order bar, WhatsApp checkout
+    Chat.jsx, bot.js      Chicky's UI and intents
+    art.jsx               hand-built SVG pizza, rider, toppings, food icons
+  src/admin/              staff dashboard
+    AdminApp.jsx          login gate, tabs, live orders polling
+    store.jsx             CMS, auth and order calls
+    MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, confirm.jsx
 ```
 
-Libraries (CDN): [GSAP 3.12.5](https://gsap.com) and [qrcode-generator 1.4.4](https://github.com/kazuhikoarase/qrcode-generator). If GSAP fails to load, the site falls back to CSS animations. It also respects `prefers-reduced-motion`.
+Libraries: [React](https://react.dev), [GSAP 3.12.5](https://gsap.com) and [qrcode-generator 1.4.4](https://github.com/kazuhikoarase/qrcode-generator), bundled by Vite. Animations respect `prefers-reduced-motion` and fall back to CSS. UI icons are an SVG sprite (`frontend/public/assets/icons.svg`) drawn in the style of [Lucide](https://lucide.dev). Emoji are not used in the interface.
+
+Old hash URLs (`/#/menu?table=7`) from printed QR stickers redirect to the real URLs in the browser.
