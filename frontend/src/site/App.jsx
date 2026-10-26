@@ -154,7 +154,7 @@ function Footer() {
 export function App() {
   const site = useSite();
   const route = useRoute();
-  const boot = useMemo(() => ({ defaults: site.defaults, menu: site.menu, settings: site.settings }), [site.defaults, site.menu, site.settings]);
+  const boot = useMemo(() => ({ defaults: site.defaults, menu: site.menu, settings: site.settings, gallery: site.gallery }), [site.defaults, site.menu, site.settings, site.gallery]);
   const page = resolveRoute(route.pathname, site.categories);
   const [view, setView] = useState(page.view);
   const [table, setTable] = useState('');

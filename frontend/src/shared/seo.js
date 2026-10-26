@@ -165,7 +165,7 @@ export function jsonLd(route, boot, origin) {
     name: s.name,
     url: home,
     description: pageMeta({ view: 'home' }, boot).description,
-    image: [origin + OG_IMAGE.path],
+    image: [origin + OG_IMAGE.path].concat((boot.gallery || []).slice(0, 5).map((g) => origin + g.url)),
     logo: origin + '/assets/icon-512.png',
     address,
     servesCuisine: ['Pizza', 'Fried Chicken', 'MoMo', 'Nepalese', 'Fast Food'],
@@ -217,6 +217,7 @@ export function jsonLd(route, boot, origin) {
             }))
           };
           if (m.desc) item.description = m.desc;
+          if (m.image) item.image = origin + m.image.url;
           if (m.diet === 'veg') item.suitableForDiet = 'https://schema.org/VegetarianDiet';
           return item;
         })

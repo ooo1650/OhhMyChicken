@@ -7,6 +7,7 @@ import { useSite } from './store.jsx';
 import { Link } from './router.jsx';
 import { Art, iconFor } from './art.jsx';
 import { Icon } from '../shared/Icon.jsx';
+import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
 import { fmt12 } from '../shared/format.js';
@@ -28,10 +29,12 @@ export function CartBar() {
 
 function CartLine({ line }) {
   const site = useSite();
-  const art = useMemo(() => iconFor(line.item), [line.item]);
+  const art = useMemo(() => (line.item.image ? '' : iconFor(line.item)), [line.item]);
   return (
     <li className="cart-line">
-      <Art className="cl-art" html={art} />
+      {line.item.image
+        ? <div className="cl-art has-photo"><Photo media={line.item.image} alt="" sizes="46px" /></div>
+        : <Art className="cl-art" html={art} />}
       <div className="cl-info"><b>{line.name}</b><span>{line.label} · {site.money(line.unit)}</span></div>
       <div className="qty" role="group" aria-label={'Quantity for ' + line.name}>
         <button type="button" aria-label="Decrease" onClick={() => site.setQty(line.id, line.label, line.qty - 1)}><Icon name={line.qty === 1 ? 'trash' : 'minus'} /></button>

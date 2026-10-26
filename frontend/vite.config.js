@@ -19,7 +19,10 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    proxy: { '/api': { target: process.env.API_URL || 'http://localhost:4000', changeOrigin: false } }
+    proxy: {
+      '/api': { target: process.env.API_URL || 'http://localhost:4000', changeOrigin: false },
+      '/media': { target: process.env.API_URL || 'http://localhost:4000', changeOrigin: false }
+    }
   },
   build: {
     assetsDir: 'static', // hashed bundles; /assets/ holds the hand-made SVGs

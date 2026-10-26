@@ -819,3 +819,28 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 .footer-links b { flex-basis: 100%; font-family: var(--font-display); font-weight: 400; color: var(--yellow); letter-spacing: .02em; }
 .site-footer .footer-links { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 2px; }
 .hero-h1 { line-height: 1.4; }
+
+/* ---------- Photos ---------- */
+.photo { display: block; max-width: 100%; height: auto; background-color: var(--cream); }
+.dish-art.has-photo { padding: 0; overflow: hidden; background: var(--cream); }
+.dish-art.has-photo .photo { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease-pop); }
+.dish:hover .dish-art.has-photo .photo { transform: scale(1.06); }
+.cl-art.has-photo { overflow: hidden; padding: 0; }
+.cl-art.has-photo .photo { width: 100%; height: 100%; object-fit: cover; }
+
+.gallery { background: var(--ink); color: var(--white); }
+.gallery .tilt-title .hl { color: var(--ink); }
+.gallery-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.gallery-grid button { display: block; width: 100%; padding: 0; border: 3px solid var(--white); border-radius: var(--radius); overflow: hidden; background: none; cursor: zoom-in; aspect-ratio: 4 / 3; box-shadow: 4px 4px 0 var(--yellow); transition: transform .2s, box-shadow .2s; }
+.gallery-grid button:hover, .gallery-grid button:focus-visible { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--yellow); }
+.gallery-grid .photo { width: 100%; height: 100%; object-fit: cover; }
+.gallery-grid li:nth-child(5n + 1) { grid-row: span 2; }
+.gallery-grid li:nth-child(5n + 1) button { aspect-ratio: auto; height: 100%; }
+
+.lightbox .modal-card { padding: 0; background: var(--ink); max-width: min(92vw, 1100px); width: auto; border-color: var(--white); overflow: hidden; }
+.lightbox .photo { max-height: 80vh; width: auto; margin: 0 auto; background: var(--ink); }
+.lightbox figcaption { color: var(--white); padding: 10px 56px 12px 16px; font-size: var(--fs-sm); }
+.lightbox .close-btn { z-index: 2; }
+.lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; background: var(--white); color: var(--ink); border: 2px solid var(--ink); border-radius: 50%; box-shadow: 2px 2px 0 var(--ink); }
+.lightbox-prev { left: 10px; } .lightbox-next { right: 10px; }
+.i.flip { transform: scaleX(-1); }

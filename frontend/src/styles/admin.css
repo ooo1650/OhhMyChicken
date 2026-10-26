@@ -211,3 +211,42 @@ body.admin-page { background: #F6F4EE; }
 @media (pointer: coarse) {
   .row-actions .icon-btn { width: 40px; height: 40px; }
 }
+
+/* ---------- Photos ---------- */
+.photos-head { display: grid; gap: 14px; margin-bottom: 14px; }
+@media (min-width: 860px) { .photos-head { grid-template-columns: 1.3fr 1fr; } }
+.dropzone { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 28px 16px; border: 3px dashed var(--ink); border-radius: var(--radius); background: var(--white); transition: background .15s, border-color .15s; }
+.dropzone > .i { width: 34px; height: 34px; color: var(--red); }
+.dropzone.is-over { background: var(--yellow-soft, #FFF1C2); border-color: var(--red); }
+.dropzone.is-compact { padding: 16px; margin-bottom: 12px; }
+.photos-help ol { padding-left: 1.2em; display: grid; gap: 6px; font-size: var(--fs-sm); }
+.upload-queue { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 6px; }
+.upload-queue li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 2px solid var(--ink); border-radius: 10px; background: var(--white); font-size: var(--fs-sm); }
+.uq-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.uq-uploading .uq-status { color: var(--muted); }
+.uq-error { border-color: var(--red) !important; }
+.uq-error .uq-status { color: var(--red); font-weight: 700; }
+.photo-grid { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }
+.photo-card { display: grid; gap: 8px; align-content: start; padding: 10px; background: var(--white); border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow-pop); }
+.pc-img { aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: var(--cream); }
+.pc-img .photo { width: 100%; height: 100%; object-fit: cover; }
+.photo-card .field { margin: 0; }
+.pc-meta { line-height: 1.4; }
+.pc-actions { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.pc-order { display: inline-flex; align-items: center; gap: 2px; }
+.pc-order .icon-btn:disabled { opacity: .3; }
+
+.picker-card { max-width: 720px; }
+.picker-card h2 { margin-bottom: 12px; }
+.picker-grid { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); max-height: 46vh; overflow-y: auto; }
+.picker-grid button { display: block; width: 100%; padding: 0; aspect-ratio: 1; border: 3px solid transparent; border-radius: 12px; overflow: hidden; background: var(--cream); cursor: pointer; }
+.picker-grid button:hover { border-color: var(--ink); }
+.picker-grid button.is-selected { border-color: var(--red); box-shadow: 0 0 0 3px var(--yellow); }
+.picker-grid .photo { width: 100%; height: 100%; object-fit: cover; }
+
+.item-photo { display: flex; gap: 12px; align-items: center; }
+.item-photo > .photo, .item-photo-empty { width: 96px; height: 72px; flex-shrink: 0; border-radius: 10px; border: 2px solid var(--ink); object-fit: cover; }
+.item-photo-empty { display: grid; place-items: center; background: var(--cream); color: var(--muted); }
+.item-photo-empty .i { width: 28px; height: 28px; }
+.item-photo-actions { display: grid; gap: 4px; justify-items: start; }
+.cell-thumb { width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; border: 2px solid var(--ink); object-fit: cover; }

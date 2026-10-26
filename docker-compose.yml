@@ -43,6 +43,10 @@ services:
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      # Uploaded photos (WebP files). Back this up together with the database.
+      - omc-media:/app/uploads
     # No published port: browsers reach the API through the frontend at /api.
     read_only: true
     tmpfs: [/tmp]
@@ -74,6 +78,7 @@ services:
 
 volumes:
   omc-data:
+  omc-media:
 
 networks:
   backend:

@@ -37,8 +37,12 @@ Each image also builds on its own: `docker build -t omc-backend ./backend`, `doc
 Backups:
 
 ```bash
-docker compose exec db pg_dump -U omc ohh_my_chicken > backup.sql
-docker compose exec -T db psql -U omc ohh_my_chicken < backup.sql   # restore
+mkdir -p backups   # git-ignored: backups hold customer orders, never commit them
+docker compose exec db pg_dump -U omc ohh_my_chicken > backups/db-$(date +%F).sql
+docker compose exec -T db psql -U omc ohh_my_chicken < backups/db-2026-10-26.sql   # restore
+
+# Photos live in the omc-media volume: back them up together with the database
+docker compose cp backend:/app/uploads ./backups/uploads-$(date +%F)
 ```
 
 ## Run without Docker (development)
@@ -82,16 +86,27 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 | `DATABASE_URL` | backend | Postgres connection string (set by compose) |
 | `PORT` | backend | API port (default `4000`) |
 | `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
-| `ADMIN_PASSCODE` | backend | Initial admin passcode (6+ characters), used only when the database is first seeded |
+| `ADMIN_PASSCODE` | backend | Admin passcode (8+ characters). **Required in production**: the backend won't start while the passcode is the public default. It replaces the default once; after that, change it in the dashboard |
 | `SESSION_TTL_HOURS` | backend | Admin session length (default `12`) |
 | `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
 | `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
 | `TRUST_PROXY` | backend | Proxy hops in front of the API so rate limits see the real client IP. Compose sets `1` (the frontend server); use `2` if another proxy sits in front |
 | `ALLOWED_ORIGINS` | backend | Extra origins allowed to send write requests, comma-separated (rarely needed) |
+| `UPLOAD_DIR` | backend | Folder for uploaded photos (compose: `/app/uploads` on the `omc-media` volume; default `backend/uploads`) |
 
 ### Going live
 
 Put the frontend behind a reverse proxy that terminates HTTPS (Caddy, Nginx, Cloudflare, or your host's built-in TLS). Set `PUBLIC_URL` to your https address, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2` (your proxy + the frontend server). With Caddy it's one line: `your-domain.com { reverse_proxy localhost:3000 }`. The proxy must pass the original `Host` header (Caddy does by default).
+
+### Deployment checklist (no leaks)
+
+1. Copy `.env.example` to `.env` on the server only, then `chmod 600 .env`. It's git-ignored, and both Dockerfiles' `.dockerignore` keep it out of images.
+2. Strong secrets: `POSTGRES_PASSWORD=$(openssl rand -hex 24)`, and a long `ADMIN_PASSCODE` that is not reused anywhere.
+3. Set `PUBLIC_URL=https://your-domain` and serve over HTTPS only (admin cookies are `Secure` in production).
+4. Only the frontend port is published. Postgres and the API stay on internal Docker networks; keep it that way.
+5. Pick an unguessable `ADMIN_PATH`. The dashboard sends `noindex` and isn't linked from the site.
+6. Back up to `backups/` (git-ignored) or off the server. Dumps contain customer names, phones and addresses.
+7. Before pushing: `git status` should never list `.env`, `backups/`, `backend/uploads/` or `*.sql` dumps.
 
 ## Features
 
@@ -104,8 +119,9 @@ Put the frontend behind a reverse proxy that terminates HTTPS (Caddy, Nginx, Clo
 | **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per device), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
 | **Chatbot "Chicky"** | Built-in knowledge base covering greetings, opening hours with live open/closed status, size advice ("size for 12 people"), diet options, MoMo, prices for any dish (with add-to-cart buttons), delivery, ordering, deals and contact details. It reads the live menu, so Admin edits show up right away. |
 | **Staff dashboard** (`/admin/`) | Separate page with its own login screen, and a warning until the default passcode is changed. **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and passcode. **Orders**: live list (checks every 20 s, with a "new order" alert and a badge on the tab), status workflow *New → Preparing → Out for delivery → Done / Cancelled*, open/done/cancelled filters, tap-to-call phone numbers, KPIs, top sellers, and CSV export for Excel/Sheets. **QR codes**: a scannable code that opens the menu, with an optional table number; print a sheet of branded stickers or download a PNG. The offer pop-up can be previewed on the live site (`/?offer=1`). |
+| **Photos** | Dashboard → **Photos**: drag-and-drop or pick several photos at once (JPG, PNG, WebP, AVIF, HEIC, up to 10 MB). Each is checked as a real image, turned upright, stripped of EXIF/GPS data and saved as WebP in up to four widths (320–1600 px) with a blurred preview. Write a description per photo (used as alt text and in Google's data), tick **Gallery** to show it in the home-page gallery (with a lightbox) and reorder it there, and see which dishes use it. Add a photo to a dish from **Menu → Edit → Add photo**; dishes without one keep their drawing. Deleting a photo unlinks it from its dishes. |
 
-The default admin passcode is **`ohh2026`** (unless you set `ADMIN_PASSCODE` before the first run). Change it under *Store & Promo*: you'll need the current passcode, the new one must be 6+ characters, and every other device is signed out.
+In development the admin passcode defaults to **`ohh2026`**. That default is public, so production (`NODE_ENV=production`, as in Docker) refuses to start until `ADMIN_PASSCODE` is set. Change the passcode under *Store → Security*: you'll need the current one, the new one must be 8+ characters, and every other device is signed out. The login page never reveals whether the default is still in use.
 
 ## SEO
 
@@ -118,6 +134,7 @@ Target searches: *pizza restaurant in Kathmandu*, *pizza delivery*, *lunch*, *di
 | **Structured data (JSON-LD)** | `Restaurant` on every page: address, geo, opening hours, phone, cuisines, price range, menu link, order action, social profiles. Menu pages add a full `Menu` with every dish, variant price and availability, plus `BreadcrumbList`. Home adds `WebSite` and an `FAQPage` matching the visible FAQ. |
 | **On-page content** | A visible keyword H1, a "Pizza restaurant in {city}" section on lunch, dinner and delivery (derived from opening hours and services), a 6-question FAQ, and a footer with category links plus name, address and phone. |
 | **Crawling** | Dynamic `/sitemap.xml` (with `lastmod` from the last menu or settings change) and `/robots.txt`. Unknown URLs return a real `404` with `noindex`. `/Menu/` and `/index.html` 301-redirect to the single canonical URL. The dashboard sends `noindex` and isn't listed anywhere. |
+| **Images** | Dish photos and gallery photos are listed in the `Menu` and `Restaurant` data, with their descriptions as alt text, responsive `srcset`, lazy loading and fixed dimensions (no layout shift). |
 | **Speed** | The menu and settings are inlined in the HTML (no API round trip before first paint), with gzip compression and year-long caching for hashed bundles. |
 | **Sharing & icons** | A 1200×630 social preview image, PNG app icons, an Apple touch icon and a web manifest. |
 
@@ -162,6 +179,7 @@ backend/                  Express JSON API (own Dockerfile, port 4000)
   src/routes.js           JSON API (public: bootstrap, menu, settings, orders; admin: CMS, orders, CSV)
   src/models.js           Postgres queries for menu, settings, orders
   src/auth.js             admin login, session cookies, lockout, passcode change
+  src/media.js            photo upload & processing (sharp → WebP sizes), library queries
   src/limit.js            in-memory rate limiting
   src/passcode.js         scrypt hashing
   src/validate.js         input validation for items & settings
@@ -177,7 +195,7 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
   public/assets/          favicon, icon sprite, social preview image, app icons
   public/site.webmanifest web app manifest
   src/styles/             styles.css (brand, layout, components), admin.css (dashboard)
-  src/shared/             API client, formatting, icons, toast, accessible dialog hook
+  src/shared/             API client, formatting, icons, photo component, toast, accessible dialog hook
   src/shared/seo.js       routes, titles, descriptions, FAQ and schema.org data (used by server and app)
   src/site/               customer site
     main.jsx, App.jsx     bootstrap, routes, page head, header, offer pop-up, 404, footer
@@ -187,10 +205,12 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
     Menu.jsx              search, category scroll-spy, diet filters, dish cards & steppers
     Cart.jsx              cart drawer, floating order bar, WhatsApp checkout
     Chat.jsx, bot.js      Chicky's UI and intents
+    Gallery.jsx           home-page photo gallery and lightbox
     art.jsx               hand-built SVG pizza, rider, toppings, food icons
   src/admin/              staff dashboard
     AdminApp.jsx          login gate, tabs, live orders polling
     store.jsx             CMS, auth and order calls
+    PhotosPanel.jsx       photo library (upload, describe, gallery, delete) + picker for dishes
     MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, confirm.jsx
 ```
 

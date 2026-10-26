@@ -4,7 +4,7 @@
    server refuses, the error is shown and the real data reloaded.
    ========================================================================== */
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { api } from '../shared/api.js';
+import { api, uploadImage } from '../shared/api.js';
 import { money } from '../shared/format.js';
 import { useToast } from '../shared/toast.jsx';
 
@@ -20,6 +20,7 @@ export function AdminProvider({ boot, children }) {
   const [menu, setMenu] = useState(boot.menu);
   const [settings, setSettings] = useState(boot.settings);
   const [orders, setOrders] = useState([]);
+  const [media, setMedia] = useState(null); // null until the library is loaded
 
   const refresh = useCallback(() => Promise.all([api('GET', 'menu'), api('GET', 'settings')])
     .then(([m, s]) => { setMenu(m); setSettings(s); }, () => {}), []);
@@ -45,6 +46,7 @@ export function AdminProvider({ boot, children }) {
     saveMenu: (list) => api('PUT', 'menu', list).then(applied(setMenu), syncFailed),
     upsertItem: (raw) => {
       const item = { ...raw, id: raw.id || uid(), isPizza: isPizzaCat(raw.category) };
+      if (!item.imageId) item.image = null;
       setMenu((list) => {
         const i = list.findIndex((m) => m.id === item.id);
         if (i === -1) return [...list, item];
@@ -58,6 +60,23 @@ export function AdminProvider({ boot, children }) {
       api('DELETE', 'menu/' + encodeURIComponent(id)).catch(syncFailed);
     },
     resetMenu: () => api('POST', 'menu/reset').then(applied(setMenu), syncFailed),
+
+    /* ---------- Photos ---------- */
+    media,
+    loadMedia: () => api('GET', 'media').then((list) => { setMedia(list); return list; }),
+    uploadMedia: (file) => uploadImage('media', file).then((m) => { setMedia((list) => [m].concat(list || [])); return m; }),
+    updateMedia: (id, patch) => api('PATCH', 'media/' + id, patch).then((m) => {
+      setMedia((list) => (list || []).map((x) => (x.id === id ? m : x)));
+      // Dishes show the photo's description: keep their copy in step.
+      setMenu((list) => list.map((i) => (i.imageId === id ? { ...i, image: { ...i.image, alt: m.alt } } : i)));
+      return m;
+    }),
+    deleteMedia: (id) => api('DELETE', 'media/' + id).then(() => {
+      setMedia((list) => (list || []).filter((x) => x.id !== id));
+      setMenu((list) => list.map((i) => (i.imageId === id ? { ...i, imageId: null, image: null } : i)));
+      return true;
+    }),
+    reorderGallery: (ids) => api('PUT', 'media/order', { ids }).then((list) => { setMedia(list); return list; }),
 
     /* ---------- Settings ---------- */
     saveSettings: (s) => api('PUT', 'settings', s).then(applied(setSettings), syncFailed),
@@ -76,7 +95,7 @@ export function AdminProvider({ boot, children }) {
       return saved;
     }),
     clearOrders: () => api('DELETE', 'orders').then(() => { setOrders([]); return true; }, syncFailed)
-  }), [defaults, menu, settings, orders, syncFailed]);
+  }), [defaults, menu, settings, orders, media, syncFailed]);
 
   return <AdminCtx.Provider value={value}>{children}</AdminCtx.Provider>;
 }

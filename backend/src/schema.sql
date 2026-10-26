@@ -56,3 +56,24 @@ DO $$ BEGIN
     CHECK (status IN ('new', 'preparing', 'delivering', 'done', 'cancelled'));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+
+-- v1.2: photos. Files live on disk (UPLOAD_DIR, one WebP per width);
+-- this table holds what the site needs to show them.
+CREATE TABLE IF NOT EXISTS media (
+  id            TEXT PRIMARY KEY,                 -- random, also the file name prefix
+  original_name TEXT        NOT NULL DEFAULT '',
+  alt           TEXT        NOT NULL DEFAULT '',  -- describes the photo (accessibility + image search)
+  width         INTEGER     NOT NULL,             -- largest stored size
+  height        INTEGER     NOT NULL,
+  bytes         INTEGER     NOT NULL,             -- total size of all stored files
+  sizes         JSONB       NOT NULL,             -- [{ "w": 640, "h": 480, "file": "<id>-640.webp" }, ...]
+  placeholder   TEXT        NOT NULL DEFAULT '',  -- tiny blurred data: URI shown while loading
+  in_gallery    BOOLEAN     NOT NULL DEFAULT FALSE,
+  sort_order    INTEGER     NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS media_gallery_idx ON media (in_gallery, sort_order, created_at DESC);
+
+-- Deleting a photo just unlinks it from dishes.
+ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_id TEXT REFERENCES media(id) ON DELETE SET NULL;

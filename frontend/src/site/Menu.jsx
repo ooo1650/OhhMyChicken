@@ -8,6 +8,7 @@ import gsap from 'gsap';
 import { useSite } from './store.jsx';
 import { Art, iconFor } from './art.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
+import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { dietLabel, fmt12, reducedMotion, PIZZA_CATEGORIES } from '../shared/format.js';
 import { categoryPath, pageMeta } from '../shared/seo.js';
@@ -69,7 +70,7 @@ export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   const actionRef = useRef(null), focusStep = useRef(false);
-  const art = useMemo(() => iconFor(item), [item]);
+  const art = useMemo(() => (item.image ? '' : iconFor(item)), [item]);
   const price = (item.prices.find((p) => p.label === label) || item.prices[0]).price;
   const n = site.cartQty(item.id, label), what = item.name + ' (' + label + ')';
 
@@ -102,7 +103,9 @@ export function DishCard({ item, q }) {
 
   return (
     <article className={'dish' + (item.available ? '' : ' is-sold')}>
-      <Art className="dish-art" html={art} />
+      {item.image
+        ? <div className="dish-art has-photo"><Photo media={item.image} alt={item.image.alt || item.name} sizes="(max-width: 420px) 34vw, 150px" /></div>
+        : <Art className="dish-art" html={art} />}
       <div className="dish-body">
         <div className="dish-meta">
           <DietMark diet={item.diet} /><span>{dietLabel(item.diet)}</span>

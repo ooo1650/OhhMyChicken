@@ -16,7 +16,7 @@ const SECURE = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' 
 // The __Host- prefix makes browsers refuse the cookie unless it is Secure,
 // host-only and Path=/, so a subdomain can't plant or overwrite it.
 const COOKIE = SECURE ? '__Host-omc_admin' : 'omc_admin';
-const MIN_PASS = 6, MAX_PASS = 128;
+const MIN_PASS = 8, MAX_PASS = 128;
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
@@ -52,9 +52,13 @@ async function requireAdmin(req, res, next) {
 const MAX_TRIES = 8;
 const failures = createBucket(15 * 60 * 1000);
 
+// Whether the default passcode is still in use is only told to a signed-in
+// user: to anyone else it would say "the published passcode works here".
 async function status(req) {
+  const authed = await sessionValid(req);
+  if (!authed) return { authed: false };
   const { rows } = await pool.query('SELECT is_default FROM admin_auth WHERE id = 1');
-  return { authed: await sessionValid(req), defaultPass: !!(rows[0] && rows[0].is_default) };
+  return { authed: true, defaultPass: !!(rows[0] && rows[0].is_default) };
 }
 
 async function checkPass(pass) {

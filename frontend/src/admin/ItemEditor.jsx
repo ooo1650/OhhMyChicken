@@ -5,6 +5,8 @@ import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
 import { PIZZA_CATEGORIES } from '../shared/format.js';
+import { Photo } from '../shared/Photo.jsx';
+import { PhotoPicker } from './PhotosPanel.jsx';
 
 let rowKey = 0;
 const row = (label, price) => ({ key: ++rowKey, label: label || '', price: price == null ? '' : String(price) });
@@ -18,6 +20,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
   const { hidden, isOpen } = useLayer(open, ref, { onClose, focus: '[name=name]' });
   const [f, setF] = useState(null);
   const [err, setErr] = useState('');
+  const [picking, setPicking] = useState(false);
 
   // Fill the form each time the editor opens.
   useEffect(() => {
@@ -28,7 +31,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
     let prices = d.prices.map((p) => row(p.label, p.price));
     if (!prices.length && PIZZA_CATEGORIES.includes(d.category)) prices = sizes.map((s) => row(s.label, ''));
     if (!prices.length) prices = [row('Regular', '')];
-    setF({ id: d.id || '', name: d.name, category: d.category, diet: d.diet, desc: d.desc || '', available: d.available !== false, popular: !!d.popular, prices, title: item && !copy ? 'Edit ' + item.name : 'Add menu item' });
+    setF({ id: d.id || '', imageId: d.imageId || null, image: d.image || null, name: d.name, category: d.category, diet: d.diet, desc: d.desc || '', available: d.available !== false, popular: !!d.popular, prices, title: item && !copy ? 'Edit ' + item.name : 'Add menu item' });
     setErr('');
   }, [state && state.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -83,12 +86,13 @@ export function ItemEditor({ state, defaultCat, onClose }) {
     const dupe = admin.menu.find((m) => m.name.toLowerCase() === name.toLowerCase() && m.id !== f.id);
     if (dupe) { setErr('An item called “' + dupe.name + '” already exists.'); return; }
 
-    const saved = admin.upsertItem({ id: f.id, name, category: f.category, diet: f.diet, desc: f.desc.trim(), prices, available: f.available, popular: f.popular });
+    const saved = admin.upsertItem({ id: f.id, name, category: f.category, diet: f.diet, desc: f.desc.trim(), prices, available: f.available, popular: f.popular, imageId: f.imageId, image: f.image });
     onClose();
     toast('Saved “' + saved.name + '”');
   }
 
   return (
+    <>
     <div className={'modal' + (isOpen ? ' is-open' : '')} ref={ref} role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" hidden={hidden}>
       <div className="modal-backdrop" onClick={onClose} />
       {f && (
@@ -112,6 +116,19 @@ export function ItemEditor({ state, defaultCat, onClose }) {
                 <option value="mix">Mixed meat</option>
               </select>
             </label>
+          </div>
+          <div className="field">
+            <span>Photo</span>
+            <div className="item-photo">
+              {f.image
+                ? <Photo media={f.image} alt="" sizes="96px" />
+                : <span className="item-photo-empty"><Icon name="pizza" /></span>}
+              <div className="item-photo-actions">
+                <button type="button" className="btn btn-outline btn-sm" onClick={() => setPicking(true)}><Icon name="upload" /> {f.image ? 'Change photo' : 'Add photo'}</button>
+                {f.image && <button type="button" className="btn btn-link btn-sm danger" onClick={() => setF((x) => ({ ...x, imageId: null, image: null }))}>Remove</button>}
+                {!f.image && <p className="tiny muted">Without a photo the dish shows its drawing.</p>}
+              </div>
+            </div>
           </div>
           <label className="field"><span>Description</span><textarea rows="2" maxLength="140" value={f.desc} onChange={(e) => set('desc', e.target.value)} /></label>
           <div className="field">
@@ -140,7 +157,10 @@ export function ItemEditor({ state, defaultCat, onClose }) {
             <button type="submit" className="btn btn-red">Save item</button>
           </div>
         </form>
-      )}
+            )}
     </div>
+    <PhotoPicker open={picking} selected={f && f.imageId} onClose={() => setPicking(false)}
+      onPick={(m) => { setF((x) => x && { ...x, imageId: m.id, image: m }); setPicking(false); }} />
+    </>
   );
 }

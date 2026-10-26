@@ -6,18 +6,34 @@
 const { pool, tx, insertMenu } = require('./db');
 const defaults = require('./defaults');
 const validate = require('./validate');
+const media = require('./media');
 
 /* ---------- Menu ---------- */
+// `r.m_*` columns come from the joined photo (null when the dish has none).
 function toItem(r) {
   return {
     id: r.id, category: r.category, name: r.name, diet: r.diet, desc: r.description,
-    prices: r.prices, available: r.available, popular: r.popular, isPizza: validate.isPizza(r.category)
+    prices: r.prices, available: r.available, popular: r.popular, isPizza: validate.isPizza(r.category),
+    imageId: r.image_id || null,
+    image: r.m_id ? media.toMedia({
+      id: r.m_id, alt: r.m_alt, width: r.m_width, height: r.m_height, placeholder: r.m_placeholder,
+      sizes: r.m_sizes, in_gallery: r.m_in_gallery, sort_order: r.m_sort_order
+    }) : null
   };
 }
 
+const ITEM_SELECT = `SELECT i.*, m.id AS m_id, m.alt AS m_alt, m.width AS m_width, m.height AS m_height,
+  m.placeholder AS m_placeholder, m.sizes AS m_sizes, m.in_gallery AS m_in_gallery, m.sort_order AS m_sort_order
+  FROM menu_items i LEFT JOIN media m ON m.id = i.image_id`;
+
 async function listMenu(client) {
-  const { rows } = await (client || pool).query('SELECT * FROM menu_items ORDER BY sort_order, created_at');
+  const { rows } = await (client || pool).query(ITEM_SELECT + ' ORDER BY i.sort_order, i.created_at');
   return rows.map(toItem);
+}
+
+async function getItem(c, id) {
+  const { rows } = await c.query(ITEM_SELECT + ' WHERE i.id = $1', [id]);
+  return toItem(rows[0]);
 }
 
 async function upsertItem(raw) {
@@ -25,16 +41,16 @@ async function upsertItem(raw) {
   return tx(async (c) => {
     const dupe = await c.query('SELECT name FROM menu_items WHERE lower(name) = lower($1) AND id <> $2', [m.name, m.id]);
     if (dupe.rows.length) validate.fail('An item called “' + dupe.rows[0].name + '” already exists.');
-    const { rows } = await c.query(
-      `INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM menu_items))
+    if (m.imageId && !(await media.exists(m.imageId, c))) validate.fail('That photo was deleted. Choose another one.');
+    await c.query(
+      `INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, image_id, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM menu_items))
        ON CONFLICT (id) DO UPDATE SET category = EXCLUDED.category, name = EXCLUDED.name, diet = EXCLUDED.diet,
          description = EXCLUDED.description, prices = EXCLUDED.prices, available = EXCLUDED.available,
-         popular = EXCLUDED.popular, updated_at = now()
-       RETURNING *`,
-      [m.id, m.category, m.name, m.diet, m.desc, JSON.stringify(m.prices), m.available, m.popular]
+         popular = EXCLUDED.popular, image_id = EXCLUDED.image_id, updated_at = now()`,
+      [m.id, m.category, m.name, m.diet, m.desc, JSON.stringify(m.prices), m.available, m.popular, m.imageId]
     );
-    return toItem(rows[0]);
+    return getItem(c, m.id);
   });
 }
 
@@ -46,6 +62,10 @@ async function deleteItem(id) {
 async function replaceMenu(list) {
   const clean = validate.menu(list);
   return tx(async (c) => {
+    // Imports may name photos that no longer exist here: drop those links.
+    const { rows } = await c.query('SELECT id FROM media');
+    const known = new Set(rows.map((r) => r.id));
+    clean.forEach((m) => { if (m.imageId && !known.has(m.imageId)) m.imageId = null; });
     await c.query('DELETE FROM menu_items');
     await insertMenu(c, clean);
     return listMenu(c);
@@ -75,7 +95,7 @@ function resetSettings() { return saveSettings(defaults.SETTINGS); }
 // When the public content (menu or settings) last changed, for sitemap lastmod.
 async function contentUpdatedAt() {
   const { rows } = await pool.query(
-    'SELECT GREATEST((SELECT MAX(updated_at) FROM menu_items), (SELECT MAX(created_at) FROM menu_items), (SELECT updated_at FROM settings WHERE id = 1)) AS at'
+    'SELECT GREATEST((SELECT MAX(updated_at) FROM menu_items), (SELECT MAX(created_at) FROM menu_items), (SELECT updated_at FROM settings WHERE id = 1), (SELECT MAX(updated_at) FROM media)) AS at'
   );
   return rows[0].at ? new Date(rows[0].at).toISOString() : null;
 }

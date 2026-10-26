@@ -9,6 +9,7 @@ import { MenuPanel } from './MenuPanel.jsx';
 import { OrdersPanel } from './OrdersPanel.jsx';
 import { SettingsPanel } from './SettingsPanel.jsx';
 import { QrPanel } from './QrPanel.jsx';
+import { PhotosPanel } from './PhotosPanel.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { setUnauthorizedHandler } from '../shared/api.js';
@@ -17,11 +18,12 @@ const POLL_MS = 20000;
 const TABS = [
   { id: 'menu', icon: 'utensils', label: 'Menu' },
   { id: 'orders', icon: 'chart', label: 'Orders' },
+  { id: 'photos', icon: 'image', label: 'Photos' },
   { id: 'settings', icon: 'sliders', label: 'Store' },
   { id: 'qr', icon: 'qr', label: 'QR', more: ' codes' }
 ];
 
-function Login({ isDefault, error: initialError, onUnlocked }) {
+function Login({ error: initialError, onUnlocked }) {
   const admin = useAdmin();
   const [pass, setPass] = useState('');
   const [error, setError] = useState(initialError || '');
@@ -47,7 +49,6 @@ function Login({ isDefault, error: initialError, onUnlocked }) {
         <input type="password" ref={inputRef} value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Passcode" autoComplete="current-password" aria-label="Passcode" required />
         <p className="form-error" aria-live="assertive">{error}</p>
         <button type="submit" className="btn btn-red btn-block">Unlock dashboard</button>
-        <p className="tiny muted">{isDefault ? 'First time? The default passcode is “ohh2026”. You\'ll be asked to change it.' : ''}</p>
       </form>
     </main>
   );
@@ -119,6 +120,7 @@ function Dashboard({ defaultPass, onPassChanged, onLock }) {
         </div>
         <MenuPanel hidden={tab !== 'menu'} searchRef={searchRef} />
         <OrdersPanel hidden={tab !== 'orders'} live={live} flash={flash} />
+        <PhotosPanel hidden={tab !== 'photos'} />
         <SettingsPanel hidden={tab !== 'settings'} onPassChanged={onPassChanged} focusPass={focusPass} />
         <QrPanel hidden={tab !== 'qr'} />
       </div>
@@ -135,7 +137,7 @@ export function AdminApp() {
 
   useEffect(() => {
     admin.session().then(
-      (s) => setState({ phase: s.authed ? 'dashboard' : 'login', defaultPass: s.defaultPass, error: '' }),
+      (s) => setState({ phase: s.authed ? 'dashboard' : 'login', defaultPass: !!s.defaultPass, error: '' }),
       (err) => setState({ phase: 'login', defaultPass: false, error: err.message })
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -161,6 +163,6 @@ export function AdminApp() {
   };
 
   if (state.phase === 'loading') return null;
-  if (!authed) return <Login isDefault={state.defaultPass} error={state.error} onUnlocked={unlocked} />;
+  if (!authed) return <Login error={state.error} onUnlocked={unlocked} />;
   return <Dashboard defaultPass={state.defaultPass} onPassChanged={() => setState((s) => ({ ...s, defaultPass: false }))} onLock={lock} />;
 }

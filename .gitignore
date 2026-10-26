@@ -1,5 +1,40 @@
-node_modules/
-dist/
+# ---- Secrets: real settings never go in git (the *.example files do) ----
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+.npmrc
+
+# ---- Dependencies & builds ----
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# ---- Runtime data (customer orders, photos, database dumps) ----
+backend/uploads/
+uploads-backup/
+backups/
+/*.sql
+*.sql.gz
+*.dump
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+logs/
+
+# ---- OS & editor files ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# ---- Local AI-assistant settings ----
+.claude/settings.local.json

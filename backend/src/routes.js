@@ -5,6 +5,7 @@
 'use strict';
 const express = require('express');
 const models = require('./models');
+const media = require('./media');
 const auth = require('./auth');
 const defaults = require('./defaults');
 const { totals } = require('./pricing');
@@ -16,8 +17,8 @@ const admin = auth.requireAdmin;
 
 // Everything a page needs for its first render, in one request.
 router.get('/bootstrap', async (req, res) => {
-  const [menu, settings, updatedAt] = await Promise.all([models.listMenu(), models.getSettings(), models.contentUpdatedAt()]);
-  res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES }, menu, settings, updatedAt });
+  const [menu, settings, gallery, updatedAt] = await Promise.all([models.listMenu(), models.getSettings(), media.listGallery(), models.contentUpdatedAt()]);
+  res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES }, menu, settings, gallery, updatedAt });
 });
 
 /* ---------- Menu ---------- */
@@ -29,6 +30,28 @@ router.put('/menu/:id', admin, async (req, res) => {
 });
 router.delete('/menu/:id', admin, async (req, res) => {
   if (!(await models.deleteItem(req.params.id))) return res.status(404).json({ error: 'Item not found.' });
+  res.json({ ok: true });
+});
+
+/* ---------- Photos ---------- */
+// Upload: the raw image is the body (Content-Type image/*); the original
+// file name comes URL-encoded in X-File-Name.
+router.get('/media', admin, async (req, res) => res.json(await media.listAll()));
+router.post('/media', admin, limit(60, 10 * 60 * 1000, 'Too many uploads. Wait a few minutes.'),
+  express.raw({ type: 'image/*', limit: media.MAX_BYTES }),
+  async (req, res) => {
+    let name = '';
+    try { name = decodeURIComponent(req.get('x-file-name') || ''); } catch (e) { /* keep empty */ }
+    res.status(201).json(await media.create(req.body, name));
+  });
+router.put('/media/order', admin, async (req, res) => res.json(await media.reorderGallery(req.body && req.body.ids)));
+router.patch('/media/:id', admin, async (req, res) => {
+  const m = await media.update(req.params.id, req.body);
+  if (!m) return res.status(404).json({ error: 'Photo not found.' });
+  res.json(m);
+});
+router.delete('/media/:id', admin, async (req, res) => {
+  if (!(await media.remove(req.params.id))) return res.status(404).json({ error: 'Photo not found.' });
   res.json({ ok: true });
 });
 

@@ -42,7 +42,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       promo: { enabled: !!f.promo.enabled, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
     };
     const pass = f.newPass, current = f.currentPass;
-    if (pass && pass.length < 6) { toast('New passcode must be at least 6 characters', 'error'); form.newPass.focus(); return; }
+    if (pass && pass.length < 8) { toast('New passcode must be at least 8 characters', 'error'); form.newPass.focus(); return; }
     if (pass && !current) { toast('Enter your current passcode to change it', 'error'); form.currentPass.focus(); return; }
     try {
       if (pass) {
@@ -123,7 +123,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
         <fieldset>
           <legend>Security</legend>
           <label className="field"><span>Current passcode</span><input type="password" autoComplete="current-password" {...field('currentPass')} /></label>
-          <label className="field"><span>New passcode <em>(6+ characters)</em></span><input type="password" minLength="6" maxLength="128" autoComplete="new-password" {...field('newPass')} /></label>
+          <label className="field"><span>New passcode <em>(8+ characters)</em></span><input type="password" minLength="8" maxLength="128" autoComplete="new-password" {...field('newPass')} /></label>
           <p className="tiny muted"><Icon name="shield" /> Leave both blank to keep the current passcode. Changing it signs out every other device.</p>
         </fieldset>
         <div className="settings-actions">

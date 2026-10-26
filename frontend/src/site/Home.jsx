@@ -9,6 +9,7 @@ import { useSite } from './store.jsx';
 import { Link } from './router.jsx';
 import { Art, pizza, rider as riderSvg, FLOATERS } from './art.jsx';
 import { DishCard } from './Menu.jsx';
+import { Gallery } from './Gallery.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12, reducedMotion } from '../shared/format.js';
 import { faqs, meals, servicesText, hoursText } from '../shared/seo.js';
@@ -92,7 +93,8 @@ function Hero() {
       riderTl = gsap.timeline({ repeat: fast ? 0 : -1, repeatDelay: 2.2, onComplete: fast ? () => build(false) : null });
       riderTl.set(el, { x: -rw - 20 })
         .to(el, { x: w + 20, duration: dur, ease: fast ? 'power2.in' : 'power1.inOut' }, 0)
-        .to(wheels, { rotation: fast ? 1440 : 1080, duration: dur, ease: 'none' }, 0)
+        // GSAP ignores CSS transform-origin on SVG parts: spin each wheel around its own centre.
+        .to(wheels, { rotation: fast ? 1440 : 1080, transformOrigin: '50% 50%', duration: dur, ease: 'none' }, 0)
         .to(el, { y: -3, duration: 0.12, yoyo: true, repeat: Math.round(dur / 0.12), ease: 'sine.inOut' }, 0)
         .to(el.querySelector('svg'), { rotation: fast ? -6 : -2, transformOrigin: '30% 90%', duration: 0.3, yoyo: true, repeat: 1 }, 0);
     }
@@ -354,6 +356,8 @@ export function HomeView({ active }) {
           <div className="center mt"><Link to="/menu" className="btn btn-red">See the full menu</Link></div>
         </div>
       </section>
+
+      <Gallery />
 
       <section className="section section-yellow" aria-labelledby="howTitle">
         <div className="wrap">

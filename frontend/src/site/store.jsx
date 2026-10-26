@@ -27,6 +27,7 @@ export function SiteProvider({ boot, children }) {
   const { defaults } = boot;
   const [menu] = useState(boot.menu);
   const [settings] = useState(boot.settings);
+  const [gallery] = useState(boot.gallery || []);
   const [cart, setCartState] = useState(() => read(KEYS.cart, []));
   const [now, setNow] = useState(() => new Date());
 
@@ -91,7 +92,7 @@ export function SiteProvider({ boot, children }) {
     }
 
     return {
-      defaults, menu, settings, cart, now,
+      defaults, menu, settings, gallery, cart, now,
       categories: defaults.CATEGORIES,
       categoryName: (id) => { const c = defaults.CATEGORIES.find((x) => x.id === id); return c ? c.name : id; },
       getItem, cartQty, cartLines, totals, addToCart, setQty,
@@ -111,7 +112,7 @@ export function SiteProvider({ boot, children }) {
       jumpToCategory: (cat) => setMenuJump((j) => ({ cat, n: (j ? j.n : 0) + 1 })),
       clearMenuFilters: () => { setMenuQuery(''); setMenuDiet('all'); }
     };
-  }, [defaults, menu, settings, cart, now, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
+  }, [defaults, menu, settings, gallery, cart, now, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
 
   return <SiteCtx.Provider value={value}>{children}</SiteCtx.Provider>;
 }

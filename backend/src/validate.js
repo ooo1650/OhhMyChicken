@@ -67,8 +67,16 @@ function item(raw) {
   return {
     id, name, category: raw.category, diet, desc, prices,
     available: raw.available !== false,
-    popular: !!raw.popular
+    popular: !!raw.popular,
+    imageId: imageId(raw.imageId)
   };
+}
+
+// A photo from the media library, or null for none (existence is checked against the db).
+function imageId(v) {
+  if (v == null || v === '') return null;
+  if (typeof v !== 'string' || !/^[a-f0-9]{24}$/.test(v)) fail('Invalid photo.');
+  return v;
 }
 
 function menu(list) {

@@ -1,7 +1,19 @@
+# Keep secrets, local data and build junk out of the image build context.
 node_modules
 dist
-npm-debug.log
+uploads
+coverage
 .env
 .env.*
+*.pem
+*.key
+*.log
+*.sql.gz
+*.dump
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
 Dockerfile
 .dockerignore

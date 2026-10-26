@@ -46,12 +46,13 @@ app.use((req, res, next) => {
     // wa.me links open in a new tab; keep the opener isolated.
     'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
   });
-  if (!req.path.startsWith('/api/')) res.set('Content-Security-Policy', CSP);
+  if (!req.path.startsWith('/api/') && !req.path.startsWith('/media/')) res.set('Content-Security-Policy', CSP);
   next();
 });
 
 /* ---------- API proxy (streams both ways; keeps Host for the backend's Origin check) ---------- */
-app.use('/api', (req, res) => {
+// /api (JSON) and /media (photo files) both live on the backend.
+const proxy = (req, res) => {
   const headers = { ...req.headers };
   const fwd = headers['x-forwarded-for'];
   headers['x-forwarded-for'] = (fwd ? fwd + ', ' : '') + req.socket.remoteAddress;
@@ -62,7 +63,9 @@ app.use('/api', (req, res) => {
   }, (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
   up.on('error', () => { if (!res.headersSent) res.status(502).json({ error: 'The kitchen server is not answering. Please try again.' }); else res.end(); });
   req.pipe(up);
-});
+};
+app.use('/api', proxy);
+app.use('/media', proxy);
 
 app.use(compression());
 
@@ -124,7 +127,8 @@ app.use((req, res, next) => (/\.html$/i.test(req.path) ? next() : assets(req, re
 /* ---------- Pages ---------- */
 app.get(/.*/, async (req, res) => {
   // One URL per page: lowercase, no trailing slash.
-  const clean = req.path.length > 1 ? req.path.replace(/\/+$/, '').toLowerCase() : req.path;
+  // (File paths like /static/X.js keep their case: a missing one is just a 404.)
+  const clean = req.path.length > 1 && !/\.[a-z0-9]+$/i.test(req.path) ? req.path.replace(/\/+$/, '').toLowerCase() : req.path;
   if (clean !== req.path) return res.redirect(301, clean + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
 
   const b = await getBoot();

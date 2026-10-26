@@ -11,7 +11,8 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 # ---- 2. Runtime ----
 FROM node:22-alpine
 ENV NODE_ENV=production \
-    PORT=4000
+    PORT=4000 \
+    UPLOAD_DIR=/app/uploads
 WORKDIR /app
 
 # tini forwards signals so the server shuts down cleanly on `docker stop`.
@@ -21,6 +22,8 @@ RUN apk add --no-cache tini
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY src ./src
+# Photo files: the only writable folder (mount a volume here).
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
 USER node
 EXPOSE 4000

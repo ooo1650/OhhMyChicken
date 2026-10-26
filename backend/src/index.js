@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const db = require('./db');
 const routes = require('./routes');
 const { limit } = require('./limit');
+const media = require('./media');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4000;
@@ -40,7 +41,8 @@ function sameOrigin(req, res, next) {
     try { host = new URL(origin).host; } catch (e) { host = ''; }
     if (host !== req.get('host') && !ALLOWED_ORIGINS.includes(origin)) return res.status(403).json({ error: 'Cross-site request blocked.' });
   }
-  if (req.headers['content-length'] > 0 && !req.is('application/json')) return res.status(415).json({ error: 'Send JSON.' });
+  const upload = req.method === 'POST' && req.path === '/media' && req.is('image/*');
+  if (req.headers['content-length'] > 0 && !req.is('application/json') && !upload) return res.status(415).json({ error: 'Send JSON.' });
   next();
 }
 
@@ -50,6 +52,12 @@ app.use('/api',
   express.json({ limit: '1mb' }),
   (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); },
   routes);
+
+// Photos: file names are random and never reused, so they can be cached forever.
+app.use('/media', express.static(media.UPLOAD_DIR, {
+  index: false, redirect: false, dotfiles: 'deny', immutable: true, maxAge: '365d',
+  setHeaders: (res) => res.set('Content-Type', 'image/webp')
+}));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 
@@ -61,6 +69,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 });
 
 (async () => {
+  await media.ensureDir();
   await db.migrate();
   await db.seed();
   const server = app.listen(PORT, () => console.log('Ohh My Chicken! API on http://localhost:' + PORT));

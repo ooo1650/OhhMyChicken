@@ -9,6 +9,7 @@ import { useConfirm } from './confirm.jsx';
 import { ItemEditor } from './ItemEditor.jsx';
 import { Kpi } from './Kpi.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
+import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { dietLabel, PIZZA_CATEGORIES } from '../shared/format.js';
 
@@ -147,7 +148,7 @@ export function MenuPanel({ hidden, searchRef }) {
               const c = categories.find((x) => x.id === i.category) || { short: i.category, icon: '' };
               return (
                 <tr key={i.id} className={i.available ? '' : 'row-off'}>
-                  <td data-label="Item"><div className="cell-item"><span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
+                  <td data-label="Item"><div className="cell-item">{i.image ? <Photo media={i.image} alt="" sizes="40px" className="cell-thumb" /> : null}<span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
                   <td data-label="Category"><span className="cat-pill">{c.icon && <Icon name={c.icon} />}{c.short}</span></td>
                   <td data-label="Prices"><div className="price-chips">{i.prices.map((p) => <span key={p.label}><em>{p.label}</em> {admin.money(p.price)}</span>)}</div></td>
                   <td data-label="Status">
