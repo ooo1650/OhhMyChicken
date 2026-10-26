@@ -10,6 +10,10 @@ const crypto = require('crypto');
 const sharp = require('sharp');
 const { pool } = require('./db');
 const { fail } = require('./validate');
+const { createGate } = require('./limit');
+
+// Decoding a 50-megapixel photo takes ~200 MB; process one at a time.
+const processGate = createGate(1, 20);
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads'));
 const WIDTHS = [320, 640, 1024, 1600];
@@ -44,14 +48,21 @@ function toAdminMedia(r) {
 }
 
 /* ---------- Upload ---------- */
-async function create(buffer, originalName) {
+function create(buffer, originalName) {
+  return processGate.run(() => createNow(buffer, originalName));
+}
+
+async function createNow(buffer, originalName) {
   if (!Buffer.isBuffer(buffer) || !buffer.length) fail('Choose a photo to upload.');
   if (buffer.length > MAX_BYTES) fail('That photo is over 10 MB. Please use a smaller one.');
 
   let meta;
   try { meta = await sharp(buffer, { limitInputPixels: MAX_PIXELS }).metadata(); }
-  catch (e) { fail('That file is not a photo we can read. Use JPG, PNG, WebP, AVIF or HEIC.'); }
-  if (!['jpeg', 'png', 'webp', 'avif', 'heif', 'gif', 'tiff'].includes(meta.format)) fail('Use a JPG, PNG, WebP, AVIF or HEIC photo.');
+  catch (e) {
+    if (/pixel limit/i.test(e.message)) fail('That photo is too large (over 50 megapixels). Resize it first.');
+    fail('That file is not a photo we can read. Use JPG, PNG, WebP or AVIF.');
+  }
+  if (!['jpeg', 'png', 'webp', 'avif', 'heif', 'gif', 'tiff'].includes(meta.format)) fail('Use a JPG, PNG, WebP or AVIF photo.');
 
   // Width/height after EXIF rotation (orientation 5–8 swaps them).
   const rotated = meta.orientation >= 5;

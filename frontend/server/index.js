@@ -38,30 +38,46 @@ if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PRO
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
   "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; " +
   "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'";
+// HTTPS-only for a year once the site is served over https (PUBLIC_URL tells us).
+const HSTS = PUBLIC_URL.startsWith('https://') ? 'max-age=31536000; includeSubDomains' : '';
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
+    // The site never uses these; say so, so injected code couldn't either.
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
     // wa.me links open in a new tab; keep the opener isolated.
     'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
   });
+  if (HSTS) res.set('Strict-Transport-Security', HSTS);
   if (!req.path.startsWith('/api/') && !req.path.startsWith('/media/')) res.set('Content-Security-Policy', CSP);
   next();
 });
 
 /* ---------- API proxy (streams both ways; keeps Host for the backend's Origin check) ---------- */
 // /api (JSON) and /media (photo files) both live on the backend.
+// Hop-by-hop headers describe one connection; forwarding them invites request smuggling.
+const HOP = ['connection', 'keep-alive', 'proxy-connection', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade'];
 const proxy = (req, res) => {
   const headers = { ...req.headers };
+  HOP.forEach((h) => delete headers[h]);
   const fwd = headers['x-forwarded-for'];
   headers['x-forwarded-for'] = (fwd ? fwd + ', ' : '') + req.socket.remoteAddress;
   headers['x-forwarded-proto'] = req.protocol;
   const up = http.request({
     hostname: BACKEND.hostname, port: BACKEND.port || 80, method: req.method,
-    path: req.originalUrl, headers
-  }, (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
+    path: req.originalUrl, headers,
+    timeout: req.method === 'POST' && req.originalUrl.startsWith('/api/media') ? 120000 : 30000
+  }, (r) => {
+    const out = { ...r.headers };
+    HOP.forEach((h) => delete out[h]);
+    res.writeHead(r.statusCode, out);
+    r.pipe(res);
+  });
+  up.on('timeout', () => up.destroy(new Error('upstream timeout')));
   up.on('error', () => { if (!res.headersSent) res.status(502).json({ error: 'The kitchen server is not answering. Please try again.' }); else res.end(); });
+  req.on('aborted', () => up.destroy());
   req.pipe(up);
 };
 app.use('/api', proxy);
@@ -129,7 +145,9 @@ app.get(/.*/, async (req, res) => {
   // One URL per page: lowercase, no trailing slash.
   // (File paths like /static/X.js keep their case: a missing one is just a 404.)
   const clean = req.path.length > 1 && !/\.[a-z0-9]+$/i.test(req.path) ? req.path.replace(/\/+$/, '').toLowerCase() : req.path;
-  if (clean !== req.path) return res.redirect(301, clean + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
+  // Never redirect to "//host" or "/\host": browsers treat both as another site (open redirect).
+  const offSite = /^\/[\/\\]/.test(clean) || /^\/[\/\\]/.test(req.path);
+  if (clean !== req.path && !offSite) return res.redirect(301, clean + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
 
   const b = await getBoot();
   const route = resolveRoute(req.path, b ? b.defaults.CATEGORIES : []);
@@ -144,4 +162,10 @@ app.get(/.*/, async (req, res) => {
   res.status(status).set('Cache-Control', 'no-cache').type('html').send(html);
 });
 
-app.listen(PORT, () => console.log('Ohh My Chicken! frontend on http://localhost:' + PORT + ' (API: ' + BACKEND.origin + ')'));
+if (process.env.NODE_ENV === 'production' && !PUBLIC_URL) {
+  console.warn('PUBLIC_URL is not set: canonical links and the sitemap will use whatever Host header visitors send. Set PUBLIC_URL=https://your-domain.');
+}
+const server = app.listen(PORT, () => console.log('Ohh My Chicken! frontend on http://localhost:' + PORT + ' (API: ' + BACKEND.origin + ')'));
+// Drop clients that send their request very slowly (slowloris).
+server.headersTimeout = 20000;
+server.requestTimeout = 130000; // a large photo upload on a slow phone connection still fits

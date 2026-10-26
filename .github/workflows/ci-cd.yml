@@ -1,0 +1,173 @@
+# Ohh My Chicken! — test every push and pull request; deploy main to the
+# Ubuntu server over SSH once tests and the Docker build both pass.
+# Server setup and the secrets this needs: deploy/README.md
+name: CI/CD
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push cancels older runs of the same branch, except on main, where
+# a deploy must never be cut off halfway.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: omc
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: omc_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U omc -d omc_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://omc:ci-only-password@localhost:5432/omc_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No secrets or private data committed
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.[^e][^/]*$|\.(pem|key|p12|pfx)$|^backend/uploads/|^backups/|^[^/]+\.sql$'; then
+            echo "::error::A secret or private data file is tracked by git (listed above). Remove it and rotate the secret."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Backend - install
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+
+      - name: Backend - unit and API tests
+        working-directory: backend
+        run: npm test
+
+      - name: Frontend - install and build
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Start the API for the end-to-end tests
+        working-directory: backend
+        run: |
+          PORT=4000 ADMIN_PASSCODE=ci-e2e-passcode UPLOAD_DIR="$RUNNER_TEMP/uploads" node src/index.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4000/healthz && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/api.log"; exit 1
+
+      - name: Frontend - SEO, server and end-to-end tests
+        working-directory: frontend
+        env:
+          BACKEND_URL: http://127.0.0.1:4000
+        run: npm test
+
+      - name: Dependencies have no critical vulnerabilities
+        run: |
+          (cd backend && npm audit --omit=dev --audit-level=critical)
+          (cd frontend && npm audit --omit=dev --audit-level=critical)
+
+  docker:
+    name: Docker images build and run
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      POSTGRES_PASSWORD: ci-only-password
+      ADMIN_PASSCODE: ci-docker-passcode
+      PUBLIC_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start the stack (read-only containers, volumes, healthchecks)
+        run: |
+          docker compose up -d
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://127.0.0.1:3000/healthz && curl -fsS -o /dev/null http://127.0.0.1:3000/api/menu; then echo "stack is up"; exit 0; fi
+            sleep 3
+          done
+          docker compose ps; docker compose logs; exit 1
+
+      - name: Smoke test through the frontend
+        run: |
+          curl -fsS http://127.0.0.1:3000/ | grep -q '"@type":"Restaurant"'
+          curl -fsS http://127.0.0.1:3000/sitemap.xml | grep -q '/menu/chicken-pizza'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/menu/nope)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/orders)" = 401
+          # A photo upload exercises sharp inside the Alpine image and the uploads volume.
+          curl -fsS -c jar -H 'Content-Type: application/json' -d "{\"passcode\":\"$ADMIN_PASSCODE\"}" http://127.0.0.1:3000/api/admin/login
+          python3 -c "import zlib,struct;w=h=300;raw=b''.join(b'\x00'+b'\xd9\x82\x2b'*w for _ in range(h));c=lambda t,d:struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d));open('t.png','wb').write(b'\x89PNG\r\n\x1a\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b''))"
+          curl -fsS -b jar -H 'Content-Type: image/png' --data-binary @t.png http://127.0.0.1:3000/api/media | grep -q '"sizes"'
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+
+      - name: Clean up
+        if: always()
+        run: docker compose down -v
+
+  deploy:
+    name: Deploy to server
+    needs: [test, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Secrets live in this environment (Settings → Environments → production),
+    # where you can also require a manual approval before each deploy.
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH (key from secrets, pinned host key)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_PRIVATE_KEY" || { echo "::error::Secret SSH_PRIVATE_KEY is not set"; exit 1; }
+          test -n "$SSH_KNOWN_HOSTS" || { echo "::error::Secret SSH_KNOWN_HOSTS is not set (see deploy/README.md)"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Pull, rebuild and health-check on the server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          test -n "$SSH_HOST" && test -n "$SSH_USER" && test -n "$DEPLOY_PATH" || { echo "::error::Set SSH_HOST, SSH_USER and DEPLOY_PATH secrets"; exit 1; }
+          ssh -i ~/.ssh/deploy_key -p "${SSH_PORT:-22}" \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 \
+            "$SSH_USER@$SSH_HOST" \
+            "bash -s -- $(printf '%q ' "$DEPLOY_PATH" "$GITHUB_REF_NAME" "$GITHUB_SHA")" < deploy/remote-deploy.sh
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

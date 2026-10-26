@@ -52,6 +52,9 @@ services:
     tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    # A runaway process (or a flood) can't take the whole server down with it.
+    mem_limit: 768m
+    pids_limit: 200
     networks: [backend, frontend]
 
   frontend:
@@ -69,11 +72,15 @@ services:
       # Set when another proxy (Caddy, a load balancer…) sits in front.
       TRUST_PROXY: ${FRONTEND_TRUST_PROXY:-}
     ports:
-      - "${APP_PORT:-3000}:8080"
+      # On a server behind an HTTPS proxy set APP_BIND=127.0.0.1: Docker-published
+      # ports bypass ufw, so 0.0.0.0 would expose plain HTTP to the internet.
+      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-3000}:8080"
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    mem_limit: 384m
+    pids_limit: 200
     networks: [frontend]
 
 volumes:

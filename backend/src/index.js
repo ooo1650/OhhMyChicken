@@ -64,6 +64,8 @@ app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 // Errors: validation messages go back to the browser; anything else is logged.
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   if (err.status && err.status < 500) return res.status(err.status).json({ error: err.expose === false ? 'Bad request.' : err.message });
+  // Deliberate "busy" from a load gate: tell the client to retry, don't log it as a crash.
+  if (err.status === 503) return res.status(503).set('Retry-After', '5').json({ error: err.message });
   console.error(err);
   res.status(500).json({ error: 'Something went wrong on our side. Please try again.' });
 });
@@ -73,6 +75,8 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   await db.migrate();
   await db.seed();
   const server = app.listen(PORT, () => console.log('Ohh My Chicken! API on http://localhost:' + PORT));
+  server.headersTimeout = 20000;  // drop clients that send headers very slowly (slowloris)
+  server.requestTimeout = 120000; // whole request, including a 10 MB photo on a slow line
   const stop = () => server.close(() => db.pool.end().then(() => process.exit(0)));
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);

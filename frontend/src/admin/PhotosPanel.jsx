@@ -53,7 +53,7 @@ function DropZone({ onFiles, compact }) {
       <Icon name="upload" />
       <p><b>Drop photos here</b> or</p>
       <button type="button" className="btn btn-red btn-sm" onClick={() => input.current.click()}>Choose photos</button>
-      <p className="tiny muted">JPG, PNG, WebP, AVIF or HEIC, up to {MAX_MB} MB each. Landscape works best.</p>
+      <p className="tiny muted">JPG, PNG, WebP or AVIF, up to {MAX_MB} MB each (iPhone photos are converted to JPG on upload). Landscape works best.</p>
       <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
     </div>
   );

@@ -15,14 +15,33 @@ const { limit } = require('./limit');
 const router = express.Router();
 const admin = auth.requireAdmin;
 
+// Public reads (menu, settings, gallery) are the same for everyone: keep them
+// for 2 s so a flood of page loads can't turn into a flood of database queries.
+// Any successful write clears the cache.
+const cache = new Map();
+const CACHE_MS = 2000;
+function cached(key, load) {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
+  const value = load();
+  cache.set(key, { at: Date.now(), value });
+  value.catch(() => cache.delete(key));
+  return value;
+}
+router.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') res.on('finish', () => { if (res.statusCode < 400) cache.clear(); });
+  next();
+});
+
 // Everything a page needs for its first render, in one request.
 router.get('/bootstrap', async (req, res) => {
-  const [menu, settings, gallery, updatedAt] = await Promise.all([models.listMenu(), models.getSettings(), media.listGallery(), models.contentUpdatedAt()]);
+  const [menu, settings, gallery, updatedAt] = await cached('bootstrap', () =>
+    Promise.all([models.listMenu(), models.getSettings(), media.listGallery(), models.contentUpdatedAt()]));
   res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES }, menu, settings, gallery, updatedAt });
 });
 
 /* ---------- Menu ---------- */
-router.get('/menu', async (req, res) => res.json(await models.listMenu()));
+router.get('/menu', async (req, res) => res.json(await cached('menu', () => models.listMenu())));
 router.put('/menu', admin, async (req, res) => res.json(await models.replaceMenu(req.body)));
 router.post('/menu/reset', admin, async (req, res) => res.json(await models.resetMenu()));
 router.put('/menu/:id', admin, async (req, res) => {
@@ -56,7 +75,7 @@ router.delete('/media/:id', admin, async (req, res) => {
 });
 
 /* ---------- Settings ---------- */
-router.get('/settings', async (req, res) => res.json(await models.getSettings()));
+router.get('/settings', async (req, res) => res.json(await cached('settings', () => models.getSettings())));
 router.put('/settings', admin, async (req, res) => res.json(await models.saveSettings(req.body)));
 router.post('/settings/reset', admin, async (req, res) => res.json(await models.resetSettings()));
 

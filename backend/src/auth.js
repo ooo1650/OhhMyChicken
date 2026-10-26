@@ -7,7 +7,7 @@
 const crypto = require('crypto');
 const { pool } = require('./db');
 const { hashPasscode, verifyPasscode } = require('./passcode');
-const { createBucket } = require('./limit');
+const { createBucket, clientKey, createGate } = require('./limit');
 
 const TTL_MS = (Number(process.env.SESSION_TTL_HOURS) || 12) * 3600 * 1000;
 // Secure cookies by default in production. Set COOKIE_SECURE=false only when
@@ -61,19 +61,24 @@ async function status(req) {
   return { authed: true, defaultPass: !!(rows[0] && rows[0].is_default) };
 }
 
+// scrypt is slow and memory-hungry on purpose. Cap how many run at once so a
+// flood of guesses from many IPs can't starve the rest of the server.
+const hashGate = createGate(2, 40);
+
 async function checkPass(pass) {
+  if (typeof pass !== 'string' || !pass || pass.length > MAX_PASS) return false;
   const { rows } = await pool.query('SELECT pass_hash FROM admin_auth WHERE id = 1');
-  return rows.length > 0 && typeof pass === 'string' && pass.length <= MAX_PASS && verifyPasscode(pass, rows[0].pass_hash);
+  return rows.length > 0 && hashGate.run(() => verifyPasscode(pass, rows[0].pass_hash));
 }
 
 async function login(req, res) {
-  if (failures.count(req.ip) >= MAX_TRIES) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes and try again.' });
+  if (failures.count(clientKey(req.ip)) >= MAX_TRIES) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes and try again.' });
   if (!(await checkPass(req.body && req.body.passcode))) {
-    failures.hit(req.ip, MAX_TRIES);
-    const left = MAX_TRIES - failures.count(req.ip);
+    failures.hit(clientKey(req.ip), MAX_TRIES);
+    const left = MAX_TRIES - failures.count(clientKey(req.ip));
     return res.status(401).json({ error: left > 0 && left <= 3 ? 'Wrong passcode. ' + left + (left === 1 ? ' try' : ' tries') + ' left.' : 'Wrong passcode. Try again.' });
   }
-  failures.reset(req.ip);
+  failures.reset(clientKey(req.ip));
   const token = crypto.randomBytes(32).toString('hex');
   await pool.query('DELETE FROM admin_sessions WHERE expires_at < now()');
   await pool.query('INSERT INTO admin_sessions (token_hash, expires_at) VALUES ($1, $2)', [sha(token), new Date(Date.now() + TTL_MS)]);
@@ -94,9 +99,9 @@ async function changePasscode(req, res) {
   const b = req.body || {};
   const pass = typeof b.passcode === 'string' ? b.passcode : '';
   if (pass.length < MIN_PASS || pass.length > MAX_PASS) return res.status(400).json({ error: 'New passcode must be at least ' + MIN_PASS + ' characters.' });
-  if (failures.count(req.ip) >= MAX_TRIES) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes and try again.' });
+  if (failures.count(clientKey(req.ip)) >= MAX_TRIES) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes and try again.' });
   if (!(await checkPass(b.current))) {
-    failures.hit(req.ip, MAX_TRIES);
+    failures.hit(clientKey(req.ip), MAX_TRIES);
     return res.status(400).json({ error: 'Current passcode is wrong.' });
   }
   await pool.query('UPDATE admin_auth SET pass_hash = $1, is_default = false, updated_at = now() WHERE id = 1', [await hashPasscode(pass)]);

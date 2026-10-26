@@ -12,7 +12,8 @@
     "start": "node --env-file-if-exists=.env src/index.js",
     "dev": "node --env-file-if-exists=.env --watch src/index.js",
     "db:init": "node --env-file-if-exists=.env src/db.js init",
-    "db:reset": "node --env-file-if-exists=.env src/db.js reset"
+    "db:reset": "node --env-file-if-exists=.env src/db.js reset",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "express": "^5.1.0",

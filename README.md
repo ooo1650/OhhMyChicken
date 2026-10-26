@@ -108,6 +108,27 @@ Put the frontend behind a reverse proxy that terminates HTTPS (Caddy, Nginx, Clo
 6. Back up to `backups/` (git-ignored) or off the server. Dumps contain customer names, phones and addresses.
 7. Before pushing: `git status` should never list `.env`, `backups/`, `backend/uploads/` or `*.sql` dumps.
 
+## Tests and deployment (CI/CD)
+
+GitHub Actions ([.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)) runs on every push and pull request:
+
+| Job | What it checks |
+| --- | --- |
+| **Tests** | No secrets or data files tracked · backend unit tests (validation, pricing) · API tests against a real Postgres (auth, admin protection, server-side totals, CSRF blocking, photo uploads, CSV escaping) · frontend build · SEO rules (title/description limits on every page, structured data, escaping) · end-to-end through the frontend server (SEO head, 404s, admin path, proxy, caching) · `npm audit` for critical issues |
+| **Docker** | Builds both images and starts the full stack read-only, then does a smoke test, including a photo upload (sharp on Alpine) |
+| **Deploy** | Only for pushes to `main`, after both pass: SSH to the Ubuntu server (key and pinned host key from GitHub secrets), `git pull` the tested commit, `docker compose up -d --build`, health check, automatic rollback if unhealthy |
+
+Server setup and the secrets to add: [deploy/README.md](deploy/README.md).
+
+Run the tests locally:
+
+```bash
+cd backend  && DATABASE_URL=postgres://user:pass@localhost:5432/empty_test_db npm test
+cd frontend && npm run build && BACKEND_URL=http://localhost:4000 npm test
+```
+
+Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped, and the rest still run. Use an empty, throwaway database: the API tests write orders and change settings.
+
 ## Features
 
 | Area | What it does |
@@ -119,7 +140,7 @@ Put the frontend behind a reverse proxy that terminates HTTPS (Caddy, Nginx, Clo
 | **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per device), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
 | **Chatbot "Chicky"** | Built-in knowledge base covering greetings, opening hours with live open/closed status, size advice ("size for 12 people"), diet options, MoMo, prices for any dish (with add-to-cart buttons), delivery, ordering, deals and contact details. It reads the live menu, so Admin edits show up right away. |
 | **Staff dashboard** (`/admin/`) | Separate page with its own login screen, and a warning until the default passcode is changed. **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and passcode. **Orders**: live list (checks every 20 s, with a "new order" alert and a badge on the tab), status workflow *New → Preparing → Out for delivery → Done / Cancelled*, open/done/cancelled filters, tap-to-call phone numbers, KPIs, top sellers, and CSV export for Excel/Sheets. **QR codes**: a scannable code that opens the menu, with an optional table number; print a sheet of branded stickers or download a PNG. The offer pop-up can be previewed on the live site (`/?offer=1`). |
-| **Photos** | Dashboard → **Photos**: drag-and-drop or pick several photos at once (JPG, PNG, WebP, AVIF, HEIC, up to 10 MB). Each is checked as a real image, turned upright, stripped of EXIF/GPS data and saved as WebP in up to four widths (320–1600 px) with a blurred preview. Write a description per photo (used as alt text and in Google's data), tick **Gallery** to show it in the home-page gallery (with a lightbox) and reorder it there, and see which dishes use it. Add a photo to a dish from **Menu → Edit → Add photo**; dishes without one keep their drawing. Deleting a photo unlinks it from its dishes. |
+| **Photos** | Dashboard → **Photos**: drag-and-drop or pick several photos at once (JPG, PNG, WebP, AVIF, up to 10 MB; iPhones convert their HEIC photos to JPG when uploading from the browser). Each is checked as a real image, turned upright, stripped of EXIF/GPS data and saved as WebP in up to four widths (320–1600 px) with a blurred preview. Write a description per photo (used as alt text and in Google's data), tick **Gallery** to show it in the home-page gallery (with a lightbox) and reorder it there, and see which dishes use it. Add a photo to a dish from **Menu → Edit → Add photo**; dishes without one keep their drawing. Deleting a photo unlinks it from its dishes. |
 
 In development the admin passcode defaults to **`ohh2026`**. That default is public, so production (`NODE_ENV=production`, as in Docker) refuses to start until `ADMIN_PASSCODE` is set. Change the passcode under *Store → Security*: you'll need the current one, the new one must be 8+ characters, and every other device is signed out. The login page never reveals whether the default is still in use.
 
@@ -155,8 +176,12 @@ No meta keywords tag: Google and Bing ignore it.
 - **The dashboard is a separate app** served only at `ADMIN_PATH`, with `X-Robots-Tag: noindex` and `Cache-Control: no-store`. The customer site ships none of its markup, code or styles.
 - **Every write endpoint** requires a session, a JSON body and a same-origin `Origin` header, which blocks cross-site request forgery.
 - **Inputs are validated on the server** (menu items, settings, orders). Order totals and discounts are recalculated server-side, so a tampered browser can't change prices.
-- **Headers**: the frontend server sends a strict Content-Security-Policy for the pages (scripts only from this origin; GSAP and the QR library are bundled, no CDN), `X-Frame-Options`, `nosniff` and `Referrer-Policy`. The API adds Helmet's headers with `default-src 'none'`, and HSTS in production.
-- **Rate limits**: 300 API requests/min per IP, 20 orders per 10 min per IP, plus the login lockout.
+- **Headers**: the frontend server sends HSTS (when `PUBLIC_URL` is https), a `Permissions-Policy` that turns off camera, microphone and location, and a strict Content-Security-Policy for the pages (scripts only from this origin; GSAP and the QR library are bundled, no CDN), `X-Frame-Options`, `nosniff` and `Referrer-Policy`. The API adds Helmet's headers with `default-src 'none'`, and HSTS in production.
+- **Rate limits**: 300 API requests/min per client, 20 orders per 10 min, 60 photo uploads per 10 min, 30 login attempts per 15 min, and a 15-minute lockout after 8 wrong passcodes. A client is one IPv4 address or one IPv6 /64, so rotating IPv6 addresses doesn't get around it. Faked `X-Forwarded-For` headers are ignored, since only the configured proxy hops are trusted.
+- **Flood protection**: at most 2 passcode checks run at once (40 queued; more get a quick `503 busy`), so a many-IP guessing flood can't starve the server. Photos are processed one at a time. Public menu data is cached for 2 s, so page-load floods don't reach the database. Slow-sending clients (slowloris) are disconnected, and proxied requests time out. Containers have memory and process limits.
+- **Size limits**: JSON bodies 1 MB, photos 10 MB and 50 megapixels (refusing image "bombs" that are tiny files but huge in memory), URLs and headers 16 KB. SVG and other non-photo formats are refused. Order fields are trimmed (name 80, address 200), up to 50 lines, quantity 1–99.
+- **No open redirects**: the clean-URL redirect never sends visitors to `//other-site` or `/\other-site`.
+- **Restaurant Wi-Fi note**: everyone on one Wi-Fi shares a public IP. 20 orders per 10 minutes per IP is plenty for table ordering; raise it in `backend/src/routes.js` if a busy dining room ever hits it.
 - **CSV export** escapes cells starting with `=`, `+`, `-` or `@` so a customer's name can't inject a spreadsheet formula.
 - **Docker**: non-root users, read-only filesystems, all capabilities dropped. Only the frontend is published; the API and database sit on internal networks.
 
@@ -172,6 +197,8 @@ Only the cart and the per-device "promo used" / "pop-up seen" flags stay in the 
 
 ```
 docker-compose.yml        db + backend + frontend
+.github/workflows/        CI/CD: tests, Docker build, deploy over SSH
+deploy/                   server setup guide + remote-deploy.sh (pull, rebuild, health check, rollback)
 .env.example              settings for docker compose
 
 backend/                  Express JSON API (own Dockerfile, port 4000)
@@ -187,11 +214,13 @@ backend/                  Express JSON API (own Dockerfile, port 4000)
   src/db.js               pool, migrations, seeding, db:init / db:reset CLI
   src/schema.sql          tables (idempotent; upgrades existing databases)
   src/defaults.js         default menu, categories, sizes, settings
+  test/                   unit tests + API tests (node --test)
 
 frontend/                 React app + SEO page server (own Dockerfile, port 8080)
   index.html, admin.html  the two pages (customer site, staff dashboard)
   vite.config.js          two entry points, dev proxy for /api
   server/index.js         serves the build, renders SEO <head> + inlined data, sitemap, robots, 404s, /api proxy
+  test/                   SEO unit tests + frontend-server end-to-end tests
   public/assets/          favicon, icon sprite, social preview image, app icons
   public/site.webmanifest web app manifest
   src/styles/             styles.css (brand, layout, components), admin.css (dashboard)

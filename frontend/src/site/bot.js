@@ -7,6 +7,7 @@ import { esc, fmt12 } from '../shared/format.js';
 import { dietMarkHtml, iconHtml } from '../shared/Icon.jsx';
 
 export function makeBot(site) {
+  const money = (n) => esc(site.money(n));
   const S = () => site.settings;
   function hoursText() { return fmt12(S().hoursOpen) + ' – ' + fmt12(S().hoursClose); }
   function openText() { return site.isOpen ? 'We\'re <b>open right now</b>!' : 'We\'re <b>closed right now</b> — see you at ' + fmt12(S().hoursOpen) + '.'; }
@@ -16,7 +17,7 @@ export function makeBot(site) {
   }
   function list(items) {
     return '<ul class="bot-list">' + items.map(function (i) {
-      return '<li>' + dietMarkHtml(i.diet) + ' ' + esc(i.name) + ' <span>from ' + site.money(Math.min.apply(null, i.prices.map(function (p) { return +p.price; }))) + '</span></li>';
+      return '<li>' + dietMarkHtml(i.diet) + ' ' + esc(i.name) + ' <span>from ' + money(Math.min.apply(null, i.prices.map(function (p) { return +p.price; }))) + '</span></li>';
     }).join('') + '</ul>';
   }
   function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9"\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
@@ -95,7 +96,7 @@ export function makeBot(site) {
     { id: 'delivery', words: ['deliver', 'delivery', 'how long', 'fee', 'charge', 'area', 'shipping', 'rider', 'eta', 'fast'],
       reply: function () {
         let s = S();
-        return { html: 'We deliver hot in about <b>' + s.deliveryMins + ' minutes</b>.<br>Delivery fee: <b>' + site.money(s.deliveryFee) + '</b> — <b>FREE</b> on orders over ' + site.money(s.freeDeliveryOver) + '.<br>Call <a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a> to check if we reach your area.' };
+        return { html: 'We deliver hot in about <b>' + s.deliveryMins + ' minutes</b>.<br>Delivery fee: <b>' + money(s.deliveryFee) + '</b> — <b>FREE</b> on orders over ' + money(s.freeDeliveryOver) + '.<br>Call <a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a> to check if we reach your area.' };
       } },
     { id: 'order', words: ['order', 'buy', 'checkout', 'cart', 'purchase', 'book', 'place'],
       reply: function () {
@@ -137,7 +138,7 @@ export function makeBot(site) {
       if (!item.available) return { html: '<b>' + esc(item.name) + '</b> is sold out right now. Can I suggest something similar?' };
       return {
         html: dietMarkHtml(item.diet) + ' <b>' + esc(item.name) + '</b>' + (item.desc ? '<br><small>' + esc(item.desc) + '</small>' : '') +
-              '<ul class="bot-list">' + item.prices.map(function (p) { return '<li>' + esc(p.label) + ' <span>' + site.money(p.price) + '</span></li>'; }).join('') + '</ul>',
+              '<ul class="bot-list">' + item.prices.map(function (p) { return '<li>' + esc(p.label) + ' <span>' + money(p.price) + '</span></li>'; }).join('') + '</ul>',
         actions: item.prices.slice(-2).map(function (p) { return { label: 'Add ' + p.label, act: 'add:' + item.id + ':' + p.label }; })
       };
     }

@@ -27,7 +27,7 @@ export function uploadImage(path, file) {
     method: 'POST',
     headers: {
       Accept: 'application/json',
-      // Some systems give HEIC files no type; the server checks the bytes anyway.
+      // Some systems give photo files no type; the server checks the bytes anyway.
       'Content-Type': /^image\//.test(file.type) ? file.type : 'image/unknown',
       'X-File-Name': encodeURIComponent(file.name || '')
     },
