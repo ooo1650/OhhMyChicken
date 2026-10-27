@@ -96,7 +96,7 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 
 ### Going live
 
-Put the frontend behind a reverse proxy that terminates HTTPS (Caddy, Nginx, Cloudflare, or your host's built-in TLS). Set `PUBLIC_URL` to your https address, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2` (your proxy + the frontend server). With Caddy it's one line: `your-domain.com { reverse_proxy localhost:3000 }`. The proxy must pass the original `Host` header (Caddy does by default).
+Put the frontend behind a reverse proxy that terminates HTTPS. A tested Nginx config with edge rate limits is in [deploy/nginx/ohhmychicken.conf](deploy/nginx/ohhmychicken.conf), with setup in [deploy/README.md](deploy/README.md) step 4. Caddy or Cloudflare also work. Set `PUBLIC_URL` to your https address, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2` (your proxy + the frontend server). With Caddy it's one line: `your-domain.com { reverse_proxy localhost:3000 }`. The proxy must pass the original `Host` header (Caddy does by default).
 
 ### Deployment checklist (no leaks)
 
@@ -116,7 +116,7 @@ GitHub Actions ([.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)) runs
 | --- | --- |
 | **Tests** | No secrets or data files tracked · backend unit tests (validation, pricing) · API tests against a real Postgres (auth, admin protection, server-side totals, CSRF blocking, photo uploads, CSV escaping) · frontend build · SEO rules (title/description limits on every page, structured data, escaping) · end-to-end through the frontend server (SEO head, 404s, admin path, proxy, caching) · `npm audit` for critical issues |
 | **Docker** | Builds both images and starts the full stack read-only, then does a smoke test, including a photo upload (sharp on Alpine) |
-| **Deploy** | Only for pushes to `main`, after both pass: SSH to the Ubuntu server (key and pinned host key from GitHub secrets), `git pull` the tested commit, `docker compose up -d --build`, health check, automatic rollback if unhealthy |
+| **Deploy** | Only for pushes to `main`, after both pass, and once the `DEPLOY_MODE` variable is set. `runner`: a self-hosted runner on a private VM deploys locally. `ssh`: GitHub logs in with a key and pinned host key from secrets. Either way: `git pull` the tested commit, `docker compose up -d --build`, health check, automatic rollback if unhealthy |
 
 Server setup and the secrets to add: [deploy/README.md](deploy/README.md).
 
@@ -199,6 +199,7 @@ Only the cart and the per-device "promo used" / "pop-up seen" flags stay in the 
 docker-compose.yml        db + backend + frontend
 .github/workflows/        CI/CD: tests, Docker build, deploy over SSH
 deploy/                   server setup guide + remote-deploy.sh (pull, rebuild, health check, rollback)
+  nginx/ohhmychicken.conf Nginx reverse proxy: HTTPS (Certbot), edge rate limits, upload size, real client IP
 .env.example              settings for docker compose
 
 backend/                  Express JSON API (own Dockerfile, port 4000)

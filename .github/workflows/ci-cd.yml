@@ -128,11 +128,17 @@ jobs:
         if: always()
         run: docker compose down -v
 
+  # Two ways to reach the server, picked by the repository variable DEPLOY_MODE
+  # (Settings → Secrets and variables → Actions → Variables):
+  #   runner  a self-hosted runner ON the server pulls and deploys locally.
+  #           Works for a VM on a private network; no secrets needed.
+  #   ssh     a GitHub-hosted runner SSHes in (server reachable from the internet).
+  # Unset = deploy skipped (tests still run). See deploy/README.md.
   deploy:
     name: Deploy to server
     needs: [test, docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (vars.DEPLOY_MODE == 'runner' || vars.DEPLOY_MODE == 'ssh')
+    runs-on: ${{ vars.DEPLOY_MODE == 'ssh' && 'ubuntu-latest' || fromJSON('["self-hosted", "linux", "omc-deploy"]') }}
     timeout-minutes: 20
     # Secrets live in this environment (Settings → Environments → production),
     # where you can also require a manual approval before each deploy.
@@ -140,10 +146,21 @@ jobs:
     concurrency:
       group: deploy-production
       cancel-in-progress: false
+    env:
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || secrets.DEPLOY_PATH }}
     steps:
       - uses: actions/checkout@v4
 
+      # ---------- runner mode: the job runs on the server itself ----------
+      - name: Pull, rebuild and health-check (on this server)
+        if: vars.DEPLOY_MODE == 'runner'
+        run: |
+          test -n "$DEPLOY_PATH" || { echo "::error::Set the DEPLOY_PATH variable, e.g. /srv/ohhmychicken"; exit 1; }
+          bash deploy/remote-deploy.sh "$DEPLOY_PATH" "$GITHUB_REF_NAME" "$GITHUB_SHA"
+
+      # ---------- ssh mode: log in from GitHub's cloud ----------
       - name: Set up SSH (key from secrets, pinned host key)
+        if: vars.DEPLOY_MODE == 'ssh'
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
@@ -155,19 +172,19 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
-      - name: Pull, rebuild and health-check on the server
+      - name: Pull, rebuild and health-check (over SSH)
+        if: vars.DEPLOY_MODE == 'ssh'
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
-          test -n "$SSH_HOST" && test -n "$SSH_USER" && test -n "$DEPLOY_PATH" || { echo "::error::Set SSH_HOST, SSH_USER and DEPLOY_PATH secrets"; exit 1; }
+          test -n "$SSH_HOST" && test -n "$SSH_USER" && test -n "$DEPLOY_PATH" || { echo "::error::Set SSH_HOST, SSH_USER and DEPLOY_PATH"; exit 1; }
           ssh -i ~/.ssh/deploy_key -p "${SSH_PORT:-22}" \
             -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=30 \
             "$SSH_USER@$SSH_HOST" \
             "bash -s -- $(printf '%q ' "$DEPLOY_PATH" "$GITHUB_REF_NAME" "$GITHUB_SHA")" < deploy/remote-deploy.sh
 
       - name: Remove the SSH key
-        if: always()
+        if: always() && vars.DEPLOY_MODE == 'ssh'
         run: rm -f ~/.ssh/deploy_key

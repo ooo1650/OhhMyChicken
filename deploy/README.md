@@ -14,6 +14,14 @@ push ─► Tests ─┐            (unit + API tests on Postgres, build, end-to
 
 The server pulls the code itself, and secrets stay on the server: `.env` never goes through GitHub.
 
+**Two ways to reach the server.** Set the repository *variable* `DEPLOY_MODE` (Settings → Secrets and variables → Actions → **Variables**):
+
+| `DEPLOY_MODE` | Use when | Needs |
+| --- | --- | --- |
+| `runner` | The server is a VM on a **private network** (not reachable from the internet) | A self-hosted runner on the server (step 5a). No secrets. |
+| `ssh` | The server has a public IP / hostname | The SSH secrets (steps 5b and 6) |
+| *(unset)* | Not set up yet | Nothing. Tests run; the deploy is skipped. |
+
 ## 1. Prepare the server (once)
 
 Ubuntu 22.04 or 24.04, as a user with `sudo`.
@@ -33,7 +41,7 @@ sudo usermod -aG docker deploy      # note: docker access is root-equivalent; us
 sudo mkdir -p /srv/ohhmychicken && sudo chown deploy:deploy /srv/ohhmychicken
 
 # Firewall: SSH and HTTPS only (the app port stays on localhost, see APP_BIND)
-sudo ufw allow OpenSSH && sudo ufw allow 80,443/tcp && sudo ufw enable
+sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable   # 'Nginx Full' = ports 80 + 443 (after installing nginx in step 4; or: ufw allow 80,443/tcp)
 ```
 
 ## 2. Let the server pull the repository
@@ -81,7 +89,9 @@ Set at least:
 | `PUBLIC_URL` | `https://your-domain.com` |
 | `APP_BIND` | `127.0.0.1` (only the HTTPS proxy may reach the app) |
 | `ADMIN_PATH` | Something unguessable, e.g. `staff-7f3k` |
-| `FRONTEND_TRUST_PROXY` / `TRUST_PROXY` | `1` / `2` when Caddy or Nginx is in front |
+| `FRONTEND_TRUST_PROXY` / `TRUST_PROXY` | `1` / `2` when Nginx (step 4) is in front |
+
+**Private VM reached over the LAN, no domain or HTTPS yet:** use `PUBLIC_URL=http://<vm-ip>:3000`, `APP_BIND=0.0.0.0` (so other machines on the LAN can reach it) and `COOKIE_SECURE=false` (otherwise browsers drop the admin login cookie over plain HTTP). Or put Nginx in front even on the LAN (end of step 4), which adds the edge rate limits. Switch to the HTTPS settings before it faces the internet.
 
 First start, by hand, to see that everything works:
 
@@ -90,19 +100,86 @@ docker compose up -d --build
 curl -fsS http://127.0.0.1:3000/healthz && curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/menu
 ```
 
-## 4. HTTPS in front
+## 4. Nginx in front (HTTPS, edge rate limits)
 
-[Caddy](https://caddyserver.com/docs/install#debian-ubuntu-raspbian) gets and renews certificates by itself. `/etc/caddy/Caddyfile`:
+The ready-made config is [deploy/nginx/ohhmychicken.conf](nginx/ohhmychicken.conf). It's tested in front of this app, and it:
 
+- Passes the original `Host` (port included), so logins and orders aren't refused as "cross-site".
+- **Replaces** `X-Forwarded-For` with the visitor's real IP, so nobody can fake their address past the rate limits.
+- Rate-limits at the edge: pages 20/s, API 10/s and staff login 6/min per IP, plus 40 connections per IP. Excess gets `429` before reaching Node.
+- Allows 12 MB bodies only on the photo upload endpoint, and 1 MB everywhere else. It buffers uploads, so slow phones don't tie up the app.
+- Drops slow-header (slowloris) clients, hides the Nginx version, and redirects `www` to the bare domain (one canonical URL for SEO).
+
+**Install** (on the server):
+
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx
+
+sudo cp /srv/ohhmychicken/deploy/nginx/ohhmychicken.conf /etc/nginx/sites-available/ohhmychicken
+sudo sed -i 's/example\.com/your-domain.com/g' /etc/nginx/sites-available/ohhmychicken   # your real domain
+sudo ln -s /etc/nginx/sites-available/ohhmychicken /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
 ```
-your-domain.com {
-  reverse_proxy 127.0.0.1:3000
-}
+
+Point your domain's DNS **A record** (and `www`) at the server, then get a free HTTPS certificate. Certbot adds the 443 listener, the http→https redirect and automatic renewal:
+
+```bash
+sudo certbot --nginx -d your-domain.com -d www.your-domain.com --redirect
+sudo certbot renew --dry-run      # renewal works
 ```
 
-`sudo systemctl reload caddy`, and point your domain's DNS A record at the server.
+**`.env` to match**, then `docker compose up -d`:
 
-## 5. A key for GitHub Actions to log in
+| Variable | Value | Why |
+| --- | --- | --- |
+| `APP_BIND` | `127.0.0.1` | Only Nginx can reach the app. Docker ports bypass `ufw`, so `0.0.0.0` would expose plain HTTP. |
+| `PUBLIC_URL` | `https://your-domain.com` | Canonical links, sitemap, HSTS |
+| `FRONTEND_TRUST_PROXY` | `1` | One proxy (Nginx) in front of the frontend server |
+| `TRUST_PROXY` | `2` | Nginx + the frontend server in front of the backend |
+| `COOKIE_SECURE` | *(empty)* | Secure cookies, since the site is HTTPS |
+
+**Check:**
+
+```bash
+curl -sI https://your-domain.com | grep -iE '^(HTTP|strict-transport|server)'   # 200, HSTS, "Server: nginx" with no version
+curl -s -o /dev/null -w '%{http_code}\n' http://your-domain.com                 # 301 to https
+curl -s -o /dev/null -w '%{http_code}\n' http://SERVER-IP:3000                  # must NOT connect (APP_BIND=127.0.0.1)
+```
+
+**Private VM on your LAN, no domain yet:** use the same file with `server_name _;`, delete the `www` server block and skip Certbot. In `.env` set `PUBLIC_URL=http://<vm-ip>`, `COOKIE_SECURE=false`, `APP_BIND=127.0.0.1`, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2`. Browse to `http://<vm-ip>` (port 80).
+
+**Prefer Caddy?** It's simpler (automatic HTTPS, no Certbot) but has no edge rate limits. Use `your-domain.com { reverse_proxy 127.0.0.1:3000 }` in `/etc/caddy/Caddyfile`, with the same `.env` values.
+
+## 5a. Private VM: install a self-hosted runner (`DEPLOY_MODE=runner`)
+
+The runner is GitHub's small agent. It connects **out** to GitHub, waits for the deploy job and runs it on the VM. No open ports, no SSH keys.
+
+> **Your repository is public.** Anyone can open a pull request, and a pull request can change the workflow to run on your runner, which means running their code on your VM. Before installing the runner, either **make the repository private** (Settings → General → Danger Zone → Change visibility), or set **Settings → Actions → General → Fork pull request workflows → "Require approval for all outside collaborators"** and never approve runs on strangers' pull requests.
+
+1. GitHub → repo → **Settings → Actions → Runners → New self-hosted runner → Linux**. GitHub shows download and `config.sh` commands with a one-time token.
+2. On the VM, as the `deploy` user (it's in the `docker` group and owns the clone):
+
+   ```bash
+   sudo -iu deploy
+   mkdir -p ~/actions-runner && cd ~/actions-runner
+   # paste GitHub's "Download" commands here (curl … && tar xzf …)
+   ./config.sh --url https://github.com/ooo1650/OhhMyChicken --token <TOKEN-FROM-GITHUB> \
+     --name omc-vm --labels omc-deploy --unattended
+   exit
+   sudo /home/deploy/actions-runner/svc.sh install deploy   # run as a service, as the deploy user
+   sudo /home/deploy/actions-runner/svc.sh start
+   ```
+
+   The `omc-deploy` label is what the workflow looks for.
+3. GitHub → Settings → Secrets and variables → Actions → **Variables**:
+   - `DEPLOY_MODE` = `runner`
+   - `DEPLOY_PATH` = `/srv/ohhmychicken`
+4. The runner should show as **Idle** under Settings → Actions → Runners. Push to `main` and the deploy job runs on the VM.
+
+The runner needs outbound HTTPS to github.com, and it pulls through the same clone and deploy key as step 2. Skip 5b and 6 entirely.
+
+## 5b. Public server: a key for GitHub Actions to log in (`DEPLOY_MODE=ssh`)
 
 On **your computer** (not the server), make a key used only for deployments:
 
@@ -128,7 +205,7 @@ ssh-keygen -lf known_hosts_line                      # fingerprint seen from out
 # on the server, it must match:  ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 ```
 
-## 6. GitHub secrets
+## 6. GitHub secrets (only for `DEPLOY_MODE=ssh`)
 
 GitHub → repo → **Settings → Environments → New environment → `production`**. Optionally add yourself under *Required reviewers* to approve each deploy. Add these **environment secrets**:
 
@@ -139,7 +216,9 @@ GitHub → repo → **Settings → Environments → New environment → `product
 | `SSH_HOST` | Server IP or hostname |
 | `SSH_USER` | `deploy` |
 | `SSH_PORT` | Only if SSH isn't on 22 |
-| `DEPLOY_PATH` | `/srv/ohhmychicken` |
+| `DEPLOY_PATH` | `/srv/ohhmychicken` (or set it as a *variable* instead) |
+
+Also set the variable `DEPLOY_MODE` = `ssh`.
 
 Then delete `omc_actions` and `known_hosts_line` from your computer, or keep them in a password manager. Never commit them.
 

@@ -97,35 +97,71 @@ function pizza(o) {
   '</svg>';
 }
 
+/**
+ * Delivery rider (240×150). Moving parts are named groups for the animation:
+ * .speed lines, .puff exhaust, .rider-body (bounces on its suspension),
+ * .box (the delivery box wobbles), .scarf, .beam (headlight) and the two
+ * .wheel groups, which spin around their own axles: WHEELS gives the centres.
+ */
+const WHEELS = { back: [70, 124], front: [186, 124] };
+const wheel = (cls, cx, cy) =>
+  '<g class="wheel ' + cls + '" style="transform-origin:' + cx + 'px ' + cy + 'px">' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="18" fill="#121212"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="15" fill="none" stroke="#3a3a3a" stroke-width="2"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="9.5" fill="#E8E8E8" stroke="#121212" stroke-width="2"/>' +
+    '<path d="M' + cx + ' ' + (cy - 8) + 'V' + (cy + 8) + 'M' + (cx - 8) + ' ' + cy + 'H' + (cx + 8) +
+      'M' + (cx - 5.7) + ' ' + (cy - 5.7) + 'l11.4 11.4M' + (cx + 5.7) + ' ' + (cy - 5.7) + 'l-11.4 11.4" stroke="#9a9a9a" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="#E50914" stroke="#121212" stroke-width="1.5"/>' +
+    // a light dash on the tyre makes the spin visible
+    '<path d="M' + (cx - 6) + ' ' + (cy - 15.5) + 'a16 16 0 0 1 12 0" stroke="#666" stroke-width="2" stroke-linecap="round" fill="none"/>' +
+  '</g>';
+
 function rider() {
-  return '<svg viewBox="0 0 220 150" aria-hidden="true" focusable="false">' +
-    // speed lines
+  const INK = '#121212';
+  return '<svg viewBox="0 0 240 150" aria-hidden="true" focusable="false">' +
+    // speed lines + headlight beam (behind everything)
     '<g class="speed" stroke="#FFC72C" stroke-width="5" stroke-linecap="round">' +
-      '<line x1="0" y1="70" x2="32" y2="70"/><line x1="8" y1="92" x2="46" y2="92"/><line x1="2" y1="114" x2="28" y2="114"/></g>' +
-    // pizza box stack
-    '<g transform="translate(40 18)">' +
-      '<rect x="0" y="48" width="66" height="16" rx="3" fill="#FFFFFF" stroke="#121212" stroke-width="3"/>' +
-      '<rect x="4" y="30" width="66" height="16" rx="3" fill="#FFC72C" stroke="#121212" stroke-width="3"/>' +
-      '<rect x="-2" y="12" width="66" height="16" rx="3" fill="#E50914" stroke="#121212" stroke-width="3"/>' +
-      '<rect x="6" y="-6" width="66" height="16" rx="3" fill="#FFFFFF" stroke="#121212" stroke-width="3"/>' +
-      '<text x="35" y="25" font-family="Lilita One, sans-serif" font-size="11" fill="#fff" text-anchor="middle">OMC!</text>' +
-      '<text x="37" y="43" font-family="Lilita One, sans-serif" font-size="10" fill="#121212" text-anchor="middle">22"</text>' +
+      '<line x1="2" y1="78" x2="30" y2="78"/><line x1="10" y1="98" x2="44" y2="98"/><line x1="4" y1="118" x2="26" y2="118"/></g>' +
+    '<path class="beam" d="M190 57 L240 42 L240 76 Z" fill="#FFF2A8" opacity=".3"/>' +
+    // exhaust puffs
+    '<g fill="#E6E6E6" stroke="' + INK + '" stroke-width="2">' +
+      '<circle class="puff" cx="42" cy="116" r="5"/><circle class="puff" cx="42" cy="116" r="5"/><circle class="puff" cx="42" cy="116" r="5"/></g>' +
+    '<g class="rider-body">' +
+      // delivery box on the rear rack
+      '<path d="M34 83 H90" stroke="' + INK + '" stroke-width="4" stroke-linecap="round"/>' +
+      '<g class="box">' +
+        '<rect x="30" y="38" width="56" height="44" rx="7" fill="#E50914" stroke="' + INK + '" stroke-width="3"/>' +
+        '<rect x="27" y="32" width="62" height="11" rx="5" fill="#B3121B" stroke="' + INK + '" stroke-width="3"/>' +
+        '<rect x="36" y="52" width="44" height="17" rx="4" fill="#FFC72C" stroke="' + INK + '" stroke-width="2.5"/>' +
+        '<text x="58" y="65.5" font-family="Lilita One, Impact, sans-serif" font-size="13" fill="' + INK + '" text-anchor="middle">OMC!</text>' +
+      '</g>' +
+      // scooter: rear fairing, floor, leg shield, front fender
+      '<path d="M46 116 C44 97 58 87 78 87 L126 87 C138 87 143 96 143 106 L147 112 L158 112 L166 71 C167 64 172 60 179 62 L183 64 L177 100 C191 100 203 108 205 118 L46 118 Z" fill="#E50914" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M60 100 C66 94 78 92 92 93" stroke="#FF6B6B" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+      '<path d="M150 116 H198" stroke="#B3121B" stroke-width="2" stroke-linecap="round"/>' +
+      // seat
+      '<path d="M76 87 C75 79 82 76 92 76 L124 76 C132 76 135 81 133 87 Z" fill="#2B2B2B" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
+      // handlebar stem, bar, headlight
+      '<path d="M179 63 L175 47" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M165 47 L186 44" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/>' +
+      '<circle cx="187" cy="57" r="6" fill="#FFF7B0" stroke="' + INK + '" stroke-width="2.5"/>' +
+      // rider: leg (outlined), body, arm, head
+      '<path d="M108 82 L138 86 L151 110" stroke="' + INK + '" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+      '<path d="M108 82 L138 86 L151 110" stroke="#2F3A55" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+      '<path d="M146 112 h12 a3 3 0 0 0 0-6 h-8 z" fill="' + INK + '"/>' +
+      '<path class="scarf" d="M106 47 C96 44 86 41 74 45 C83 49 92 53 105 52 Z" fill="#E50914" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="M97 84 C93 68 97 52 111 47 C124 44 133 52 133 64 L129 84 Z" fill="#FFC72C" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M112 60 L126 60" stroke="#E5A800" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M121 57 Q145 68 166 48" stroke="' + INK + '" stroke-width="11" stroke-linecap="round" fill="none"/>' +
+      '<path d="M121 57 Q145 68 166 48" stroke="#FFC72C" stroke-width="6" stroke-linecap="round" fill="none"/>' +
+      '<circle cx="167" cy="47" r="4.5" fill="#F2C29B" stroke="' + INK + '" stroke-width="2"/>' +
+      '<circle cx="114" cy="33" r="15" fill="#E50914" stroke="' + INK + '" stroke-width="3"/>' +
+      '<path d="M117 27 C126 27 130 32 129 39 L116 39 Z" fill="#8FD3FF" stroke="' + INK + '" stroke-width="2.5" stroke-linejoin="round"/>' +
+      '<path d="M120 29.5 L125 29.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M101 30 C103 22 110 19 118 20" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/>' +
     '</g>' +
-    // scooter body
-    '<path d="M44 112 L 120 112 C 130 92 150 84 168 86 L 178 64 L 186 64 L 178 92 C 190 96 196 106 196 116 L 44 120 Z" fill="#E50914" stroke="#121212" stroke-width="3" stroke-linejoin="round"/>' +
-    '<rect x="40" y="84" width="72" height="16" rx="5" fill="#121212"/>' +
-    '<path d="M176 62 L 192 58" stroke="#121212" stroke-width="5" stroke-linecap="round"/>' +
-    '<circle cx="194" cy="74" r="5" fill="#FFF7B0" stroke="#121212" stroke-width="2"/>' +
-    // rider
-    '<path d="M120 86 C 118 64 128 48 146 46 C 160 46 168 58 166 70 L 156 88 Z" fill="#FFC72C" stroke="#121212" stroke-width="3" stroke-linejoin="round"/>' +
-    '<path d="M150 66 L 178 64" stroke="#FFC72C" stroke-width="8" stroke-linecap="round"/>' +
-    '<path d="M150 66 L 178 64" stroke="#121212" stroke-width="2" stroke-linecap="round" opacity=".4"/>' +
-    '<circle cx="148" cy="30" r="17" fill="#E50914" stroke="#121212" stroke-width="3"/>' +
-    '<path d="M150 22 A 12 12 0 0 1 164 32 L 150 34 Z" fill="#8FD3FF" stroke="#121212" stroke-width="2"/>' +
-    '<path d="M132 26 L 160 18" stroke="#fff" stroke-width="3" stroke-linecap="round"/>' +
-    // wheels
-    '<g class="wheel" style="transform-origin:62px 124px"><circle cx="62" cy="124" r="20" fill="#121212"/><circle cx="62" cy="124" r="9" fill="#ddd"/><path d="M62 106 V142 M44 124 H80" stroke="#888" stroke-width="2"/></g>' +
-    '<g class="wheel" style="transform-origin:176px 124px"><circle cx="176" cy="124" r="20" fill="#121212"/><circle cx="176" cy="124" r="9" fill="#ddd"/><path d="M176 106 V142 M158 124 H194" stroke="#888" stroke-width="2"/></g>' +
+    wheel('wheel-back', WHEELS.back[0], WHEELS.back[1]) +
+    wheel('wheel-front', WHEELS.front[0], WHEELS.front[1]) +
   '</svg>';
 }
 
@@ -158,7 +194,7 @@ function iconFor(item) {
 
 function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h) + 1; }
 
-export { pizza, rider, FLOATERS, iconFor };
+export { pizza, rider, WHEELS, FLOATERS, iconFor };
 
 // An SVG string from this file, inside a wrapper element.
 export function Art({ html, as: Tag = 'div', ...rest }) {

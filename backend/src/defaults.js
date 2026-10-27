@@ -17,19 +17,19 @@ const SIZES = [
 // slug: URL of the category landing page (/menu/<slug>); seo/blurb: its
 // search title and intro text. {city} is replaced with the store's city.
 const CATEGORIES = [
-  { id: 'nonveg',  name: 'Non-Veg Toppings Pizza',     short: 'Chicken Pizza', icon: 'drumstick', slug: 'chicken-pizza',
+  { id: 'nonveg',  name: 'Non-Veg Toppings Pizza',     short: 'Chicken Pizza', icon: 'cat-chicken-pizza', slug: 'chicken-pizza',
     seo: 'Chicken Pizza in {city}',
     blurb: 'Chicken BBQ, sausage, ham, bacon and salami pizzas, stone-baked to order in 12", 15", 18" and our giant 22" XL.' },
-  { id: 'veg',     name: 'Cheese & Veg Toppings Pizza', short: 'Veg Pizza',     icon: 'leaf', slug: 'veg-pizza',
+  { id: 'veg',     name: 'Cheese & Veg Toppings Pizza', short: 'Veg Pizza',     icon: 'cat-veg-pizza', slug: 'veg-pizza',
     seo: 'Veg & Cheese Pizza in {city}',
     blurb: 'Vegetarian pizzas loaded with cheese, mushrooms, sweet corn, olives and peppers, made on a separate veg prep line.' },
-  { id: 'porkbuff',name: 'Pork, Buff & Mix Pizza',      short: 'Pork & Buff',   icon: 'ham', slug: 'pork-buff-pizza',
+  { id: 'porkbuff',name: 'Pork, Buff & Mix Pizza',      short: 'Pork & Buff',   icon: 'cat-pork-pizza', slug: 'pork-buff-pizza',
     seo: 'Pork & Buff Pizza in {city}',
     blurb: 'Pork, buff and mixed-meat pizzas for serious meat lovers, from a 12" for one to a 22" XL for the whole table.' },
-  { id: 'special', name: 'OHH !!! MY CHICKEN Specials', short: 'Specials',      icon: 'flame', slug: 'fried-chicken',
+  { id: 'special', name: 'OHH !!! MY CHICKEN Specials', short: 'Specials',      icon: 'cat-fried-chicken', slug: 'fried-chicken',
     seo: 'Fried Chicken & Wings in {city}',
     blurb: 'Crispy fried chicken, hot wings and chicken combos, the specials our restaurant is named after.' },
-  { id: 'momo',    name: 'MoMo & Extras',               short: 'MoMo & Extras', icon: 'dumpling', slug: 'momo',
+  { id: 'momo',    name: 'MoMo & Extras',               short: 'MoMo & Extras', icon: 'cat-momo', slug: 'momo',
     seo: 'MoMo, Fries & Drinks in {city}',
     blurb: 'Steam and fried MoMo in veg, buff, chicken and pork, plus fries, sides and cold drinks.' }
 ];

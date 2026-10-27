@@ -7,7 +7,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { useSite } from './store.jsx';
 import { Link } from './router.jsx';
-import { Art, pizza, rider as riderSvg, FLOATERS } from './art.jsx';
+import { Art, pizza, rider as riderSvg, WHEELS, FLOATERS } from './art.jsx';
 import { DishCard } from './Menu.jsx';
 import { Gallery } from './Gallery.jsx';
 import { Icon } from '../shared/Icon.jsx';
@@ -83,19 +83,36 @@ function Hero() {
       cleanups.push(() => { stage.removeEventListener('pointermove', tilt); stage.removeEventListener('pointerleave', untilt); hero.removeEventListener('pointermove', parallax); });
     }
 
-    // Delivery rider
-    const road = roadRef.current, el = riderRef.current, wheels = el.querySelectorAll('.wheel');
+    // Delivery rider: the ride across the road is one timeline; the moving
+    // parts (wheels, suspension, box, scarf, exhaust, headlight) loop on their
+    // own, and an express run (tap the road) just plays them faster.
+    // svgOrigin pins each rotation to a point in the drawing's own coordinates,
+    // so the wheels always spin on their axles whatever the size.
+    const road = roadRef.current, el = riderRef.current;
+    const $ = (sel) => el.querySelectorAll(sel);
+    const loops = [
+      gsap.to(el.querySelector('.wheel-back'), { rotation: 360, svgOrigin: WHEELS.back.join(' '), duration: 0.45, ease: 'none', repeat: -1 }),
+      gsap.to(el.querySelector('.wheel-front'), { rotation: 360, svgOrigin: WHEELS.front.join(' '), duration: 0.45, ease: 'none', repeat: -1 }),
+      gsap.to($('.rider-body'), { y: -2.2, duration: 0.17, ease: 'sine.inOut', yoyo: true, repeat: -1 }),
+      gsap.fromTo($('.box'), { rotation: -1.5 }, { rotation: 2, svgOrigin: '58 83', duration: 0.34, ease: 'sine.inOut', yoyo: true, repeat: -1 }),
+      gsap.fromTo($('.scarf'), { scaleY: 1, skewX: 0 }, { scaleY: 0.72, skewX: -10, svgOrigin: '106 49', duration: 0.13, ease: 'sine.inOut', yoyo: true, repeat: -1 }),
+      gsap.fromTo($('.beam'), { opacity: 0.32 }, { opacity: 0.14, duration: 0.6, ease: 'sine.inOut', yoyo: true, repeat: -1 }),
+      gsap.fromTo($('.speed line'), { x: 0, opacity: 1 }, { x: -12, opacity: 0.25, duration: 0.22, ease: 'none', yoyo: true, repeat: -1, stagger: 0.07 }),
+      ...[...$('.puff')].map((p, i) => gsap.fromTo(p,
+        { x: 0, y: 0, scale: 0.4, opacity: 0.95 },
+        { x: -36, y: -8 - i * 3, scale: 1.7, opacity: 0, transformOrigin: '50% 50%', duration: 0.8, ease: 'power1.out', repeat: -1, delay: i * 0.27 }))
+    ];
+    const speed = (k) => loops.forEach((t) => t.timeScale(k));
     let riderTl;
     function build(fast) {
       if (riderTl) riderTl.kill();
       const w = road.offsetWidth, rw = el.offsetWidth;
       const dur = fast ? 1.6 : Math.max(3.2, w / 320);
+      speed(fast ? 2.6 : 1);
       riderTl = gsap.timeline({ repeat: fast ? 0 : -1, repeatDelay: 2.2, onComplete: fast ? () => build(false) : null });
       riderTl.set(el, { x: -rw - 20 })
         .to(el, { x: w + 20, duration: dur, ease: fast ? 'power2.in' : 'power1.inOut' }, 0)
-        // GSAP ignores CSS transform-origin on SVG parts: spin each wheel around its own centre.
-        .to(wheels, { rotation: fast ? 1440 : 1080, transformOrigin: '50% 50%', duration: dur, ease: 'none' }, 0)
-        .to(el, { y: -3, duration: 0.12, yoyo: true, repeat: Math.round(dur / 0.12), ease: 'sine.inOut' }, 0)
+        // lean back when pulling away
         .to(el.querySelector('svg'), { rotation: fast ? -6 : -2, transformOrigin: '30% 90%', duration: 0.3, yoyo: true, repeat: 1 }, 0);
     }
     build(false);
@@ -104,7 +121,7 @@ function Hero() {
     const onResize = () => { clearTimeout(rt); rt = setTimeout(() => build(false), 300); };
     road.addEventListener('click', zoom);
     window.addEventListener('resize', onResize);
-    cleanups.push(() => { road.removeEventListener('click', zoom); window.removeEventListener('resize', onResize); clearTimeout(rt); if (riderTl) riderTl.kill(); });
+    cleanups.push(() => { road.removeEventListener('click', zoom); window.removeEventListener('resize', onResize); clearTimeout(rt); if (riderTl) riderTl.kill(); loops.forEach((t) => t.kill()); });
 
     return () => { cleanups.forEach((f) => f()); ctx.revert(); };
   }, []);

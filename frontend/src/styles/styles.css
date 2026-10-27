@@ -269,10 +269,10 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 }
 .road-lines { position: absolute; left: 0; right: 0; top: 64%; height: 4px; background: repeating-linear-gradient(90deg, var(--yellow) 0 28px, transparent 28px 56px); opacity: .7; animation: roadmove .6s linear infinite; }
 @keyframes roadmove { to { background-position: -56px 0; } }
-.rider { position: absolute; left: 0; bottom: 2px; width: calc(var(--road-h) * 1.32); will-change: transform; }
+.rider { position: absolute; left: 0; bottom: 2px; width: calc(var(--road-h) * 1.44); will-change: transform; }
 .rider svg { width: 100%; height: auto; overflow: visible; }
 .rider.css-ride { animation: ride 6s ease-in-out infinite; }
-.rider.css-ride .wheel { animation: spin .4s linear infinite; }
+.rider.css-ride .wheel { animation: spin .4s linear infinite; transform-box: view-box; }
 @keyframes ride { 0% { transform: translateX(-180px); } 60%, 100% { transform: translateX(calc(100vw + 40px)); } }
 .road-label { position: absolute; right: var(--gutter); top: 8px; font-size: var(--fs-xs); font-weight: 700; color: rgba(255,255,255,.65); letter-spacing: .04em; pointer-events: none; }
 @media (max-width: 520px) { .road-label { left: var(--gutter); right: auto; } }
@@ -438,7 +438,7 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
   font-weight: 700; font-size: var(--fs-sm); color: var(--muted); white-space: nowrap;
   transition: color .15s, border-color .15s;
 }
-.cat-link .i { width: 18px; height: 18px; }
+.cat-link .i { width: 22px; height: 22px; }
 .cat-link small { font-size: 11px; font-weight: 800; padding: 0 6px; border-radius: 999px; background: #F0EEE8; color: var(--muted); line-height: 18px; }
 .cat-link { text-decoration: none; }
 .cat-link[aria-disabled="true"] { opacity: .45; cursor: default; }
@@ -463,8 +463,8 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .result-count { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; min-height: 1.2em; }
 .menu-cat { margin-top: clamp(20px, 3vw, 32px); }
 .cat-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.cat-ico { width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0; border-radius: 12px; background: var(--red); color: var(--white); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
-.cat-ico .i { width: 22px; height: 22px; stroke-width: 2.2; }
+.cat-ico { width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0; border-radius: 12px; background: var(--cream); color: var(--ink); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.cat-ico .i { width: 30px; height: 30px; }
 .cat-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.25rem, 1rem + 1vw, 1.7rem); line-height: 1.1; }
 .cat-sub { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; margin-top: 2px; }
 .cat-sub b { color: var(--red); }
@@ -734,7 +734,7 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 .chat-fab-ico { display: grid; filter: none; }
 .chat-fab-ico .i { width: 26px; height: 26px; stroke-width: 2.4; }
 .chat-avatar { color: var(--red); }
-.chat-avatar .i { width: 20px; height: 20px; stroke-width: 2.4; }
+.chat-avatar .i { width: 26px; height: 26px; }
 .bot-line { display: flex; align-items: center; gap: 6px; }
 .bot-line .i { width: 14px; height: 14px; color: var(--red); }
 .bot-list .diet-mark { margin-right: 4px; }

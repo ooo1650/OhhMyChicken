@@ -84,7 +84,7 @@ export function Chat() {
       <section className={'chat-panel' + (isOpen ? ' is-open' : '')} id="chatPanel" role="dialog" aria-label="Chat with Chicky" hidden={hidden}
         onKeyDown={(e) => { if (e.key === 'Escape') close(true); }}>
         <header className="chat-head">
-          <div className="chat-avatar" aria-hidden="true"><Icon name="drumstick" /></div>
+          <div className="chat-avatar" aria-hidden="true"><Icon name="cat-fried-chicken" /></div>
           <div>
             <b>Chicky</b>
             <span className="chat-status">{(site.isOpen ? 'Restaurant open' : 'Restaurant closed') + ' · bot replies instantly'}</span>
