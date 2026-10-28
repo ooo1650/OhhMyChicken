@@ -68,17 +68,28 @@ function stickerCanvas(current) {
   drawModules(ctx, current.qr, 170, 270, 560);
   ctx.fillStyle = '#fff'; ctx.font = '72px "Lilita One", Impact, sans-serif';
   ctx.fillText('SCAN FOR MENU', W / 2, 990);
-  ctx.font = '600 40px Rubik, Arial, sans-serif';
+  ctx.font = '600 40px "Rubik Variable", Rubik, Arial, sans-serif';
   ctx.fillStyle = '#FFC72C';
   ctx.fillText(stickerLabel(current), W / 2, 1070, W - 80);
   return cv;
 }
 
+// The dashboard's own @font-face rules (same-origin font files), for the print page.
+function fontFaces() {
+  const out = [];
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try { rules = sheet.cssRules; } catch (e) { continue; }
+    for (const r of rules) if (r.type === CSSRule.FONT_FACE_RULE && /Lilita|Rubik/.test(r.cssText)) out.push(r.cssText);
+  }
+  return out.join('');
+}
+
 function printStickers(current) {
   const label = esc(stickerLabel(current));
   let html = '<!doctype html><html><head><meta charset="utf-8"><title>Menu QR sticker</title>' +
-    '<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@600&display=swap" rel="stylesheet">' +
-    '<style>@page{margin:12mm}body{margin:0;font-family:Rubik,Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8mm;justify-content:center}' +
+    '<style>' + fontFaces() + '</style>' +
+    '<style>@page{margin:12mm}body{margin:0;font-family:"Rubik Variable",Rubik,Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8mm;justify-content:center}' +
     '.s{width:80mm;padding:6mm;border-radius:6mm;background:#E50914;color:#fff;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px dashed #999}' +
     '.t{font-family:"Lilita One",Impact,sans-serif;font-size:9mm;color:#FFC72C;transform:rotate(-3deg);text-shadow:.6mm .6mm 0 #121212;margin:0 0 3mm}' +
     '.q{background:#fff;border-radius:3mm;padding:2mm;display:inline-block}.q svg{width:58mm;height:58mm;display:block}' +

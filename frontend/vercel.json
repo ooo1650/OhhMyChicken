@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://ohhmychicken.onrender.com" },
+    { "source": "/media/:path*", "destination": "https://ohhmychicken.onrender.com/media/:path*" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin/", "destination": "/admin.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

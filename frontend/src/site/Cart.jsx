@@ -214,10 +214,10 @@ export function CartDrawer() {
             {(checkout.name.trim() || checkout.phone.trim()) && (
               <label className="save-details">
                 <input type="checkbox" checked={!!checkout.saveDetails} onChange={(e) => site.setCheckout({ ...checkout, saveDetails: e.target.checked })} />
-                <span>Keep my name and number for offers and faster orders. Kept by PaperKite, who runs this website, until you ask us to remove it.</span>
+                <span>Keep my name and number for offers and faster orders, until I ask to be removed.</span>
               </label>
             )}
-            <p className="privacy-note"><Icon name="shield" /> <span>We only ask what your order needs; name and phone are optional. Order details go to the outlet you pick and are deleted from our system after {site.defaults.ORDER_DETAILS_DAYS || 90} days, unless you choose to let us keep them. Never sold. WhatsApp shows the outlet your number.</span></p>
+            <p className="privacy-note"><Icon name="shield" /> <span>Name and phone are optional. Your details go only to the outlet you pick and are deleted after {site.defaults.ORDER_DETAILS_DAYS || 90} days unless you ask us to keep them. Never sold.</span></p>
             <button type="submit" className="btn btn-red btn-block"><Icon name="whatsapp" /> Place order via WhatsApp</button>
             <p className="tiny muted">{outlets.length > 1 && !outlets.some((o) => o.id && o.id === site.tableOutlet)
               ? 'Next, pick the outlet nearest you. Your order opens in its WhatsApp, ready to send.'

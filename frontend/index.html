@@ -12,9 +12,9 @@
   <link rel="preload" href="/src/assets/logo-192.webp" as="image" type="image/webp" fetchpriority="high">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Fonts come from this site; preloaded so headings don't flash in a fallback font. -->
+  <link rel="preload" href="./node_modules/@fontsource/lilita-one/files/lilita-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./node_modules/@fontsource-variable/rubik/files/rubik-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <!-- Loading skeleton: painted with the HTML, before any script runs; React replaces it.
        Self-contained so it does not wait for the main stylesheet. -->
   <style>

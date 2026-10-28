@@ -32,6 +32,9 @@ export default defineConfig({
     }
   },
   build: {
+    // Fonts are always real files: the page's security policy allows fonts only from
+    // this site, not inlined data: URLs (Vite inlines small files by default).
+    assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
     assetsDir: 'static', // hashed bundles; /assets/ holds the hand-made SVGs
     rollupOptions: { input: { main: 'index.html', admin: 'admin.html' } }
   }
