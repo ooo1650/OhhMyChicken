@@ -10,6 +10,7 @@ import { ItemEditor } from './ItemEditor.jsx';
 import { Kpi } from './Kpi.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
+import { Art, iconFor } from '../site/art.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { dietLabel, PIZZA_CATEGORIES } from '../shared/format.js';
 
@@ -63,7 +64,8 @@ export function MenuPanel({ hidden, searchRef }) {
     <th scope="col" tabIndex={0} aria-sort={sort.by === by ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}
       onClick={() => sortBy(by)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortBy(by); } }}>{label}</th>
   );
-  const openEditor = (item, copy) => setEditor((e) => ({ item, copy, open: true, n: (e ? e.n : 0) + 1 }));
+  // pick: open straight into the photo picker (from the photo slot in each row).
+  const openEditor = (item, copy, pick) => setEditor((e) => ({ item, copy, pick, open: true, n: (e ? e.n : 0) + 1 }));
 
   function toggleAvailable(item, on) {
     admin.upsertItem({ ...item, available: on });
@@ -97,7 +99,7 @@ export function MenuPanel({ hidden, searchRef }) {
       const saved = await admin.saveMenu(list.map((m, i) => ({
         id: m.id || 'imp' + i + Date.now().toString(36), name: m.name.trim(), category: m.category, diet: m.diet || 'veg', desc: m.desc || '',
         prices: m.prices.map((p) => ({ label: p.label, price: Math.round(+p.price) })),
-        available: m.available !== false, popular: !!m.popular, isPizza: PIZZA_CATEGORIES.includes(m.category)
+        available: m.available !== false, popular: !!m.popular, art: m.art || '', isPizza: PIZZA_CATEGORIES.includes(m.category)
       })));
       if (!saved) return;
       if (data.settings) admin.saveSettings(data.settings);
@@ -148,7 +150,10 @@ export function MenuPanel({ hidden, searchRef }) {
               const c = categories.find((x) => x.id === i.category) || { short: i.category, icon: '' };
               return (
                 <tr key={i.id} className={i.available ? '' : 'row-off'}>
-                  <td data-label="Item"><div className="cell-item">{i.image ? <Photo media={i.image} alt="" sizes="40px" className="cell-thumb" /> : null}<span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
+                  <td data-label="Item"><div className="cell-item">{admin.settings.dishPhotos && (i.image
+                    ? <button type="button" className="thumb-btn" title="Change photo" aria-label={'Change the photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Photo media={i.image} alt="" sizes="44px" className="cell-thumb" /></button>
+                    : <button type="button" className="thumb-btn thumb-add" title="Add a photo" aria-label={'Add a photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Icon name="plus" /><span>Photo</span></button>)}
+                    {!admin.settings.dishPhotos && <button type="button" className="thumb-btn" title="Change picture" aria-label={'Change the picture of ' + i.name} onClick={() => openEditor(i, false, 'art')}><Art html={iconFor(i)} className="cell-art" /></button>}<span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
                   <td data-label="Category"><span className="cat-pill">{c.icon && <Icon name={c.icon} />}{c.short}</span></td>
                   <td data-label="Prices"><div className="price-chips">{i.prices.map((p) => <span key={p.label}><em>{p.label}</em> {admin.money(p.price)}</span>)}</div></td>
                   <td data-label="Status">

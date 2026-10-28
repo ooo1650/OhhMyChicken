@@ -17,7 +17,8 @@ function cartLines(menu, cart) {
   }).filter(Boolean);
 }
 
-function totals(menu, settings, cart, code) {
+// mode: 'delivery' (fee applies), 'pickup' or 'table' (no delivery fee).
+function totals(menu, settings, cart, code, mode) {
   const s = settings, lines = cartLines(menu, cart);
   const subtotal = lines.reduce((n, l) => n + l.total, 0);
   let discount = 0, promoMsg = '';
@@ -31,7 +32,7 @@ function totals(menu, settings, cart, code) {
       else { discount = Math.round(xl.unit * s.promo.percent / 100); promoMsg = s.promo.percent + '% off your 22" ' + xl.name + '!'; }
     }
   }
-  const delivery = subtotal === 0 || subtotal - discount >= s.freeDeliveryOver ? 0 : +s.deliveryFee;
+  const delivery = (mode && mode !== 'delivery') || subtotal === 0 || subtotal - discount >= s.freeDeliveryOver ? 0 : +s.deliveryFee;
   return { lines, subtotal, discount, delivery, total: subtotal - discount + delivery, promoMsg };
 }
 

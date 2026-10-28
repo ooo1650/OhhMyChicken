@@ -7,9 +7,16 @@ import qrcode from 'qrcode-generator';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { esc } from '../shared/format.js';
+import { useAdmin } from './store.jsx';
 
 // Always the public menu on this host (the tool itself lives in the dashboard).
-const menuUrl = (table) => location.origin + '/menu' + (table ? '?table=' + encodeURIComponent(table) : '');
+// A table sticker can also name its outlet, so orders from it skip the outlet choice.
+function menuUrl(table, outlet) {
+  const q = [table && 'table=' + encodeURIComponent(table), outlet && 'outlet=' + encodeURIComponent(outlet)].filter(Boolean).join('&');
+  return location.origin + '/menu' + (q ? '?' + q : '');
+}
+const stickerLabel = (c) => (c.table ? 'TABLE ' + c.table.toUpperCase() + (c.outletName ? ' · ' + c.outletName.toUpperCase() : '')
+  : c.outletName ? c.outletName.toUpperCase() : 'Giant 22" pizzas · Crispy chicken · MoMo');
 const isLocal = () => /^(localhost|127\.|\[::1\]|0\.0\.0\.0)/.test(location.hostname) || /^(10|192\.168)\./.test(location.hostname);
 
 function build(url) {
@@ -63,12 +70,12 @@ function stickerCanvas(current) {
   ctx.fillText('SCAN FOR MENU', W / 2, 990);
   ctx.font = '600 40px Rubik, Arial, sans-serif';
   ctx.fillStyle = '#FFC72C';
-  ctx.fillText(current.table ? 'TABLE ' + current.table.toUpperCase() : 'Giant 22" pizzas · Crispy chicken · MoMo', W / 2, 1070);
+  ctx.fillText(stickerLabel(current), W / 2, 1070, W - 80);
   return cv;
 }
 
 function printStickers(current) {
-  const label = current.table ? 'TABLE ' + esc(current.table.toUpperCase()) : 'Giant 22" pizzas · Crispy chicken · MoMo';
+  const label = esc(stickerLabel(current));
   let html = '<!doctype html><html><head><meta charset="utf-8"><title>Menu QR sticker</title>' +
     '<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Rubik:wght@600&display=swap" rel="stylesheet">' +
     '<style>@page{margin:12mm}body{margin:0;font-family:Rubik,Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8mm;justify-content:center}' +
@@ -93,21 +100,25 @@ function printStickers(current) {
 }
 
 export function QrPanel({ hidden }) {
-  const toast = useToast();
+  const toast = useToast(), admin = useAdmin();
+  const outlets = (admin.settings.outlets || []).filter((o) => o.active);
+  const [outletId, setOutletId] = useState('');
+  const outlet = outlets.find((o) => o.id === outletId);
   const [input, setInput] = useState('');
   const [table, setTable] = useState('');
   useEffect(() => { const t = setTimeout(() => setTable(input.trim().replace(/[^\w-]/g, '')), 150); return () => clearTimeout(t); }, [input]);
 
   const current = useMemo(() => {
-    const url = menuUrl(table);
-    try { return { url, table, qr: build(url) }; } catch (e) { return { url, table, qr: null }; }
-  }, [table]);
+    const url = menuUrl(table, outlet && outlet.id);
+    const base = { url, table, outletName: outlet ? outlet.name : '' };
+    try { return { ...base, qr: build(url) }; } catch (e) { return { ...base, qr: null }; }
+  }, [table, outlet]);
   const svg = useMemo(() => (current.qr ? svgFor(current.qr, 200) : ''), [current]);
 
   function download() {
     if (!current.qr) { toast('QR not ready yet'); return; }
     const a = document.createElement('a');
-    a.download = 'ohh-my-chicken-menu-qr' + (current.table ? '-table-' + current.table : '') + '.png';
+    a.download = 'ohh-my-chicken-menu-qr' + (outlet ? '-' + outlet.id : '') + (current.table ? '-table-' + current.table : '') + '.png';
     a.href = stickerCanvas(current).toDataURL('image/png');
     a.click();
   }
@@ -126,6 +137,15 @@ export function QrPanel({ hidden }) {
                 </div>
               : <div className="qr-out"><p className="tiny muted">Could not build the QR code for this address.</p></div>}
           </div>
+          {outlets.length > 1 && (
+            <label className="field">
+              <span>Outlet <em>(where the sticker goes)</em></span>
+              <select value={outletId} onChange={(e) => setOutletId(e.target.value)}>
+                <option value="">Any outlet (customer chooses)</option>
+                {outlets.map((o) => <option key={o.id} value={o.id}>{o.name}{o.area ? ', ' + o.area : ''}</option>)}
+              </select>
+            </label>
+          )}
           <label className="field">
             <span>Table number <em>(optional)</em></span>
             <input type="text" value={input} onChange={(e) => setInput(e.target.value)} inputMode="numeric" maxLength="6" placeholder="e.g. 7" />
@@ -144,6 +164,7 @@ export function QrPanel({ hidden }) {
           <ol>
             <li>Leave the table number empty for a general sticker (counter, flyers, door).</li>
             <li>Add a table number to make a sticker per table. Orders from it are pre-filled with that table.</li>
+            {outlets.length > 1 && <li>Pick the outlet for stickers placed in a branch: orders from them go straight to that outlet's WhatsApp.</li>}
             <li><b>Print stickers</b> gives four per A4 page. <b>Download PNG</b> is for printers or social media.</li>
           </ol>
           <p className="tiny muted"><Icon name="info" /> The code links to the site address you're using now. Print from your public domain, not from localhost.</p>

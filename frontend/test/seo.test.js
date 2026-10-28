@@ -80,3 +80,37 @@ test('404 pages are noindex and carry no structured data', () => {
   assert.doesNotMatch(html, /ld\+json/);
   assert.doesNotMatch(html, /rel="canonical"/);
 });
+
+test('dish photos reach structured data only when switched on', () => {
+  const photo = { url: '/media/abc-1024.webp', sizes: [], alt: 'x' };
+  const withPhoto = (on) => { const b = boot({ dishPhotos: on }); b.menu[0] = { ...b.menu[0], image: photo }; return b; };
+  const firstItem = (b) => jsonLd(resolveRoute('/menu', b.defaults.CATEGORIES), b, ORIGIN)['@graph'].find((g) => g['@type'] === 'Menu').hasMenuSection[0].hasMenuItem[0];
+  assert.equal(firstItem(withPhoto(false)).image, undefined);
+  assert.equal(firstItem(withPhoto(true)).image, ORIGIN + photo.url);
+});
+
+test('outlets: each branch is its own restaurant in the data, and listed in the FAQ', () => {
+  const b = boot();
+  const graph = jsonLd(resolveRoute('/', b.defaults.CATEGORIES), b, ORIGIN)['@graph'];
+  const branches = graph.filter((n) => n['@type'] === 'Restaurant' && n.parentOrganization);
+  assert.equal(branches.length, d.SETTINGS.outlets.length);
+  assert.equal(graph[0].department.length, branches.length);
+  const j = branches.find((n) => n['@id'].endsWith('#outlet-jhamsikhel'));
+  assert.equal(j.telephone, '+9779841336695');
+  assert.equal(j.address.addressLocality, 'Lalitpur');
+  assert.match(faqs(b).find((f) => /outlets/.test(f.q)).a, /Jhamsikhel, Lalitpur.*Maharajgunj, Kathmandu.*Radhe Radhe, Bhaktapur/);
+  // Hidden outlets disappear; with one left the site is single-location again.
+  const one = boot({ outlets: d.SETTINGS.outlets.map((o, i) => ({ ...o, active: i === 0 })) });
+  assert.ok(!jsonLd(resolveRoute('/', one.defaults.CATEGORIES), one, ORIGIN)['@graph'].some((n) => n.parentOrganization));
+  assert.ok(!faqs(one).some((f) => /outlets/.test(f.q)));
+});
+
+test('open/closed follows Nepal time, not the visitor\'s time zone', async () => {
+  const { isOpenNow } = await import('../src/shared/format.js');
+  const hours = { hoursOpen: '10:00', hoursClose: '22:00' };
+  // 04:30 UTC = 10:15 in Kathmandu (open); 16:30 UTC = 22:15 (closed) — whatever TZ this machine uses.
+  assert.equal(isOpenNow(hours, new Date('2026-10-28T04:30:00Z')), true);
+  assert.equal(isOpenNow(hours, new Date('2026-10-28T04:00:00Z')), false); // 09:45
+  assert.equal(isOpenNow(hours, new Date('2026-10-28T16:30:00Z')), false);
+  assert.equal(isOpenNow({ hoursOpen: '18:00', hoursClose: '02:00' }, new Date('2026-10-28T19:00:00Z')), true); // 00:45, past midnight
+});

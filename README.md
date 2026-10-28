@@ -34,15 +34,17 @@ open http://localhost:3000
 
 Each image also builds on its own: `docker build -t omc-backend ./backend`, `docker build -t omc-frontend ./frontend`. The frontend image takes `BACKEND_URL` (default `http://backend:4000`), `PUBLIC_URL` and `ADMIN_PATH` at runtime.
 
-Backups:
+Backups are automatic: the `backup` service saves the database (menu, settings, outlets, orders; a few MB at most) into `./backups/` when it starts (so every deploy gets one) and every night at 3 AM Nepal time, keeping 14 days (`BACKUP_HOUR`, `BACKUP_KEEP_DAYS`). Photos are not included, since they'd copy the whole folder every night; keep your original photo files, or set `BACKUP_PHOTOS=1`. Docker keeps at most 10 MB of logs per service. The files are readable only by their owner (`BACKUP_OWNER`, default `1000:1000`) and git-ignored: they hold customers' names and phones. Dashboard → Store → Security shows when the last one succeeded and warns after 2 days without one. Copy them off the server too (see deploy/README.md).
 
 ```bash
-mkdir -p backups   # git-ignored: backups hold customer orders, never commit them
-docker compose exec db pg_dump -U omc ohh_my_chicken > backups/db-$(date +%F).sql
-docker compose exec -T db psql -U omc ohh_my_chicken < backups/db-2026-10-26.sql   # restore
-
-# Photos live in the omc-media volume: back them up together with the database
-docker compose cp backend:/app/uploads ./backups/uploads-$(date +%F)
+ls -lh backups/                                          # db-YYYY-MM-DD_HHMM.sql.gz (+ photos-….tar.gz with BACKUP_PHOTOS=1)
+docker compose restart backup                            # take a backup right now
+# Restore into an empty database (e.g. a new server), then start the app:
+docker compose up -d db
+gunzip -c backups/db-2026-10-28_0300.sql.gz | docker compose exec -T db psql -q -U omc ohh_my_chicken
+# Only if you back up photos too (BACKUP_PHOTOS=1):
+docker compose run --rm -v "$PWD/backups:/b:ro" --entrypoint sh backend -c 'tar -xzf /b/photos-2026-10-28_0300.tar.gz -C /app/uploads'
+docker compose up -d
 ```
 
 ## Run without Docker (development)
@@ -67,7 +69,7 @@ npm run build && BACKEND_URL=http://localhost:4000 npm start
 
 The Vite dev server skips the server-rendered `<head>` and inlined data (the app fetches them instead). Use `npm start` to check SEO output.
 
-`npm run db:reset` (in `backend/`) wipes everything (menu, settings, orders, passcode) and re-seeds the defaults. Schema changes are applied automatically on start-up, so existing databases upgrade in place.
+`npm run db:reset-menu` (in `backend/`) replaces only the menu with the one in `backend/src/defaults.js`, keeping orders, settings and photos. `npm run db:reset` wipes everything (menu, settings, orders, passcode) and re-seeds the defaults. Schema changes are applied automatically on start-up, so existing databases upgrade in place.
 
 > Host it online before you print QR stickers. The QR code links to the page's own URL, so a `localhost` link won't open on customers' phones.
 
@@ -86,7 +88,7 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 | `DATABASE_URL` | backend | Postgres connection string (set by compose) |
 | `PORT` | backend | API port (default `4000`) |
 | `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
-| `ADMIN_PASSCODE` | backend | Admin passcode (8+ characters). **Required in production**: the backend won't start while the passcode is the public default. It replaces the default once; after that, change it in the dashboard |
+| `ADMIN_PASSCODE` | backend | Admin passcode (10+ characters, not easy to guess). **Required in production**: the backend won't start while the passcode is the public default. It replaces the default once; after that, change it in the dashboard |
 | `SESSION_TTL_HOURS` | backend | Admin session length (default `12`) |
 | `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
 | `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
@@ -96,7 +98,7 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 
 ### Going live
 
-Put the frontend behind a reverse proxy that terminates HTTPS. A tested Nginx config with edge rate limits is in [deploy/nginx/ohhmychicken.conf](deploy/nginx/ohhmychicken.conf), with setup in [deploy/README.md](deploy/README.md) step 4. Caddy or Cloudflare also work. Set `PUBLIC_URL` to your https address, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2` (your proxy + the frontend server). With Caddy it's one line: `your-domain.com { reverse_proxy localhost:3000 }`. The proxy must pass the original `Host` header (Caddy does by default).
+Put the frontend behind a reverse proxy that terminates HTTPS. A tested Nginx config with edge rate limits is in [deploy/nginx/ohhmychicken.conf](deploy/nginx/ohhmychicken.conf), with setup in [deploy/README.md](deploy/README.md) step 5. Caddy or Cloudflare also work. Set `PUBLIC_URL` to your https address, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2` (your proxy + the frontend server). With Caddy it's one line: `your-domain.com { reverse_proxy localhost:3000 }`. The proxy must pass the original `Host` header (Caddy does by default).
 
 ### Deployment checklist (no leaks)
 
@@ -118,7 +120,7 @@ GitHub Actions ([.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)) runs
 | **Docker** | Builds both images and starts the full stack read-only, then does a smoke test, including a photo upload (sharp on Alpine) |
 | **Deploy** | Only for pushes to `main`, after both pass, and once the `DEPLOY_MODE` variable is set. `runner`: a self-hosted runner on a private VM deploys locally. `ssh`: GitHub logs in with a key and pinned host key from secrets. Either way: `git pull` the tested commit, `docker compose up -d --build`, health check, automatic rollback if unhealthy |
 
-Server setup and the secrets to add: [deploy/README.md](deploy/README.md).
+Test-VM setup, load and security testing, and the production checklist: [deploy/README.md](deploy/README.md).
 
 Run the tests locally:
 
@@ -137,12 +139,30 @@ Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped
 | **Offer pop-up** | Shows after 3 s, once per browser session. "Tap to copy" copies the code and applies it to the cart. You can edit it in Admin. |
 | **Size guide** | Interactive 12" / 15" / 18" / 22" picker that scales the pizza and compares areas. |
 | **Menu** | Full-width menu with a sticky category bar that jumps to each section and highlights the one you're reading, instant search (name, description, type or category), diet filters with veg / non-veg marks, a size / option picker, and an Add button that turns into a quantity stepper. A floating "View order" bar shows the item count and subtotal. Opening `/menu?table=7` (from a table QR sticker) shows a table banner and pre-fills the table at checkout. |
-| **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per device), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
+| **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per phone number: the server checks earlier orders, and the cart says so as soon as the phone is typed), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
 | **Chatbot "Chicky"** | Built-in knowledge base covering greetings, opening hours with live open/closed status, size advice ("size for 12 people"), diet options, MoMo, prices for any dish (with add-to-cart buttons), delivery, ordering, deals and contact details. It reads the live menu, so Admin edits show up right away. |
 | **Staff dashboard** (`/admin/`) | Separate page with its own login screen, and a warning until the default passcode is changed. **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and passcode. **Orders**: live list (checks every 20 s, with a "new order" alert and a badge on the tab), status workflow *New → Preparing → Out for delivery → Done / Cancelled*, open/done/cancelled filters, tap-to-call phone numbers, KPIs, top sellers, and CSV export for Excel/Sheets. **QR codes**: a scannable code that opens the menu, with an optional table number; print a sheet of branded stickers or download a PNG. The offer pop-up can be previewed on the live site (`/?offer=1`). |
-| **Photos** | Dashboard → **Photos**: drag-and-drop or pick several photos at once (JPG, PNG, WebP, AVIF, up to 10 MB; iPhones convert their HEIC photos to JPG when uploading from the browser). Each is checked as a real image, turned upright, stripped of EXIF/GPS data and saved as WebP in up to four widths (320–1600 px) with a blurred preview. Write a description per photo (used as alt text and in Google's data), tick **Gallery** to show it in the home-page gallery (with a lightbox) and reorder it there, and see which dishes use it. Add a photo to a dish from **Menu → Edit → Add photo**; dishes without one keep their drawing. Deleting a photo unlinks it from its dishes. |
+| **Photos** | Dashboard → **Photos**: drag-and-drop or pick several photos at once (JPG, PNG, WebP, AVIF, up to 10 MB; iPhones convert their HEIC photos to JPG when uploading from the browser). Each is checked as a real image, turned upright, stripped of EXIF/GPS data and saved as WebP in up to four widths (320–1600 px) with a blurred preview. Write a description per photo (used as alt text and in Google's data), tick **Gallery** to show it in the home-page gallery (with a lightbox) and reorder it there, and see which dishes use it. Dish photos are **off by default** (Dashboard → Store → *Menu display* → "Show dish photos on the menu"). While off, every dish shows its drawing, and the dashboard hides the photo slots. Switch it on to add a photo to a dish from the **+ Photo** slot in its menu row (or Menu → Edit). Photos stay linked when you switch it off again. Deleting a photo unlinks it from its dishes. |
+| **Insights** (dashboard) | Anonymous usage analytics built in, with no third parties. **Covers:** visits and orders per day, the visit-to-order funnel (menu → cart → checkout → order), dishes added to the cart but rarely ordered, searches that found nothing, busy hours, where visitors come from, devices, first pages, table-QR scans and orders, offer pop-up performance, and chatbot topics (including questions it couldn't answer). 7/30/90-day ranges. **Privacy:** no cookies, IP addresses or user-agent strings are stored. A visitor is a hash of IP + browser with a salt that changes daily and is then deleted, so nobody can recognise a person or follow them across days. "Do Not Track" and Global Privacy Control turn tracking off, bots are ignored, digits typed into the chatbot are masked, and raw events are deleted after 180 days (`ANALYTICS_RETENTION_DAYS`). |
 
-In development the admin passcode defaults to **`ohh2026`**. That default is public, so production (`NODE_ENV=production`, as in Docker) refuses to start until `ADMIN_PASSCODE` is set. Change the passcode under *Store → Security*: you'll need the current one, the new one must be 8+ characters, and every other device is signed out. The login page never reveals whether the default is still in use.
+In development the admin passcode defaults to **`ohh2026`**. That default is public, so production (`NODE_ENV=production`, as in Docker) refuses to start until `ADMIN_PASSCODE` is set. Change the passcode under *Store → Security*: you'll need the current one, and every other device is signed out. New passcodes need 10+ characters and can't be built from the restaurant's name, place names, common words or number runs (`backend/src/passcode.js`). The login page never reveals whether the default is still in use.
+
+**Customer privacy:** checkout asks only what the order needs: an address for delivery, a table number at a table (pre-filled from table QR codes, no delivery fee), nothing for pickup (when *Takeaway* is on). Name and phone are optional; the promo code needs both (once per number). Names, phones and addresses are blanked on orders older than `ORDER_DETAILS_DAYS` (90); items and totals stay for reports.
+
+**Opt-in customer list (for the site operator):** customers who tick *"Keep my name and number for offers"* (never pre-ticked; the box names PaperKite) are kept in the `customers` table. It is not shown in the restaurant dashboard; read it from the server:
+
+```bash
+docker compose exec -T backend node src/db.js customers > customers.csv     # name, phone, orders, last outlet, consent date
+docker compose exec backend node src/db.js forget-customer 9841234567       # someone asks to be removed (also clears their old orders)
+```
+
+**Forgotten passcode:** whoever runs the server sets a new one; menu, orders and settings are untouched and every device is signed out:
+
+```bash
+docker compose exec backend node src/db.js set-passcode     # asks twice, typing stays hidden
+```
+
+**Security panel** (Store → Security): devices signed in now, *Sign out all other devices* (lost phone, staff who left: change the passcode too), wrong-passcode tries in the last 24 hours, the last 10 sign-ins with device and masked IP (kept 90 days), and the last automatic backup. Sign-in locks for 15 minutes after 8 wrong tries from one IP, and pauses for everyone after 60 wrong tries in 15 minutes from all IPs together (devices already signed in keep working).
 
 ## SEO
 
@@ -189,7 +209,9 @@ Only the cart and the per-device "promo used" / "pop-up seen" flags stay in the 
 
 ## Notes
 
-- **Prices are placeholders** (in NPR). Set real prices in Admin → Menu Manager, then use *Export JSON* to keep a backup.
+- **The default menu is the restaurant's printed menu** (74 items, NPR), in `backend/src/defaults.js`. Edit it in Admin → Menu, and use *Export JSON* to keep a backup.
+- **Outlets (branches)** are managed in Admin → Outlets: address, landmark, phones, WhatsApp for orders, delivery note, own hours, map and social links, visible/hidden, main branch and order. Find us shows one card per outlet; with more than one visible, customers pick the outlet after *Place order via WhatsApp*, the order goes to that outlet's WhatsApp and is logged with its name. Table QR codes can name an outlet to skip the choice.
+- **Every dish has its own drawing** (which pizza by its toppings, wings vs. bucket, which MoMo, which coffee or tea). The drawings live in `frontend/src/shared/food-art.js`; an item's `art` field picks one (Admin → Menu → edit → *Picture on the menu*), and items without one get a drawing guessed from their name.
 - Update the phone, WhatsApp number and address in Admin (factory defaults are in `backend/src/defaults.js`).
 - Rate limits are kept in memory, which suits a single app instance. Move them to Redis if you run several backend replicas.
 
@@ -208,6 +230,7 @@ backend/                  Express JSON API (own Dockerfile, port 4000)
   src/models.js           Postgres queries for menu, settings, orders
   src/auth.js             admin login, session cookies, lockout, passcode change
   src/media.js            photo upload & processing (sharp → WebP sizes), library queries
+  src/analytics.js        anonymous analytics: event intake (POST /api/t), daily-salted visitor hash, insights queries
   src/limit.js            in-memory rate limiting
   src/passcode.js         scrypt hashing
   src/validate.js         input validation for items & settings
@@ -222,10 +245,13 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
   vite.config.js          two entry points, dev proxy for /api
   server/index.js         serves the build, renders SEO <head> + inlined data, sitemap, robots, 404s, /api proxy
   test/                   SEO unit tests + frontend-server end-to-end tests
-  public/assets/          favicon, icon sprite, social preview image, app icons
+  brand/logo.png          the restaurant logo (source for every logo file below)
+  scripts/brand-assets.cjs  rebuilds favicon, app icons, search preview and header logo from it
+  public/assets/          icon sprite, social preview image, app icons (favicon.ico sits in public/)
   public/site.webmanifest web app manifest
   src/styles/             styles.css (brand, layout, components), admin.css (dashboard)
-  src/shared/             API client, formatting, icons, photo component, toast, accessible dialog hook
+  src/shared/             API client, formatting, icons, food drawings (food-art.js), photo component, toast, accessible dialog hook
+  src/shared/track.js     anonymous event tracker (batched; off under Do Not Track / GPC)
   src/shared/seo.js       routes, titles, descriptions, FAQ and schema.org data (used by server and app)
   src/site/               customer site
     main.jsx, App.jsx     bootstrap, routes, page head, header, offer pop-up, 404, footer
@@ -241,6 +267,7 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
     AdminApp.jsx          login gate, tabs, live orders polling
     store.jsx             CMS, auth and order calls
     PhotosPanel.jsx       photo library (upload, describe, gallery, delete) + picker for dishes
+    InsightsPanel.jsx     analytics dashboard (KPIs, charts, funnel, tables)
     MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, confirm.jsx
 ```
 

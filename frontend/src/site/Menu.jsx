@@ -13,6 +13,7 @@ import { useToast } from '../shared/toast.jsx';
 import { dietLabel, fmt12, reducedMotion, PIZZA_CATEGORIES } from '../shared/format.js';
 import { categoryPath, pageMeta } from '../shared/seo.js';
 import { navigate } from './router.jsx';
+import { track } from '../shared/track.js';
 
 const DIETS = ['all', 'veg', 'chicken', 'buff', 'pork'];
 
@@ -70,7 +71,9 @@ export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   const actionRef = useRef(null), focusStep = useRef(false);
-  const art = useMemo(() => (item.image ? '' : iconFor(item)), [item]);
+  // Dish photos only when the restaurant has switched them on (Store settings).
+  const photo = site.settings.dishPhotos ? item.image : null;
+  const art = useMemo(() => (photo ? '' : iconFor(item)), [item, photo]);
   const price = (item.prices.find((p) => p.label === label) || item.prices[0]).price;
   const n = site.cartQty(item.id, label), what = item.name + ' (' + label + ')';
 
@@ -86,6 +89,7 @@ export function DishCard({ item, q }) {
   function add(e) {
     focusStep.current = true;
     site.addToCart(item.id, label, 1);
+    track('add_to_cart', { item_id: item.id, value: label, num: 1 });
     toast('Added ' + item.name + ' (' + label + ')');
     flyToCart(e.currentTarget);
   }
@@ -103,8 +107,8 @@ export function DishCard({ item, q }) {
 
   return (
     <article className={'dish' + (item.available ? '' : ' is-sold')}>
-      {item.image
-        ? <div className="dish-art has-photo"><Photo media={item.image} alt={item.image.alt || item.name} sizes="(max-width: 420px) 34vw, 150px" /></div>
+      {photo
+        ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 420px) 34vw, 150px" /></div>
         : <Art className="dish-art" html={art} />}
       <div className="dish-body">
         <div className="dish-meta">
@@ -152,6 +156,13 @@ export function MenuView({ active, table, cat }) {
     }).filter((s) => s.items.length);
     return { sections, counts, total };
   }, [q, diet, menu, categories, site.categoryName]);
+
+  // What people search for, and whether it found anything (sent once they stop typing).
+  useEffect(() => {
+    if (q.length < 2) return undefined;
+    const t = setTimeout(() => track('search', { value: q, num: total }), 1200);
+    return () => clearTimeout(t);
+  }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- Scroll spy ---------- */
   const stickyOffset = useCallback(() => {
@@ -252,7 +263,7 @@ export function MenuView({ active, table, cat }) {
           <div className="search-wrap">
             <Icon name="search" />
             <input type="search" ref={searchRef} value={query} onChange={(e) => site.setMenuQuery(e.target.value)}
-              placeholder="Search pizzas, momo, wings…" aria-label="Search menu" autoComplete="off" />
+              placeholder="Search pizzas, momo, wings…" aria-label="Search menu" autoComplete="off"  maxLength="60" />
             <kbd className="hide-sm">/</kbd>
           </div>
           <nav className="cat-nav" ref={navRef} aria-label="Menu sections">
@@ -264,6 +275,7 @@ export function MenuView({ active, table, cat }) {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                   e.preventDefault();
                   if (!counts[c.id]) return;
+                  track('cat_click', { category: c.slug });
                   if (location.pathname === categoryPath(c)) scrollToCat(c.id); else navigate(categoryPath(c), { replace: true });
                 }}>
                 <Icon name={c.icon} /><span>{c.short}</span><small>{counts[c.id] || 0}</small>
@@ -277,7 +289,7 @@ export function MenuView({ active, table, cat }) {
         <div className="menu-filter-row">
           <div className="diet-chips" role="group" aria-label="Dietary filter">
             {DIETS.map((d) => (
-              <button key={d} type="button" className="chip chip-sm" aria-pressed={diet === d} onClick={() => site.setMenuDiet(d)}>
+              <button key={d} type="button" className="chip chip-sm" aria-pressed={diet === d} onClick={() => { site.setMenuDiet(d); track('diet_filter', { value: d }); }}>
                 {d === 'all' ? 'All' : <><DietMark diet={d} />{dietLabel(d)}</>}
               </button>
             ))}

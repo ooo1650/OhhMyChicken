@@ -1,8 +1,10 @@
 /* ==========================================================================
-   Art — hand-built SVG illustrations (pizza, rider, toppings, food icons).
+   Art — hand-built SVG illustrations (hero pizza, rider, toppings, menu art).
    Pure strings, so they are crisp at any size and cost zero image requests.
    Rendered with <Art html={...}/>; the strings never contain user input.
    ========================================================================== */
+import { artSvg } from '../shared/food-art.js';
+
 let uidCounter = 0;
 
 // Deterministic PRNG so the same pizza always looks the same.
@@ -175,24 +177,8 @@ let FLOATERS = [
   '<svg viewBox="0 0 40 40"><path d="M4 30 L 20 4 L 36 30 Z" fill="#FFC72C" stroke="#D98B32" stroke-width="2" stroke-linejoin="round"/><circle cx="20" cy="20" r="3" fill="#C8202A"/><circle cx="14" cy="26" r="2.5" fill="#C8202A"/><circle cx="26" cy="26" r="2.5" fill="#C8202A"/></svg>'
 ];
 
-// Food icons for non-pizza menu cards
-let ICONS = {
-  chicken: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M58 18 C 82 16 92 40 80 58 C 70 72 52 70 46 66 L 30 82 C 32 90 22 96 17 88 C 9 90 6 80 14 77 C 8 70 18 62 24 68 L 40 52 C 34 44 36 20 58 18z" fill="#D98B32" stroke="#8a4b12" stroke-width="3"/><path d="M52 28 C 66 26 76 36 72 48" stroke="#F2B35B" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="60" cy="44" r="3" fill="#8a4b12"/><circle cx="68" cy="34" r="2.5" fill="#8a4b12"/></svg>',
-  momo: '<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="50" cy="78" rx="40" ry="8" fill="#00000022"/><path d="M14 70 C 14 40 34 26 50 26 C 66 26 86 40 86 70 Z" fill="#FFF6E5" stroke="#d8c4a0" stroke-width="3"/><path d="M50 26 C 46 36 40 42 30 46 M50 26 C 54 36 60 42 70 46 M50 26 L 50 44" stroke="#d8c4a0" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="50" cy="24" r="5" fill="#FFF6E5" stroke="#d8c4a0" stroke-width="3"/></svg>',
-  fries: '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="#FFD84D" stroke="#D98B32" stroke-width="2"><rect x="28" y="14" width="8" height="46" rx="2" transform="rotate(-10 32 37)"/><rect x="40" y="8" width="8" height="50" rx="2"/><rect x="52" y="10" width="8" height="48" rx="2" transform="rotate(6 56 34)"/><rect x="64" y="16" width="8" height="44" rx="2" transform="rotate(14 68 38)"/></g><path d="M22 40 L 78 40 L 70 92 L 30 92 Z" fill="#E50914" stroke="#121212" stroke-width="3" stroke-linejoin="round"/><path d="M38 58 Q 50 68 62 58" stroke="#FFC72C" stroke-width="5" fill="none" stroke-linecap="round"/></svg>',
-  drink: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M58 6 L 54 30" stroke="#121212" stroke-width="5" stroke-linecap="round"/><path d="M26 28 L 74 28 L 66 94 L 34 94 Z" fill="#E50914" stroke="#121212" stroke-width="3" stroke-linejoin="round"/><rect x="22" y="22" width="56" height="10" rx="4" fill="#fff" stroke="#121212" stroke-width="3"/><path d="M32 52 L 68 52 L 66 70 L 34 70 Z" fill="#fff"/><text x="50" y="66" font-family="Lilita One, sans-serif" font-size="12" text-anchor="middle" fill="#E50914">OMC</text></svg>'
-};
-
-function iconFor(item) {
-  if (item.isPizza) return pizza({ diet: item.diet, seed: hashStr(item.name), slices: 6, id: 'i' + item.id });
-  let n = item.name.toLowerCase();
-  if (/momo/.test(n)) return ICONS.momo;
-  if (/fries|combo/.test(n)) return ICONS.fries;
-  if (/drink|coke|juice|soda/.test(n)) return ICONS.drink;
-  return ICONS.chicken;
-}
-
-function hashStr(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h) + 1; }
+// Menu card drawing for an item: see shared/food-art.js.
+const iconFor = artSvg;
 
 export { pizza, rider, WHEELS, FLOATERS, iconFor };
 

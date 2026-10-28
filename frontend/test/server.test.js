@@ -50,6 +50,20 @@ test('home: server-rendered SEO head, inlined data, security headers', { skip },
   assert.equal(r.headers.get('x-powered-by'), null);
 });
 
+test('pages arrive with a loading skeleton shaped like the page', { skip }, async () => {
+  const home = await (await get('/')).text();
+  assert.match(home, /<div id="root"><div class="shell shell-home" aria-busy="true">/);
+  assert.match(home, /<link rel="preload" href="\/static\/logo-192-[\w-]+\.webp" as="image"/);
+  assert.match(await (await get('/menu/drinks')).text(), /class="shell shell-menu"/);
+});
+
+test('pages may be kept by a CDN for a minute; 404s, the dashboard and the API never', { skip }, async () => {
+  assert.match((await get('/')).headers.get('cache-control'), /^public, max-age=0, s-maxage=60/);
+  assert.equal((await get('/menu/does-not-exist')).headers.get('cache-control'), 'no-cache');
+  assert.equal((await get('/staff-ci/')).headers.get('cache-control'), 'no-store');
+  assert.equal((await get('/api/bootstrap')).headers.get('cache-control'), 'no-store');
+});
+
 test('category page 200, unknown page real 404 with noindex', { skip }, async () => {
   const cat = await get('/menu/chicken-pizza');
   assert.equal(cat.status, 200);

@@ -5,6 +5,7 @@
    ========================================================================== */
 import { esc, fmt12 } from '../shared/format.js';
 import { dietMarkHtml, iconHtml } from '../shared/Icon.jsx';
+import { outletList, outletTitle, telHref, mapHref } from '../shared/outlets.js';
 
 export function makeBot(site) {
   const money = (n) => esc(site.money(n));
@@ -65,7 +66,7 @@ export function makeBot(site) {
     { id: 'veg', words: ['veg', 'vegetarian', 'vegan', 'paneer', 'no meat', 'meatless', 'veggie', 'plant'],
       reply: function () {
         let v = itemsBy(function (m) { return m.diet === 'veg'; });
-        return { html: 'Yes! We have <b>' + v.length + ' vegetarian options</b>, all made in a separate prep line:' + list(v.slice(0, 8)) + (v.length > 8 ? '<small>…and ' + (v.length - 8) + ' more.</small>' : ''),
+        return { html: 'Yes! We have <b>' + v.length + ' vegetarian options</b>, including veg pizzas and veg MoMo:' + list(v.slice(0, 8)) + (v.length > 8 ? '<small>…and ' + (v.length - 8) + ' more.</small>' : ''),
           actions: [{ label: 'Show all veg', act: 'diet:veg' }] };
       } },
     { id: 'chicken', words: ['chicken', 'wings', 'fried chicken', 'crispy', 'drumstick'],
@@ -110,14 +111,25 @@ export function makeBot(site) {
         return { html: esc(p.headline) + '<br>Use code <b class="code-inline">' + esc(p.code) + '</b> at checkout (' + p.percent + '% off one 22" XL pizza).',
           actions: [{ label: 'Apply code', act: 'promo' }] };
       } },
-    { id: 'contact', words: ['where', 'address', 'location', 'located', 'phone', 'call', 'contact', 'number', 'whatsapp', 'find'],
+    { id: 'contact', words: ['where', 'address', 'location', 'located', 'phone', 'call', 'contact', 'number', 'whatsapp', 'find', 'outlet', 'outlets', 'branch', 'branches', 'near', 'nearest'],
       reply: function () {
-        let s = S();
-        return { html: '<span class="bot-line">' + iconHtml('pin') + esc(s.address) + '</span><span class="bot-line">' + iconHtml('phone') + '<a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a></span><span class="bot-line">' + iconHtml('clock') + hoursText() + '</span>' };
+        let s = S(), list = outletList(s);
+        let html = (list.length > 1 ? 'We have <b>' + list.length + ' outlets</b>:' : '') + list.map(function (o) {
+          return '<span class="bot-line">' + iconHtml('pin') + '<span><b>' + esc(outletTitle(o)) + '</b>' + (o.address && o.address !== outletTitle(o) ? ', ' + esc(o.address) : '') +
+            ' · <a href="' + esc(mapHref(o, s)) + '" target="_blank" rel="noopener">Directions</a></span></span>' +
+            (o.phones.length ? '<span class="bot-line">' + iconHtml('phone') + '<span>' + o.phones.map(function (p) { return '<a href="' + esc(telHref(p)) + '">' + esc(p) + '</a>'; }).join(' / ') + '</span></span>' : '');
+        }).join('');
+        return { html: html + '<span class="bot-line">' + iconHtml('clock') + hoursText() + '</span>', actions: [{ label: 'See outlets', act: 'go:find' }] };
       } },
-    { id: 'drinks', words: ['drink', 'drinks', 'coke', 'soda', 'beverage', 'fries', 'sides', 'side'],
+    { id: 'drinks', words: ['drink', 'drinks', 'coke', 'soda', 'beverage', 'coffee', 'tea', 'latte', 'cappuccino', 'americano', 'frappe', 'espresso', 'water'],
       reply: function () {
-        return { html: 'Sides & drinks:' + list(itemsBy(function (m) { return m.category === 'momo' && !/momo/i.test(m.name); })) };
+        let d = itemsBy(function (m) { return m.category === 'drinks'; });
+        return { html: 'We have <b>' + d.length + ' drinks</b>: espresso coffees, teas, iced coffees and soft drinks. A few:' + list(d.slice(0, 8)),
+          actions: [{ label: 'All drinks', act: 'cat:drinks' }] };
+      } },
+    { id: 'sides', words: ['fries', 'sides', 'side', 'combo', 'snack', 'extra cheese', 'add-on', 'addon'],
+      reply: function () {
+        return { html: 'Sides & add-ons:' + list(itemsBy(function (m) { return m.category === 'momo' && !/momo/i.test(m.name); })), actions: [{ label: 'MoMo & fries', act: 'cat:momo' }] };
       } },
     { id: 'thanks', words: ['thanks', 'thank', 'thx', 'dhanyabad', 'great', 'awesome', 'cool', 'nice', 'ok', 'okay'],
       reply: function () { return { html: 'Anytime! Enjoy your meal — and remember: the 22" XL never disappoints.' }; } },
@@ -135,8 +147,9 @@ export function makeBot(site) {
     let item = findItem(msg);
     let asksPrice = /price|cost|how much|rate|rs|npr/i.test(msg);
     if (item && (asksPrice || norm(msg).split(' ').length <= 5)) {
-      if (!item.available) return { html: '<b>' + esc(item.name) + '</b> is sold out right now. Can I suggest something similar?' };
+      if (!item.available) return { topic: 'dish', html: '<b>' + esc(item.name) + '</b> is sold out right now. Can I suggest something similar?' };
       return {
+        topic: 'dish',
         html: dietMarkHtml(item.diet) + ' <b>' + esc(item.name) + '</b>' + (item.desc ? '<br><small>' + esc(item.desc) + '</small>' : '') +
               '<ul class="bot-list">' + item.prices.map(function (p) { return '<li>' + esc(p.label) + ' <span>' + money(p.price) + '</span></li>'; }).join('') + '</ul>',
         actions: item.prices.slice(-2).map(function (p) { return { label: 'Add ' + p.label, act: 'add:' + item.id + ':' + p.label }; })
@@ -147,12 +160,13 @@ export function makeBot(site) {
     INTENTS.forEach(function (it) { let s = score(it, msg); if (s > bestScore) { best = it; bestScore = s; } });
     // Prefer sizing when a headcount is mentioned
     if (/\d+\s*(people|persons?|pax|guests?|friends|of us)/i.test(msg)) best = INTENTS.find(function (i) { return i.id === 'size'; });
-    if (best) return best.reply(msg);
+    if (best) return { topic: best.id, ...best.reply(msg) };
     // 3. Fallback: try a menu search
     let q = norm(msg);
     let found = site.menu.filter(function (m) { return norm(m.name + ' ' + m.desc).indexOf(q) !== -1; });
-    if (q.length > 2 && found.length) return { html: 'Here\'s what I found:' + list(found.slice(0, 6)), actions: [{ label: 'Search menu', act: 'search:' + msg }] };
-    return { html: 'Hmm, I\'m just a chicken — I didn\'t catch that. Try asking about <b>hours</b>, <b>sizes</b>, <b>veg options</b>, <b>delivery</b> or our <b>deal</b>. Or call us at ' + esc(S().phone) + '.' };
+    if (q.length > 2 && found.length) return { topic: 'menu search', html: 'Here\'s what I found:' + list(found.slice(0, 6)), actions: [{ label: 'Search menu', act: 'search:' + msg }] };
+    // Questions the bot can't answer are the useful ones: keep their start (digits get masked server-side).
+    return { topic: 'unanswered: ' + q.slice(0, 60), html: 'Hmm, I\'m just a chicken — I didn\'t catch that. Try asking about <b>hours</b>, <b>sizes</b>, <b>veg options</b>, <b>delivery</b> or our <b>deal</b>. Or call us at ' + esc(S().phone) + '.' };
   }
 
   return { answer, greet: () => INTENTS[0].reply() };

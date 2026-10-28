@@ -8,6 +8,7 @@ import { makeBot } from './bot.js';
 import { Icon } from '../shared/Icon.jsx';
 import { esc, reducedMotion } from '../shared/format.js';
 import { categoryPath } from '../shared/seo.js';
+import { track } from '../shared/track.js';
 
 const QUICK = ['Hours', 'Size for 8 people', 'Veg options', 'MoMo', 'Delivery', 'Deals'];
 
@@ -23,7 +24,8 @@ export function Chat() {
   const siteRef = useRef(site);
   siteRef.current = site;
 
-  const push = (who, html, actions) => setLog((l) => [...l, { id: ++seq.current, who, html, actions }]);
+  // Keep the last 60 messages, so a long session can't grow without end.
+  const push = (who, html, actions) => setLog((l) => [...l, { id: ++seq.current, who, html, actions }].slice(-60));
   const botSay = (res) => {
     setTyping(true);
     setTimeout(() => { setTyping(false); push('bot', res.html, res.actions); }, reducedMotion ? 0 : 450 + Math.random() * 350);
@@ -32,6 +34,7 @@ export function Chat() {
   // Open / close with the panel's CSS transition.
   useEffect(() => {
     if (open) {
+      track('chat_open');
       setHidden(false);
       setPinged(true);
       requestAnimationFrame(() => setIsOpen(true));
@@ -48,9 +51,27 @@ export function Chat() {
 
   const close = (refocus) => { site.setChatOpen(false); if (refocus) fabRef.current.focus(); };
 
+  // Spam guard: more than 5 messages in 10 seconds pauses the chat for 8 seconds.
+  // (The bot runs in the browser and nothing typed here is sent to the server.)
+  const sent = useRef([]);
+  const [pausedUntil, setPausedUntil] = useState(0);
+  useEffect(() => {
+    if (!pausedUntil) return undefined;
+    const t = setTimeout(() => { setPausedUntil(0); requestAnimationFrame(() => inputRef.current && inputRef.current.focus()); }, pausedUntil - Date.now());
+    return () => clearTimeout(t);
+  }, [pausedUntil]);
+
   function send(msg) {
-    msg = String(msg).trim();
-    if (!msg) return;
+    msg = String(msg).trim().slice(0, 200);
+    if (!msg || pausedUntil) return;
+    const now = Date.now();
+    sent.current = sent.current.filter((t) => now - t < 10000).concat(now);
+    if (sent.current.length > 5) {
+      sent.current = [];
+      setPausedUntil(now + 8000);
+      push('bot', 'Whoa, slow down! My little chicken brain needs a few seconds. 🐔');
+      return;
+    }
     push('user', esc(msg));
     botSay(makeBot(site).answer(msg.replace(/^[^\w\d]+\s*/, '')));
   }
@@ -67,6 +88,7 @@ export function Chat() {
       case 'add': {
         const label = p.slice(2).join(':'), it = site.getItem(p[1]);
         site.addToCart(p[1], label, 1);
+        track('add_to_cart', { item_id: p[1], value: label, num: 1 });
         push('bot', 'Added <b>' + esc(it ? it.name : 'item') + ' (' + esc(label) + ')</b> to your order.', [{ label: 'View order', act: 'cart' }]);
         break;
       }
@@ -107,11 +129,11 @@ export function Chat() {
           {typing && <div className="msg msg-bot typing"><div className="bubble"><i /><i /><i /></div></div>}
         </div>
         <div className="chat-quick">
-          {QUICK.map((q) => <button key={q} type="button" onClick={() => send(q)}>{q}</button>)}
+          {QUICK.map((q) => <button key={q} type="button" disabled={!!pausedUntil} onClick={() => send(q)}>{q}</button>)}
         </div>
         <form className="chat-form" onSubmit={(e) => { e.preventDefault(); send(text); setText(''); }}>
-          <input type="text" ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask about hours, sizes, veg…" aria-label="Message" autoComplete="off" />
-          <button type="submit" className="icon-btn send-btn" aria-label="Send"><Icon name="send" /></button>
+          <input type="text" ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} placeholder={pausedUntil ? 'One moment…' : 'Ask about hours, sizes, veg…'} aria-label="Message" autoComplete="off" maxLength="200" disabled={!!pausedUntil} />
+          <button type="submit" className="icon-btn send-btn" aria-label="Send" disabled={!!pausedUntil}><Icon name="send" /></button>
         </form>
       </section>
     </>

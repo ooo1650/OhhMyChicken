@@ -9,7 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const sharp = require('sharp');
 const { pool } = require('./db');
-const { fail } = require('./validate');
+const { fail, clean } = require('./validate');
 const { createGate } = require('./limit');
 
 // Decoding a 50-megapixel photo takes ~200 MB; process one at a time.
@@ -124,7 +124,7 @@ async function update(id, raw) {
   const sets = [], vals = [id];
   if (b.alt !== undefined) {
     if (typeof b.alt !== 'string') fail('Description must be text.');
-    const alt = b.alt.trim();
+    const alt = clean(b.alt);
     if (alt.length > ALT_MAX) fail('Description must be at most ' + ALT_MAX + ' characters.');
     vals.push(alt); sets.push('alt = $' + vals.length);
   }

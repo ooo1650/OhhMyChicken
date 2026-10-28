@@ -10,6 +10,8 @@ import { OrdersPanel } from './OrdersPanel.jsx';
 import { SettingsPanel } from './SettingsPanel.jsx';
 import { QrPanel } from './QrPanel.jsx';
 import { PhotosPanel } from './PhotosPanel.jsx';
+import { InsightsPanel } from './InsightsPanel.jsx';
+import { OutletsPanel } from './OutletsPanel.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { setUnauthorizedHandler } from '../shared/api.js';
@@ -18,7 +20,9 @@ const POLL_MS = 20000;
 const TABS = [
   { id: 'menu', icon: 'utensils', label: 'Menu' },
   { id: 'orders', icon: 'chart', label: 'Orders' },
+  { id: 'insights', icon: 'sparkles', label: 'Insights' },
   { id: 'photos', icon: 'image', label: 'Photos' },
+  { id: 'outlets', icon: 'store', label: 'Outlets' },
   { id: 'settings', icon: 'sliders', label: 'Store' },
   { id: 'qr', icon: 'qr', label: 'QR', more: ' codes' }
 ];
@@ -49,6 +53,10 @@ function Login({ error: initialError, onUnlocked }) {
         <input type="password" ref={inputRef} value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Passcode" autoComplete="current-password" aria-label="Passcode" required />
         <p className="form-error" aria-live="assertive">{error}</p>
         <button type="submit" className="btn btn-red btn-block">Unlock dashboard</button>
+        <details className="login-help">
+          <summary>Forgot the passcode?</summary>
+          <p>Ask whoever looks after the website's server. They can set a new passcode in a minute, and your menu, orders and settings stay exactly as they are.</p>
+        </details>
       </form>
     </main>
   );
@@ -120,7 +128,9 @@ function Dashboard({ defaultPass, onPassChanged, onLock }) {
         </div>
         <MenuPanel hidden={tab !== 'menu'} searchRef={searchRef} />
         <OrdersPanel hidden={tab !== 'orders'} live={live} flash={flash} />
+        <InsightsPanel hidden={tab !== 'insights'} />
         <PhotosPanel hidden={tab !== 'photos'} />
+        <OutletsPanel hidden={tab !== 'outlets'} />
         <SettingsPanel hidden={tab !== 'settings'} onPassChanged={onPassChanged} focusPass={focusPass} />
         <QrPanel hidden={tab !== 'qr'} />
       </div>

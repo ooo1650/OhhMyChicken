@@ -7,11 +7,16 @@ import { useLayer } from '../shared/layer.js';
 import { PIZZA_CATEGORIES } from '../shared/format.js';
 import { Photo } from '../shared/Photo.jsx';
 import { PhotoPicker } from './PhotosPanel.jsx';
+import { Art } from '../site/art.jsx';
+import { ART_GROUPS, artKey, artLabel, artSvg } from '../shared/food-art.js';
+
+// Picture groups to list first for each category.
+const ART_FIRST = { nonveg: ['Pizza'], veg: ['Pizza'], porkbuff: ['Pizza'], special: ['Chicken'], momo: ['MoMo', 'Sides & add-ons'], drinks: ['Coffee', 'Tea & hot drinks', 'Cold drinks'] };
 
 let rowKey = 0;
 const row = (label, price) => ({ key: ++rowKey, label: label || '', price: price == null ? '' : String(price) });
 
-/** state: { item, copy, open, n } — `n` changes on every open. */
+/** state: { item, copy, pick, open, n } — `n` changes on every open; pick: true opens the photo picker, 'art' the picture list. */
 export function ItemEditor({ state, defaultCat, onClose }) {
   const admin = useAdmin(), toast = useToast();
   const sizes = admin.defaults.SIZES;
@@ -21,6 +26,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
   const [f, setF] = useState(null);
   const [err, setErr] = useState('');
   const [picking, setPicking] = useState(false);
+  const [artOpen, setArtOpen] = useState(false);
 
   // Fill the form each time the editor opens.
   useEffect(() => {
@@ -31,8 +37,10 @@ export function ItemEditor({ state, defaultCat, onClose }) {
     let prices = d.prices.map((p) => row(p.label, p.price));
     if (!prices.length && PIZZA_CATEGORIES.includes(d.category)) prices = sizes.map((s) => row(s.label, ''));
     if (!prices.length) prices = [row('Regular', '')];
-    setF({ id: d.id || '', imageId: d.imageId || null, image: d.image || null, name: d.name, category: d.category, diet: d.diet, desc: d.desc || '', available: d.available !== false, popular: !!d.popular, prices, title: item && !copy ? 'Edit ' + item.name : 'Add menu item' });
+    setF({ id: d.id || '', imageId: d.imageId || null, image: d.image || null, art: d.art || '', name: d.name, category: d.category, diet: d.diet, desc: d.desc || '', available: d.available !== false, popular: !!d.popular, prices, title: item && !copy ? 'Edit ' + item.name : 'Add menu item' });
     setErr('');
+    setPicking(state.pick === true);
+    setArtOpen(state.pick === 'art');
   }, [state && state.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Focus the name once the freshly filled form is on screen.
@@ -86,7 +94,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
     const dupe = admin.menu.find((m) => m.name.toLowerCase() === name.toLowerCase() && m.id !== f.id);
     if (dupe) { setErr('An item called “' + dupe.name + '” already exists.'); return; }
 
-    const saved = admin.upsertItem({ id: f.id, name, category: f.category, diet: f.diet, desc: f.desc.trim(), prices, available: f.available, popular: f.popular, imageId: f.imageId, image: f.image });
+    const saved = admin.upsertItem({ id: f.id, name, category: f.category, diet: f.diet, desc: f.desc.trim(), prices, available: f.available, popular: f.popular, imageId: f.imageId, image: f.image, art: f.art });
     onClose();
     toast('Saved “' + saved.name + '”');
   }
@@ -117,7 +125,8 @@ export function ItemEditor({ state, defaultCat, onClose }) {
               </select>
             </label>
           </div>
-          <div className="field">
+          <ArtField f={f} open={artOpen} setOpen={setArtOpen} onPick={(key) => { set('art', key); setArtOpen(false); }} />
+          {admin.settings.dishPhotos && <div className="field">
             <span>Photo</span>
             <div className="item-photo">
               {f.image
@@ -129,7 +138,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
                 {!f.image && <p className="tiny muted">Without a photo the dish shows its drawing.</p>}
               </div>
             </div>
-          </div>
+          </div>}
           <label className="field"><span>Description</span><textarea rows="2" maxLength="140" value={f.desc} onChange={(e) => set('desc', e.target.value)} /></label>
           <div className="field">
             <span>Prices / variants</span>
@@ -162,5 +171,43 @@ export function ItemEditor({ state, defaultCat, onClose }) {
     <PhotoPicker open={picking} selected={f && f.imageId} onClose={() => setPicking(false)}
       onPick={(m) => { setF((x) => x && { ...x, imageId: m.id, image: m }); setPicking(false); }} />
     </>
+  );
+}
+
+// The drawing shown for the dish (and behind a photo while it loads). '' = picked from the name.
+function ArtField({ f, open, setOpen, onPick }) {
+  const sample = { name: f.name, diet: f.diet, category: f.category, isPizza: PIZZA_CATEGORIES.includes(f.category) };
+  const auto = artKey(sample);
+  const first = ART_FIRST[f.category] || [];
+  const groups = [...ART_GROUPS].sort((a, b) => (first.includes(a.group) ? first.indexOf(a.group) : 99) - (first.includes(b.group) ? first.indexOf(b.group) : 99));
+  const tile = (key, label, chosen) => (
+    <button type="button" key={key || 'auto'} className={'art-tile' + (chosen ? ' on' : '')} aria-pressed={chosen} onClick={() => onPick(key)}>
+      <Art html={artSvg({ ...sample, art: key })} className="art-tile-img" />
+      <span>{label}</span>
+    </button>
+  );
+  return (
+    <div className="field">
+      <span>Picture on the menu</span>
+      <div className="item-art">
+        <Art html={artSvg({ ...sample, art: f.art })} className="item-art-now" />
+        <div className="item-photo-actions">
+          <b>{artLabel(f.art || auto)}</b>
+          <p className="tiny muted">{f.art ? 'Chosen for this dish.' : 'Picked automatically from the name.'}</p>
+          <button type="button" className="btn btn-outline btn-sm" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Close list' : 'Choose picture'}</button>
+        </div>
+      </div>
+      {open && (
+        <div className="art-picker">
+          <div className="art-grid">{tile('', 'Automatic', !f.art)}</div>
+          {groups.map((g) => (
+            <div key={g.group}>
+              <p className="art-group">{g.group}</p>
+              <div className="art-grid">{g.items.map((it) => tile(it.key, it.label, f.art === it.key))}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

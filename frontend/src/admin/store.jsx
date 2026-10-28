@@ -78,6 +78,9 @@ export function AdminProvider({ boot, children }) {
     }),
     reorderGallery: (ids) => api('PUT', 'media/order', { ids }).then((list) => { setMedia(list); return list; }),
 
+    /* ---------- Insights (anonymous analytics) ---------- */
+    loadInsights: (days) => api('GET', 'insights?days=' + days),
+
     /* ---------- Settings ---------- */
     saveSettings: (s) => api('PUT', 'settings', s).then(applied(setSettings), syncFailed),
     resetSettings: () => api('POST', 'settings/reset').then(applied(setSettings), syncFailed),
@@ -87,6 +90,8 @@ export function AdminProvider({ boot, children }) {
     login: (p) => api('POST', 'admin/login', { passcode: p }),
     logout: () => api('POST', 'admin/logout').catch(() => {}),
     setPass: (current, p) => api('PUT', 'admin/passcode', { current, passcode: p }),
+    security: () => api('GET', 'admin/security'),
+    signOutOthers: () => api('POST', 'admin/sign-out-others'),
 
     /* ---------- Orders ---------- */
     loadOrders: () => api('GET', 'orders').then((list) => { setOrders(list); return list; }),

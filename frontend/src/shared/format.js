@@ -12,9 +12,13 @@ export function fmt12(t) {
   return ((h % 12) || 12) + ':' + (p[1] || '00') + (h < 12 ? ' AM' : ' PM');
 }
 
+// The restaurant's clock: Nepal time (UTC+5:45, no daylight saving), whatever
+// time zone the visitor's phone is set to.
+const STORE_UTC_OFFSET_MIN = 5 * 60 + 45;
+export const storeMinutes = (d) => (d.getUTCHours() * 60 + d.getUTCMinutes() + STORE_UTC_OFFSET_MIN) % 1440;
+
 export function isOpenNow(settings, date) {
-  const d = date || new Date();
-  const mins = d.getHours() * 60 + d.getMinutes();
+  const mins = storeMinutes(date || new Date());
   const toMin = (t) => { const p = String(t).split(':'); return (+p[0]) * 60 + (+p[1] || 0); };
   const o = toMin(settings.hoursOpen), c = toMin(settings.hoursClose);
   return c > o ? (mins >= o && mins < c) : (mins >= o || mins < c); // handles past-midnight close

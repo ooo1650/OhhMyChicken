@@ -14,13 +14,20 @@ import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
 import { reducedMotion } from '../shared/format.js';
 import { resolveRoute, applyHead, categoryPath, hoursText } from '../shared/seo.js';
+import { track } from '../shared/track.js';
+import { outletList, outletTitle, telHref } from '../shared/outlets.js';
+import logo192 from '../assets/logo-192.webp';
+import logo240 from '../assets/logo-240.webp';
 
-function Brand({ className }) {
+// The restaurant's logo. Imported so Vite gives it a content-hashed URL that browsers cache for a year;
+// the small one is also preloaded from index.html.
+function Brand({ footer }) {
+  const site = useSite();
   return (
-    <Link to="/" className={'brand' + (className ? ' ' + className : '')} aria-label="Ohh My Chicken! home">
-      <span className="brand-block brand-ohh">OHH</span>
-      <span className="brand-block brand-my">MY</span>
-      <span className="brand-block brand-chicken">CHICKEN!</span>
+    <Link to="/" className={'brand' + (footer ? ' brand-footer' : '')} aria-label={site.settings.name + ' home'}>
+      {footer
+        ? <img className="brand-logo" src={logo240} width="260" height="240" alt={site.settings.name} loading="lazy" decoding="async" />
+        : <img className="brand-logo" src={logo192} width="208" height="192" alt={site.settings.name} fetchPriority="high" />}
     </Link>
   );
 }
@@ -72,12 +79,14 @@ function PromoModal() {
   const { hidden, isOpen } = useLayer(site.promoOpen, ref, { onClose: close, focus: '.code-pill' });
 
   useEffect(() => {
+    if (site.promoOpen) track('promo_shown');
     if (!site.promoOpen || reducedMotion) return;
     gsap.fromTo(ref.current.querySelector('.promo-card'), { scale: 0.6, rotation: -6, opacity: 0 }, { scale: 1, rotation: 0, opacity: 1, duration: 0.6, ease: 'back.out(2)' });
     gsap.fromTo(ref.current.querySelector('.promo-burst'), { rotation: -180, scale: 0 }, { rotation: -12, scale: 1, duration: 0.8, delay: 0.15, ease: 'back.out(2.5)' });
   }, [site.promoOpen]);
 
   const copy = () => {
+    track('promo_copied');
     const done = () => toast('Code ' + p.code + ' copied and added to your order');
     site.applyCode(p.code);
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(p.code).then(done, done); else done();
@@ -124,12 +133,16 @@ function Footer() {
     <footer className="site-footer">
       <div className="wrap footer-grid">
         <div className="footer-about">
-          <Brand className="brand-footer" />
+          <Brand footer />
           <p className="muted">Pizza restaurant in {s.city}: giant pizzas, crispy chicken &amp; MoMo for lunch, dinner and delivery.</p>
           {/* Name, address, phone: the same as in the structured data, for local search. */}
           <address className="footer-nap">
-            <span>{[s.street, s.address].filter(Boolean).join(', ')}</span>
-            {s.phone && <a href={'tel:' + s.phone.replace(/\s/g, '')}>{s.phone}</a>}
+            {outletList(s).map((o) => (
+              <span key={o.id || 'main'} className="footer-outlet">
+                <b>{o.single ? [s.street, s.address].filter(Boolean).join(', ') : outletTitle(o)}</b>
+                {o.phones[0] && <a href={telHref(o.phones[0])}>{o.phones[0]}</a>}
+              </span>
+            ))}
             <span>Open daily {hoursText(s)}</span>
           </address>
         </div>
@@ -146,7 +159,15 @@ function Footer() {
           <button type="button" onClick={() => site.setChatOpen(true)}>Chat</button>
         </nav>
       </div>
-      <p className="wrap copyright">© {new Date().getFullYear()} {s.name} All rights reserved.</p>
+      <p className="wrap copyright">© {new Date().getFullYear()} {s.name} All rights reserved.
+        {' '}We count visits anonymously to improve the menu: no cookies, no ads, no tracking across sites, and your browser's "Do Not Track" is respected.</p>
+      {/* Agency credit: who builds and runs the site, and how to reach them for one of your own. */}
+      <div className="wrap made-by">
+        <p>Designed, built &amp; looked after by <b>PaperKite</b>, from hosting to security and monitoring.</p>
+        <a href="mailto:paperkite.contact@gmail.com?subject=A%20website%20like%20Ohh%20My%20Chicken" className="made-by-cta">
+          Want a site like this? <span>paperkite.contact@gmail.com</span>
+        </a>
+      </div>
     </footer>
   );
 }
@@ -169,15 +190,21 @@ export function App() {
       setTimeout(() => { markPromoSeen(); site.setPromoOpen(true); }, 400);
     }
     applyHead(page, boot);
+    // Anonymous page view. The referring site's name is sent only on the first one.
+    let referrer = null;
+    if (!route.n && document.referrer) { try { const h = new URL(document.referrer).host; if (h !== location.host) referrer = h; } catch (e) { /* ignore */ } }
+    track('page_view', { path: location.pathname, referrer, table_no: route.params.table || null });
     const changed = prevView.current !== page.view;
     prevView.current = page.view;
     setView(page.view);
 
     if (page.view === 'menu') {
       const t = String(route.params.table || '').replace(/[^\w-]/g, '').slice(0, 6);
+      const o = String(route.params.outlet || '').replace(/[^a-z0-9-]/g, '').slice(0, 40);
+      if (o && (site.settings.outlets || []).some((x) => x.id === o && x.active !== false)) site.setTableOutlet(o);
       if (t) {
         setTable(t);
-        site.setCheckout((c) => (c.address ? c : { ...c, address: 'Table ' + t }));
+        if (site.settings.dineIn) site.setCheckout((c) => ({ ...c, mode: 'table', table: t }));
       }
       if (page.cat) site.jumpToCategory(page.cat.id);
       else if (changed) window.scrollTo(0, 0);
@@ -197,7 +224,10 @@ export function App() {
   }, [route.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fade the newly shown view in.
+  const firstView = useRef(true);
   useEffect(() => {
+    // The first view replaces the loading skeleton directly; fading it in from blank would flash.
+    if (firstView.current) { firstView.current = false; return; }
     if (reducedMotion) return;
     gsap.fromTo('#view-' + view, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out', clearProps: 'transform' });
   }, [view]);

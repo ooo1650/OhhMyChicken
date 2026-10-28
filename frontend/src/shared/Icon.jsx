@@ -1,11 +1,14 @@
 import { dietLabel, esc } from './format.js';
 
+/* global __SPRITE__ */ // versioned sprite URL, set in vite.config.js
+const SPRITE = typeof __SPRITE__ !== 'undefined' ? __SPRITE__ : '/assets/icons.svg';
+
 // Icon from the shared SVG sprite (name without the "i-" prefix).
 export function Icon({ name, className }) {
-  return <svg className={'i' + (className ? ' ' + className : '')} aria-hidden="true"><use href={'/assets/icons.svg#i-' + name} /></svg>;
+  return <svg className={'i' + (className ? ' ' + className : '')} aria-hidden="true"><use href={SPRITE + '#i-' + name} /></svg>;
 }
 // Same icon as an HTML string, for chatbot replies.
-export const iconHtml = (name) => '<svg class="i" aria-hidden="true"><use href="/assets/icons.svg#i-' + name + '"/></svg>';
+export const iconHtml = (name) => '<svg class="i" aria-hidden="true"><use href="' + SPRITE + '#i-' + name + '"/></svg>';
 
 // Veg / non-veg mark as used on food packaging in Nepal & India:
 // green square with a dot = veg, red square with a triangle = non-veg.

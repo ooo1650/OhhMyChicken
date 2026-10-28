@@ -1,15 +1,23 @@
-# Ohh My Chicken! — three services:
+# Ohh My Chicken! — four services:
 #   frontend  React build + SEO page server; proxies /api to the backend (public)
 #   backend   Express JSON API (internal only)
 #   db        PostgreSQL 16 (internal only)
+#   backup    nightly database backup into ./backups (deploy/backup.sh)
 #
 #   cp .env.example .env      # set POSTGRES_PASSWORD (and ADMIN_PASSCODE)
 #   docker compose up -d --build
 #   open http://localhost:3000
+
+# Logs are capped (2 × 5 MB per service, oldest dropped) so they never grow on disk.
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "5m", max-file: "2" }
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: omc
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -30,12 +38,13 @@ services:
     build: ./backend
     image: ohh-my-chicken-backend:latest
     restart: unless-stopped
+    logging: *logging
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://omc:${POSTGRES_PASSWORD}@db:5432/ohh_my_chicken
-      NODE_ENV: production
+      NODE_ENV: local
       PORT: 4000
       # Requests arrive through the frontend server.
       TRUST_PROXY: ${TRUST_PROXY:-1}
@@ -44,9 +53,17 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       UPLOAD_DIR: /app/uploads
+      # Anonymous analytics: timezone for "busy hours" and how long raw events are kept.
+      ANALYTICS_TZ: ${ANALYTICS_TZ:-Asia/Kathmandu}
+      ANALYTICS_RETENTION_DAYS: ${ANALYTICS_RETENTION_DAYS:-180}
+      # Customers' names, phones and addresses are blanked on orders older than this.
+      ORDER_DETAILS_DAYS: ${ORDER_DETAILS_DAYS:-90}
+      # Where the backup service writes; the dashboard shows when the last backup succeeded.
+      BACKUP_DIR: /app/backups
     volumes:
-      # Uploaded photos (WebP files). Back this up together with the database.
+      # Uploaded photos (WebP files). The backup service saves them with the database.
       - omc-media:/app/uploads
+      - ./backups:/app/backups:ro
     # No published port: browsers reach the API through the frontend at /api.
     read_only: true
     tmpfs: [/tmp]
@@ -61,6 +78,7 @@ services:
     build: ./frontend
     image: ohh-my-chicken-frontend:latest
     restart: unless-stopped
+    logging: *logging
     depends_on:
       backend:
         condition: service_healthy
@@ -72,9 +90,10 @@ services:
       # Set when another proxy (Caddy, a load balancer…) sits in front.
       TRUST_PROXY: ${FRONTEND_TRUST_PROXY:-}
     ports:
-      # On a server behind an HTTPS proxy set APP_BIND=127.0.0.1: Docker-published
-      # ports bypass ufw, so 0.0.0.0 would expose plain HTTP to the internet.
-      - "${APP_BIND:-0.0.0.0}:${APP_PORT:-3000}:8080"
+      # Only this machine (and Nginx on it) can reach the app. Docker-published ports
+      # bypass ufw, and anyone reaching this port directly could fake their IP and dodge
+      # the per-IP limits. Set APP_BIND=0.0.0.0 only to open it on a private network.
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:8080"
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -82,6 +101,36 @@ services:
     mem_limit: 384m
     pids_limit: 200
     networks: [frontend]
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "/backup.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: omc
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ohh_my_chicken
+      TZ: Asia/Kathmandu
+      BACKUP_HOUR: ${BACKUP_HOUR:-3}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      # 1 also archives the uploaded photos every night (whole folder each time).
+      BACKUP_PHOTOS: ${BACKUP_PHOTOS:-0}
+      # Who owns the backup files on the host (user:group); only they can read them.
+      BACKUP_OWNER: ${BACKUP_OWNER:-1000:1000}
+    volumes:
+      - ./backups:/backups
+      - omc-media:/media:ro
+      - ./deploy/backup.sh:/backup.sh:ro
+    # Sleeps all day; pg_dump of a small restaurant database takes a second or two.
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 20
+    networks: [backend]
 
 volumes:
   omc-data:

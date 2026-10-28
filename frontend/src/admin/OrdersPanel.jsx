@@ -18,6 +18,8 @@ export function OrdersPanel({ hidden, live, flash }) {
   const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
   const { orders } = admin;
   const [filter, setFilter] = useState('open');
+  const [outlet, setOutlet] = useState('');
+  const outletNames = [...new Set(orders.map((o) => o.outlet).filter(Boolean))];
 
   const valid = orders.filter((o) => o.status !== 'cancelled');
   const open = orders.filter((o) => OPEN.includes(o.status));
@@ -28,7 +30,7 @@ export function OrdersPanel({ hidden, live, flash }) {
   const top = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const max = top.length ? top[0][1] : 1;
 
-  const shown = orders.filter((o) => filter === 'all' || (filter === 'open' ? OPEN.includes(o.status) : o.status === filter)).slice(0, 60);
+  const shown = orders.filter((o) => (filter === 'all' || (filter === 'open' ? OPEN.includes(o.status) : o.status === filter)) && (!outlet || o.outlet === outlet)).slice(0, 60);
 
   function setStatus(o, status) {
     admin.setOrderStatus(o.id, status).then(() => toast('Order #' + o.id + ' → ' + statusOf(status).label), (err) => toast(err.message, 'error'));
@@ -64,13 +66,19 @@ export function OrdersPanel({ hidden, live, flash }) {
             {[['open', 'Open'], ['done', 'Done'], ['cancelled', 'Cancelled'], ['all', 'All']].map(([id, label]) => (
               <button key={id} type="button" className="chip chip-sm" role="tab" aria-selected={filter === id} onClick={() => setFilter(id)}>{label}</button>
             ))}
+            {outletNames.length > 1 && (
+              <select className="order-outlet" value={outlet} onChange={(e) => setOutlet(e.target.value)} aria-label="Filter by outlet">
+                <option value="">All outlets</option>
+                {outletNames.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            )}
           </div>
           <ul className="order-list" aria-live="polite">
             {shown.map((o) => {
               const st = statusOf(o.status);
               return (
                 <li key={o.id} className={'order st-' + st.id + (flash.has(o.id) ? ' is-new-flash' : '')}>
-                  <div className="order-top"><span className="order-no">#{o.id}</span><b>{o.name}</b></div>
+                  <div className="order-top"><span className="order-no">#{o.id}</span><b>{o.name}</b>{o.outlet && <span className="order-outlet-tag"><Icon name="store" />{o.outlet}</span>}</div>
                   <select className="order-status" value={st.id} onChange={(e) => setStatus(o, e.target.value)} aria-label={'Status of order #' + o.id}>
                     {STATUSES.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
                   </select>

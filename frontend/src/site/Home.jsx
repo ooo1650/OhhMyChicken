@@ -10,9 +10,11 @@ import { Link } from './router.jsx';
 import { Art, pizza, rider as riderSvg, WHEELS, FLOATERS } from './art.jsx';
 import { DishCard } from './Menu.jsx';
 import { Gallery } from './Gallery.jsx';
+import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12, reducedMotion } from '../shared/format.js';
 import { faqs, meals, servicesText, hoursText } from '../shared/seo.js';
+import { track } from '../shared/track.js';
 
 const hover = () => window.matchMedia('(hover: hover)').matches;
 
@@ -253,7 +255,7 @@ function SizeGuide() {
           <div className="size-options" role="radiogroup" aria-label="Pizza size">
             {SIZES.map((s, i) => (
               <button key={s.key} ref={(el) => { btns.current[i] = el; }} className={'size-opt' + (s.key === 'XL' ? ' is-xl' : '')}
-                role="radio" aria-checked={i === sel} onClick={() => setSel(i)} onKeyDown={(e) => onKey(e, i)}>
+                role="radio" aria-checked={i === sel} onClick={() => { setSel(i); track('size_select', { value: s.key }); }} onKeyDown={(e) => onKey(e, i)}>
                 <b>{s.inch}"</b><span>{s.name}</span><em>{s.who}</em>
               </button>
             ))}
@@ -326,13 +328,12 @@ function Faq() {
 export function HomeView({ active }) {
   const site = useSite(), s = site.settings;
   const rootRef = useRef(null);
-  const findArt = useMemo(() => pizza({ seed: 4, id: 'find', diet: 'pork' }), []);
   const picks = site.menu.filter((m) => m.popular && m.available).slice(0, 8);
 
   // Scroll reveals
   useEffect(() => {
     if (reducedMotion || !('IntersectionObserver' in window)) return undefined;
-    const targets = rootRef.current.querySelectorAll('.section-head, .size-guide, .steps li, .find-grid > *');
+    const targets = rootRef.current.querySelectorAll('.section-head, .size-guide, .steps li, .find-copy, .find-map, .branch');
     targets.forEach((t) => t.classList.add('pre-reveal'));
     const io = new IntersectionObserver((entries) => {
       entries.forEach((en) => {
@@ -389,29 +390,7 @@ export function HomeView({ active }) {
 
       <Meals />
 
-      <section className="section section-light" id="find" aria-labelledby="findTitle">
-        <div className="wrap find-grid">
-          <div>
-            <p className="eyebrow eyebrow-red">Come say ohh!</p>
-            <h2 className="tilt-title" id="findTitle"><span>Find</span> <span className="hl">us</span></h2>
-            <ul className="info-list">
-              <li><span className="info-ico"><Icon name="pin" /></span><b>{s.address}</b></li>
-              <li><span className="info-ico"><Icon name="clock" /></span><b>{fmt12(s.hoursOpen)} – {fmt12(s.hoursClose)}</b> <em>every day</em></li>
-              <li><span className="info-ico"><Icon name="phone" /></span><a href={'tel:' + s.phone.replace(/\s/g, '')}>{s.phone}</a></li>
-              <li><span className="info-ico"><Icon name="bike" /></span><b>Free delivery over <span>{site.money(s.freeDeliveryOver)}</span></b></li>
-            </ul>
-            <div className="hero-ctas">
-              <Link to="/menu" className="btn btn-red">Order now</Link>
-              <button className="btn btn-outline" onClick={() => site.setChatOpen(true)}><Icon name="chat" /> Ask our chatbot</button>
-            </div>
-          </div>
-          <div className="find-card" aria-hidden="true">
-            <Art className="find-pizza" html={findArt} />
-            <p className="find-quote">"Ohh my… that's a <em>big</em> pizza."</p>
-            <p className="find-by">— literally everyone</p>
-          </div>
-        </div>
-      </section>
+      <FindUs />
 
       <Faq />
     </section>

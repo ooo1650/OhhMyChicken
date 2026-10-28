@@ -118,6 +118,10 @@ export function pageMeta(route, boot) {
   };
 }
 
+// Visible branches (kept here rather than imported: the server image ships this file alone).
+const outletsOf = (s) => (s.outlets || []).filter((o) => o.active !== false);
+const placeOf = (o) => (o.area && !o.area.toLowerCase().includes(o.name.toLowerCase()) && !o.name.toLowerCase().includes(o.area.toLowerCase()) ? o.name + ', ' + o.area : o.area || o.name);
+
 /* ---------- FAQ (shown on the home page and sent as FAQPage data) ---------- */
 export function faqs(boot) {
   const s = boot.settings, menu = boot.menu, name = s.name, m = meals(s);
@@ -140,11 +144,20 @@ export function faqs(boot) {
     q: 'What pizza sizes do you have?',
     a: 'Our pizzas come in 12" Small (1–2 people), 15" Medium (2–3), 18" Large (4–5) and the giant 22" XL, which feeds 6–8 people and is made for parties and family dinners.'
   });
-  if (veg) list.push({ q: 'Do you have vegetarian food?', a: 'Yes, ' + veg + ' vegetarian dishes, including veg pizzas and veg MoMo, made on a separate veg prep line.' });
+  if (veg) list.push({ q: 'Do you have vegetarian food?', a: 'Yes, ' + veg + ' vegetarian dishes, including cheese and veg pizzas, veg MoMo and fries.' });
   if (s.dineIn) list.push({ q: 'Can I order from my table?', a: 'Yes. Scan the QR code on your table to open the menu. Your order is sent with your table number.' });
+  const outlets = outletsOf(s);
+  if (outlets.length > 1) {
+    const places = outlets.map((o) => placeOf(o) + (o.landmark && !/^plus code/i.test(o.landmark) ? ' (' + o.landmark.replace(/\.$/, '') + ')' : ''));
+    list.push({
+      q: 'Where are your outlets?',
+      a: 'We have ' + outlets.length + ' outlets: ' + places.slice(0, -1).join('; ') + ' and ' + places[places.length - 1] + '. Each one delivers in its own area.'
+    });
+  }
   list.push({
     q: 'How do I order online?',
-    a: 'Add dishes from the online menu and tap Place order. Your order opens in WhatsApp, ready to send.' + (s.phone ? ' You can also call us on ' + s.phone + '.' : '')
+    a: 'Add dishes from the online menu and tap Place order' + (outlets.length > 1 ? ', then choose the outlet nearest you' : '') + '. Your order opens in WhatsApp, ready to send.' +
+      (outlets.length > 1 ? '' : s.phone ? ' You can also call us on ' + s.phone + '.' : '')
   });
   return list;
 }
@@ -187,6 +200,31 @@ export function jsonLd(route, boot, origin) {
 
   const graph = [restaurant];
 
+  // Each branch as its own restaurant, linked to the main one.
+  const outlets = outletsOf(s);
+  if (outlets.length > 1) {
+    restaurant.department = outlets.map((o) => ({ '@id': origin + '/#outlet-' + o.id }));
+    outlets.forEach((o) => {
+      const node = {
+        '@type': 'Restaurant', '@id': origin + '/#outlet-' + o.id,
+        name: s.name + ' – ' + o.name, url: home + '#find',
+        image: origin + OG_IMAGE.path,
+        address: { '@type': 'PostalAddress', streetAddress: o.address || o.name, addressLocality: o.area || city(s), addressCountry: s.country || 'NP' },
+        servesCuisine: restaurant.servesCuisine,
+        openingHoursSpecification: [{ '@type': 'OpeningHoursSpecification', dayOfWeek: WEEK, opens: o.hoursOpen || s.hoursOpen, closes: o.hoursClose || s.hoursClose }],
+        hasMenu: origin + '/menu',
+        parentOrganization: { '@id': restaurantId }
+      };
+      if (o.phones && o.phones[0]) node.telephone = o.phones[0].replace(/[^\d+]/g, '');
+      if (o.mapsUrl) node.hasMap = o.mapsUrl;
+      if (o.lat != null && o.lng != null) node.geo = { '@type': 'GeoCoordinates', latitude: o.lat, longitude: o.lng };
+      const same = [o.instagram, o.facebook].filter(Boolean);
+      if (same.length) node.sameAs = same;
+      if (range) node.priceRange = restaurant.priceRange;
+      graph.push(node);
+    });
+  }
+
   if (route.view === 'home') {
     graph.push({ '@type': 'WebSite', '@id': origin + '/#website', name: s.name, url: home, publisher: { '@id': restaurantId }, inLanguage: 'en' });
     graph.push({
@@ -217,7 +255,7 @@ export function jsonLd(route, boot, origin) {
             }))
           };
           if (m.desc) item.description = m.desc;
-          if (m.image) item.image = origin + m.image.url;
+          if (m.image && s.dishPhotos) item.image = origin + m.image.url;
           if (m.diet === 'veg') item.suitableForDiet = 'https://schema.org/VegetarianDiet';
           return item;
         })
@@ -257,7 +295,7 @@ export function headHtml(route, boot, origin) {
     '<meta property="og:image" content="' + attr(origin + OG_IMAGE.path) + '">',
     '<meta property="og:image:width" content="' + OG_IMAGE.width + '">',
     '<meta property="og:image:height" content="' + OG_IMAGE.height + '">',
-    '<meta property="og:image:alt" content="' + attr(s.name + ': giant 22 inch pizza') + '">',
+    '<meta property="og:image:alt" content="' + attr(s.name + ' logo') + '">',
     '<meta name="twitter:card" content="summary_large_image">',
     '<meta name="twitter:title" content="' + attr(meta.title) + '">',
     '<meta name="twitter:description" content="' + attr(meta.description) + '">',

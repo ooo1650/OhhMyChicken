@@ -74,6 +74,14 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   await media.ensureDir();
   await db.migrate();
   await db.seed();
+  require('./analytics').startCleanup();
+  // Blank customers' personal details on old orders, now and every 6 hours.
+  const forget = () => require('./models').forgetOldCustomerDetails()
+    .then((n) => { if (n) console.log('Removed customer details from ' + n + ' old order(s).'); }, (e) => console.warn('order cleanup:', e.message));
+  forget(); setInterval(forget, 6 * 3600 * 1000).unref();
+  if (process.env.COOKIE_SECURE === 'false' && process.env.NODE_ENV === 'production') {
+    console.warn('COOKIE_SECURE=false: the dashboard login cookie travels over plain HTTP. Fine on a private test network; on a public server use HTTPS and leave COOKIE_SECURE empty.');
+  }
   const server = app.listen(PORT, () => console.log('Ohh My Chicken! API on http://localhost:' + PORT));
   server.headersTimeout = 20000;  // drop clients that send headers very slowly (slowloris)
   server.requestTimeout = 120000; // whole request, including a 10 MB photo on a slow line

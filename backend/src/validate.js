@@ -31,10 +31,23 @@ function coord(v, max, field) {
   return Math.round(n * 1e6) / 1e6;
 }
 
-function str(v, max, field, { required = false } = {}) {
+// Text as stored: Unicode-normalised, without invisible characters that can disguise
+// what is shown (control codes, right-to-left overrides, zero-width spaces), and on
+// one line with single spaces. Joiners stay: Devanagari and emoji need them.
+// multiline keeps line breaks (at most one blank line in a row).
+const INVISIBLE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u200B\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF\uFFF9-\uFFFB]/g;
+function clean(v, { multiline = false } = {}) {
+  let s = String(v).normalize('NFC').replace(/\r\n?|[\u2028\u2029]/g, '\n').replace(INVISIBLE, '');
+  s = multiline
+    ? s.split('\n').map((l) => l.replace(/[\t ]+/g, ' ').trim()).join('\n').replace(/\n{3,}/g, '\n\n')
+    : s.replace(/\s+/g, ' ');
+  return s.trim();
+}
+
+function str(v, max, field, { required = false, multiline = false } = {}) {
   if (v == null) v = '';
   if (typeof v !== 'string') fail(field + ' must be text.');
-  v = v.trim();
+  v = clean(v, { multiline });
   if (required && !v) fail(field + ' is required.');
   if (v.length > max) fail(field + ' must be at most ' + max + ' characters.');
   return v;
@@ -54,7 +67,7 @@ function item(raw) {
   const name = str(raw.name, 60, 'Name', { required: true });
   if (!CAT_IDS.includes(raw.category)) fail('Unknown category for “' + name + '”.');
   const diet = DIETS.includes(raw.diet) ? raw.diet : 'veg';
-  const desc = str(raw.desc, 140, 'Description');
+  const desc = str(raw.desc, 140, 'Description', { multiline: true });
   if (!Array.isArray(raw.prices) || !raw.prices.length) fail('“' + name + '” needs at least one price.');
   if (raw.prices.length > 12) fail('“' + name + '” has too many variants.');
   const prices = raw.prices.map((p) => {
@@ -68,8 +81,16 @@ function item(raw) {
     id, name, category: raw.category, diet, desc, prices,
     available: raw.available !== false,
     popular: !!raw.popular,
-    imageId: imageId(raw.imageId)
+    imageId: imageId(raw.imageId),
+    art: art(raw.art)
   };
+}
+
+// Key of a built-in drawing (the list lives in the frontend), or '' to pick one from the name.
+function art(v) {
+  if (v == null || v === '') return '';
+  if (typeof v !== 'string' || !/^[a-z0-9-]{1,32}$/.test(v)) fail('Invalid artwork.');
+  return v;
 }
 
 // A photo from the media library, or null for none (existence is checked against the db).
@@ -124,6 +145,8 @@ function settings(raw, current) {
     socialLinks: socialLinks(s.socialLinks),
     dineIn: s.dineIn !== false,
     takeaway: !!s.takeaway,
+    dishPhotos: !!s.dishPhotos,
+    outlets: outlets(s.outlets),
     promo: {
       enabled: !!p.enabled,
       code: str(p.code, 20, 'Promo code').toUpperCase(),
@@ -132,6 +155,49 @@ function settings(raw, current) {
       delaySec: int(p.delaySec, 0, 60, 'Pop-up delay')
     }
   };
+}
+
+// Branches. Each takes its own WhatsApp orders; hours left empty follow the store hours.
+function outlets(v) {
+  if (v == null) return [];
+  if (!Array.isArray(v)) fail('Invalid outlets.');
+  if (v.length > 20) fail('Add at most 20 outlets.');
+  const ids = new Set();
+  let main = false;
+  return v.map((o, i) => {
+    if (!o || typeof o !== 'object') fail('Invalid outlet.');
+    const name = str(o.name, 40, 'Outlet name', { required: true });
+    const id = String(o.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'outlet-' + (i + 1));
+    if (!/^[a-z0-9-]{1,40}$/.test(id)) fail('Invalid outlet id.');
+    if (ids.has(id)) fail('Two outlets share the id “' + id + '”.');
+    ids.add(id);
+    const phones = (Array.isArray(o.phones) ? o.phones : String(o.phones || '').split(/[,/]/))
+      .map((p) => String(p || '').trim()).filter(Boolean);
+    if (phones.length > 4) fail('Add at most 4 phone numbers for ' + name + '.');
+    phones.forEach((p) => { if (!/^[+\d][\d\s-]{5,24}$/.test(p)) fail('“' + p + '” is not a phone number (' + name + ').'); });
+    const whatsapp = String(o.whatsapp == null ? '' : o.whatsapp).replace(/\D/g, '');
+    if (whatsapp && !/^\d{8,15}$/.test(whatsapp)) fail('WhatsApp number for ' + name + ' must be 8–15 digits with country code.');
+    const open = String(o.hoursOpen || ''), close = String(o.hoursClose || '');
+    if ((open || close) && !(TIME_RE.test(open) && TIME_RE.test(close))) fail('Hours for ' + name + ' must both be HH:MM, or both empty.');
+    const isMain = !!o.main && !main;
+    if (isMain) main = true;
+    return {
+      id, name,
+      area: str(o.area, 60, 'Area'),
+      address: str(o.address, 160, 'Address'),
+      landmark: str(o.landmark, 200, 'Directions', { multiline: true }),
+      phones, whatsapp,
+      delivery: str(o.delivery, 120, 'Delivery area'),
+      hoursOpen: open, hoursClose: close,
+      mapsUrl: url(o.mapsUrl, 'Map link'),
+      lat: coord(o.lat, 90, 'Latitude for ' + name),
+      lng: coord(o.lng, 180, 'Longitude for ' + name),
+      instagram: url(o.instagram, 'Instagram link'),
+      facebook: url(o.facebook, 'Facebook link'),
+      main: isMain,
+      active: o.active !== false
+    };
+  });
 }
 
 function countryCode(v) {
@@ -153,4 +219,4 @@ function socialLinks(v) {
 
 function isPizza(category) { return PIZZA_CATEGORIES.includes(category); }
 
-module.exports = { ValidationError, item, menu, settings, isPizza, fail };
+module.exports = { ValidationError, item, menu, settings, isPizza, fail, clean };

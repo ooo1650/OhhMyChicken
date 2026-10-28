@@ -1,33 +1,24 @@
-# Deploying to an Ubuntu server
+# Deploy to a test VM (load and security testing)
 
-Every push and pull request runs the tests in GitHub Actions ([.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml)). A push to **`main`** that passes them is deployed:
+For now the site runs on an **Ubuntu VM on this computer** (libvirt/KVM). You test it from the host before moving to a real server. Moving to production later is a short checklist at the end.
 
 ```
-push ─► Tests ─┐            (unit + API tests on Postgres, build, end-to-end, audit)
-       Docker ─┴─► Deploy   (SSH to the server → remote-deploy.sh)
-                     │
-                     ├─ git pull (fast-forward to the exact tested commit)
-                     ├─ docker compose up -d --build
-                     ├─ health check: /healthz and /api/menu
-                     └─ unhealthy? roll back to the previous commit
+Your PC (host)                                 VM "ubuntu24.04"  (192.168.122.24)
+  browser, load test, security test ──http──►  Nginx :80 ──► app :3000 (Docker: frontend, backend, Postgres)
+
+GitHub ── push to main ──► Actions: tests + Docker build ──► runner on the VM: git pull, rebuild, health check
 ```
 
-The server pulls the code itself, and secrets stay on the server: `.env` never goes through GitHub.
+Everywhere below, `192.168.122.24` is the VM's address. Find yours on the host with `virsh -c qemu:///system domifaddr ubuntu24.04`, or inside the VM with `ip -4 addr`.
 
-**Two ways to reach the server.** Set the repository *variable* `DEPLOY_MODE` (Settings → Secrets and variables → Actions → **Variables**):
+---
 
-| `DEPLOY_MODE` | Use when | Needs |
-| --- | --- | --- |
-| `runner` | The server is a VM on a **private network** (not reachable from the internet) | A self-hosted runner on the server (step 5a). No secrets. |
-| `ssh` | The server has a public IP / hostname | The SSH secrets (steps 5b and 6) |
-| *(unset)* | Not set up yet | Nothing. Tests run; the deploy is skipped. |
+## 1. Prepare the VM
 
-## 1. Prepare the server (once)
-
-Ubuntu 22.04 or 24.04, as a user with `sudo`.
+Give the VM at least **2 CPUs, 4 GB RAM and 20 GB of disk**, or load tests will only measure the VM. Then, inside the VM:
 
 ```bash
-# Docker Engine + Compose plugin (official repository), git, curl
+# Docker (official repository), git, curl
 sudo apt update && sudo apt install -y ca-certificates curl git
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -35,203 +26,265 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
   | sudo tee /etc/apt/sources.list.d/docker.list
 sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# A dedicated user for deployments
-sudo adduser --disabled-password --gecos "" deploy
-sudo usermod -aG docker deploy      # note: docker access is root-equivalent; use this user only for deploys
-sudo mkdir -p /srv/ohhmychicken && sudo chown deploy:deploy /srv/ohhmychicken
-
-# Firewall: SSH and HTTPS only (the app port stays on localhost, see APP_BIND)
-sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable   # 'Nginx Full' = ports 80 + 443 (after installing nginx in step 4; or: ufw allow 80,443/tcp)
+# Let your user run docker without sudo (the GitHub runner needs this too)
+sudo usermod -aG docker $USER
 ```
 
-## 2. Let the server pull the repository
+**Log out and back in**, then check: `docker run --rm hello-world`
 
-The repository is `github.com/ooo1650/OhhMyChicken`.
-
-**Public repository:** clone over HTTPS, nothing else needed.
-
-**Private repository:** give the server a read-only *deploy key*:
+## 2. Get the code
 
 ```bash
-sudo -iu deploy
-ssh-keygen -t ed25519 -f ~/.ssh/omc_repo -N "" -C "ohhmychicken server (read-only)"
-cat ~/.ssh/omc_repo.pub     # GitHub → repo → Settings → Deploy keys → Add (leave "write access" OFF)
-cat >> ~/.ssh/config <<'CFG'
-Host github.com
-  IdentityFile ~/.ssh/omc_repo
-  IdentitiesOnly yes
-CFG
-ssh -T git@github.com       # answer "yes" once; it should greet you
-```
-
-Then clone (as `deploy`):
-
-```bash
-git clone https://github.com/ooo1650/OhhMyChicken.git /srv/ohhmychicken       # public
-git clone git@github.com:ooo1650/OhhMyChicken.git /srv/ohhmychicken           # private
+sudo mkdir -p /srv/ohhmychicken && sudo chown $USER: /srv/ohhmychicken
+git clone https://github.com/ooo1650/OhhMyChicken.git /srv/ohhmychicken
 cd /srv/ohhmychicken && git checkout main
 ```
 
-## 3. Secrets on the server: `.env`
+If you make the repository private (recommended in step 6), `git pull` on the VM needs a read-only deploy key. See "Private repository" in the production checklist.
+
+## 3. Settings: `.env`
 
 ```bash
 cd /srv/ohhmychicken
 cp .env.example .env && chmod 600 .env
+openssl rand -hex 24          # copy this for POSTGRES_PASSWORD
 nano .env
 ```
 
-Set at least:
+Set these lines (leave the rest as they are):
 
-| Variable | Value |
-| --- | --- |
-| `POSTGRES_PASSWORD` | `openssl rand -hex 24` (letters and digits only) |
-| `ADMIN_PASSCODE` | A long passcode only you know. The backend won't start without it. |
-| `PUBLIC_URL` | `https://your-domain.com` |
-| `APP_BIND` | `127.0.0.1` (only the HTTPS proxy may reach the app) |
-| `ADMIN_PATH` | Something unguessable, e.g. `staff-7f3k` |
-| `FRONTEND_TRUST_PROXY` / `TRUST_PROXY` | `1` / `2` when Nginx (step 4) is in front |
-
-**Private VM reached over the LAN, no domain or HTTPS yet:** use `PUBLIC_URL=http://<vm-ip>:3000`, `APP_BIND=0.0.0.0` (so other machines on the LAN can reach it) and `COOKIE_SECURE=false` (otherwise browsers drop the admin login cookie over plain HTTP). Or put Nginx in front even on the LAN (end of step 4), which adds the edge rate limits. Switch to the HTTPS settings before it faces the internet.
-
-First start, by hand, to see that everything works:
-
-```bash
-docker compose up -d --build
-curl -fsS http://127.0.0.1:3000/healthz && curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/menu
+```ini
+POSTGRES_PASSWORD=<the openssl value>
+ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # required: the app won't start without it
+PUBLIC_URL=http://192.168.122.24
+APP_PORT=3000
+APP_BIND=127.0.0.1          # only Nginx (step 5) can reach the app
+COOKIE_SECURE=false         # plain http on the LAN; otherwise the admin login cookie is dropped
+FRONTEND_TRUST_PROXY=1      # Nginx is in front of the frontend
+TRUST_PROXY=2               # Nginx + frontend are in front of the backend
+ADMIN_PATH=admin            # dashboard at /admin/ (pick something else to hide it)
 ```
 
-## 4. Nginx in front (HTTPS, edge rate limits)
+`.env` holds all the secrets. It never goes to GitHub (it's git-ignored) or into Docker images.
 
-The ready-made config is [deploy/nginx/ohhmychicken.conf](nginx/ohhmychicken.conf). It's tested in front of this app, and it:
-
-- Passes the original `Host` (port included), so logins and orders aren't refused as "cross-site".
-- **Replaces** `X-Forwarded-For` with the visitor's real IP, so nobody can fake their address past the rate limits.
-- Rate-limits at the edge: pages 20/s, API 10/s and staff login 6/min per IP, plus 40 connections per IP. Excess gets `429` before reaching Node.
-- Allows 12 MB bodies only on the photo upload endpoint, and 1 MB everywhere else. It buffers uploads, so slow phones don't tie up the app.
-- Drops slow-header (slowloris) clients, hides the Nginx version, and redirects `www` to the bare domain (one canonical URL for SEO).
-
-**Install** (on the server):
+## 4. Start the app
 
 ```bash
-sudo apt install -y nginx certbot python3-certbot-nginx
+cd /srv/ohhmychicken
+docker compose up -d --build          # first build takes a few minutes
+docker compose ps                     # db, backend, frontend → "healthy"
+curl -fsS http://127.0.0.1:3000/healthz && curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/menu   # ok, 200
+```
 
+If the backend keeps restarting, run `docker compose logs backend`. The most common cause is an empty or too-short `ADMIN_PASSCODE`.
+
+## 5. Nginx in front
+
+Nginx adds rate limits, upload size limits and slow-client protection before requests reach the app. The config is [deploy/nginx/ohhmychicken.conf](nginx/ohhmychicken.conf).
+
+```bash
+sudo apt install -y nginx
 sudo cp /srv/ohhmychicken/deploy/nginx/ohhmychicken.conf /etc/nginx/sites-available/ohhmychicken
-sudo sed -i 's/example\.com/your-domain.com/g' /etc/nginx/sites-available/ohhmychicken   # your real domain
-sudo ln -s /etc/nginx/sites-available/ohhmychicken /etc/nginx/sites-enabled/
+sudo sed -i 's/example\.com/192.168.122.24/g' /etc/nginx/sites-available/ohhmychicken   # your VM's IP
+sudo ln -sf /etc/nginx/sites-available/ohhmychicken /etc/nginx/sites-enabled/ohhmychicken
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Point your domain's DNS **A record** (and `www`) at the server, then get a free HTTPS certificate. Certbot adds the 443 listener, the http→https redirect and automatic renewal:
+**From the host**, open:
+
+- Site: **http://192.168.122.24**
+- Dashboard: **http://192.168.122.24/admin/** (log in with `ADMIN_PASSCODE`)
+
+And check that only Nginx is exposed:
 
 ```bash
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com --redirect
-sudo certbot renew --dry-run      # renewal works
+curl -s -o /dev/null -w '%{http_code}\n' http://192.168.122.24/          # 200
+curl -s -m 3 http://192.168.122.24:3000/ || echo "port 3000 closed: good"
 ```
 
-**`.env` to match**, then `docker compose up -d`:
+## 6. Auto-deploy from GitHub (runner on the VM)
 
-| Variable | Value | Why |
-| --- | --- | --- |
-| `APP_BIND` | `127.0.0.1` | Only Nginx can reach the app. Docker ports bypass `ufw`, so `0.0.0.0` would expose plain HTTP. |
-| `PUBLIC_URL` | `https://your-domain.com` | Canonical links, sitemap, HSTS |
-| `FRONTEND_TRUST_PROXY` | `1` | One proxy (Nginx) in front of the frontend server |
-| `TRUST_PROXY` | `2` | Nginx + the frontend server in front of the backend |
-| `COOKIE_SECURE` | *(empty)* | Secure cookies, since the site is HTTPS |
+Pushes to `main` run the tests and the Docker build on GitHub. The **deploy** step then runs on a GitHub runner installed on the VM, which pulls the tested commit, rebuilds, checks health and rolls back if unhealthy. The VM only makes outgoing connections, and no GitHub secrets are needed.
 
-**Check:**
+**First, protect the VM.** The repository is public, and a pull request from anyone could try to run code on your runner. Do one of these:
+- **Make the repo private**: GitHub → Settings → General → Danger Zone → Change visibility. Or:
+- Settings → Actions → General → **"Require approval for all outside collaborators"**, and never approve runs on strangers' pull requests.
 
-```bash
-curl -sI https://your-domain.com | grep -iE '^(HTTP|strict-transport|server)'   # 200, HSTS, "Server: nginx" with no version
-curl -s -o /dev/null -w '%{http_code}\n' http://your-domain.com                 # 301 to https
-curl -s -o /dev/null -w '%{http_code}\n' http://SERVER-IP:3000                  # must NOT connect (APP_BIND=127.0.0.1)
-```
+**Runner:** you've already registered one. Fix two things:
 
-**Private VM on your LAN, no domain yet:** use the same file with `server_name _;`, delete the `www` server block and skip Certbot. In `.env` set `PUBLIC_URL=http://<vm-ip>`, `COOKIE_SECURE=false`, `APP_BIND=127.0.0.1`, `FRONTEND_TRUST_PROXY=1` and `TRUST_PROXY=2`. Browse to `http://<vm-ip>` (port 80).
-
-**Prefer Caddy?** It's simpler (automatic HTTPS, no Certbot) but has no edge rate limits. Use `your-domain.com { reverse_proxy 127.0.0.1:3000 }` in `/etc/caddy/Caddyfile`, with the same `.env` values.
-
-## 5a. Private VM: install a self-hosted runner (`DEPLOY_MODE=runner`)
-
-The runner is GitHub's small agent. It connects **out** to GitHub, waits for the deploy job and runs it on the VM. No open ports, no SSH keys.
-
-> **Your repository is public.** Anyone can open a pull request, and a pull request can change the workflow to run on your runner, which means running their code on your VM. Before installing the runner, either **make the repository private** (Settings → General → Danger Zone → Change visibility), or set **Settings → Actions → General → Fork pull request workflows → "Require approval for all outside collaborators"** and never approve runs on strangers' pull requests.
-
-1. GitHub → repo → **Settings → Actions → Runners → New self-hosted runner → Linux**. GitHub shows download and `config.sh` commands with a one-time token.
-2. On the VM, as the `deploy` user (it's in the `docker` group and owns the clone):
-
+1. **Label.** GitHub → Settings → Actions → Runners → your runner → Labels ⚙ → add **`omc-deploy`**. The workflow only deploys to a runner with this label.
+2. **Run it as a service** so it survives closing the terminal and rebooting. In the VM:
    ```bash
-   sudo -iu deploy
-   mkdir -p ~/actions-runner && cd ~/actions-runner
-   # paste GitHub's "Download" commands here (curl … && tar xzf …)
-   ./config.sh --url https://github.com/ooo1650/OhhMyChicken --token <TOKEN-FROM-GITHUB> \
-     --name omc-vm --labels omc-deploy --unattended
-   exit
-   sudo /home/deploy/actions-runner/svc.sh install deploy   # run as a service, as the deploy user
-   sudo /home/deploy/actions-runner/svc.sh start
+   cd ~/actions-runner
+   sudo ./svc.sh install $USER && sudo ./svc.sh start
+   sudo ./svc.sh status          # active (running)
    ```
 
-   The `omc-deploy` label is what the workflow looks for.
-3. GitHub → Settings → Secrets and variables → Actions → **Variables**:
-   - `DEPLOY_MODE` = `runner`
-   - `DEPLOY_PATH` = `/srv/ohhmychicken`
-4. The runner should show as **Idle** under Settings → Actions → Runners. Push to `main` and the deploy job runs on the VM.
+**Variables:** GitHub → Settings → Secrets and variables → Actions → **Variables** tab:
 
-The runner needs outbound HTTPS to github.com, and it pulls through the same clone and deploy key as step 2. Skip 5b and 6 entirely.
-
-## 5b. Public server: a key for GitHub Actions to log in (`DEPLOY_MODE=ssh`)
-
-On **your computer** (not the server), make a key used only for deployments:
-
-```bash
-ssh-keygen -t ed25519 -f omc_actions -N "" -C "github-actions deploy"
-```
-
-Put the **public** half on the server:
-
-```bash
-# on the server
-sudo -iu deploy
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-nano ~/.ssh/authorized_keys      # paste the line from omc_actions.pub
-chmod 600 ~/.ssh/authorized_keys
-```
-
-Pin the server's identity, so a fake server can't receive the deploy. On your computer:
-
-```bash
-ssh-keyscan -p 22 your-server-ip > known_hosts_line
-ssh-keygen -lf known_hosts_line                      # fingerprint seen from outside
-# on the server, it must match:  ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
-```
-
-## 6. GitHub secrets (only for `DEPLOY_MODE=ssh`)
-
-GitHub → repo → **Settings → Environments → New environment → `production`**. Optionally add yourself under *Required reviewers* to approve each deploy. Add these **environment secrets**:
-
-| Secret | Value |
+| Name | Value |
 | --- | --- |
-| `SSH_PRIVATE_KEY` | Full contents of `omc_actions`, the private key file, including the BEGIN/END lines |
-| `SSH_KNOWN_HOSTS` | Full contents of `known_hosts_line` |
-| `SSH_HOST` | Server IP or hostname |
-| `SSH_USER` | `deploy` |
-| `SSH_PORT` | Only if SSH isn't on 22 |
-| `DEPLOY_PATH` | `/srv/ohhmychicken` (or set it as a *variable* instead) |
+| `DEPLOY_MODE` | `runner` |
+| `DEPLOY_PATH` | `/srv/ohhmychicken` |
 
-Also set the variable `DEPLOY_MODE` = `ssh`.
+**Deploy:** push to `main`. Your local branch is `master`, so run `git push origin master:main`. Watch it in the repo's **Actions** tab; the runner on the VM prints `Running job: Deploy to server`.
 
-Then delete `omc_actions` and `known_hosts_line` from your computer, or keep them in a password manager. Never commit them.
+Never edit files in `/srv/ohhmychicken` by hand: the deploy refuses to run over local changes. Change code in git, and settings in `.env` (then `docker compose up -d`).
 
-## 7. Deploy
+## 7. Load testing
 
-Push to `main`. Your local branch is `master`, so either rename it (`git branch -m master main && git branch -u origin/main`) or push with `git push origin master:main`.
+Run these from the **host**. The test is [deploy/test/load-test.js](test/load-test.js) (k6, run through Docker, nothing to install). It simulates visitors opening the home page, the menu and a category, with reading pauses, and downloads the scripts and styles once per visitor like a browser.
 
-Watch it under the repo's **Actions** tab. The deploy job prints each step. On failure it prints the container logs and rolls back.
+```bash
+cd ~/Documents/chicken
 
-## Good to know
+# 1. Smoke run: 3 visitors for 20 s (checks the setup)
+docker run --rm -i --network host -e TARGET=http://192.168.122.24 -e QUICK=1 grafana/k6 run - < deploy/test/load-test.js
 
-- **Never edit files on the server.** The deploy refuses to run over local changes. Change code in git; change settings in `.env`, then run `docker compose up -d`.
-- **Data is safe across deploys.** The database (`omc-data`) and photos (`omc-media`) are Docker volumes. Deploys rebuild containers, never volumes. Don't run `docker compose down -v` on the server.
-- **Backups:** see "Backups" in the main README. Run them from cron, and copy them off the server.
-- **Manual rollback:** `cd /srv/ohhmychicken && git log --oneline -5`, then `git reset --hard <commit> && docker compose up -d --build`. The next push to `main` moves it forward again.
-- **Run the tests locally:** `cd backend && DATABASE_URL=postgres://… npm test`, and `cd frontend && npm run build && BACKEND_URL=http://localhost:4000 npm test`. Without those variables, the database and server tests are skipped.
+# 2. Real run: ramps up to 50 visitors and holds for 2 minutes
+docker run --rm -i --network host -e TARGET=http://192.168.122.24 -e PEAK=50 -e HOLD=2m grafana/k6 run - < deploy/test/load-test.js
+```
+
+While it runs, watch the VM: `docker stats` (CPU and memory per container) and `htop`.
+
+**Reading the results:**
+
+| Line | Good | Means |
+| --- | --- | --- |
+| `failed` | under 1 % | real errors (5xx, timeouts) |
+| `http_req_duration{type:page}` p(95) | under 800 ms | 95 % of pages load faster than this |
+| `limited` | any number | `429` answers from the rate limits; see below |
+
+**All traffic comes from one IP (your host)**, so Nginx's per-visitor limits kick in and some requests get `429` (counted as `limited`). That shows the flood protection works. To find the VM's **raw capacity** instead, switch the limits off temporarily:
+
+```bash
+# on the VM: comment out Nginx's rate limits
+sudo sed -i -E 's/^(\s*)(limit_req |limit_conn )/\1# \2/' /etc/nginx/sites-available/ohhmychicken
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Then raise `PEAK` step by step (50, 100, 200…) until `failed` or p(95) goes over the line. That's the capacity. **Turn the limits back on afterwards:**
+
+```bash
+sudo sed -i -E 's/^(\s*)# (limit_req |limit_conn )/\1\2/' /etc/nginx/sites-available/ohhmychicken
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+## 8. Security testing
+
+Run these from the **host** against the VM.
+
+**a) The project's security check:** [deploy/test/security-check.mjs](test/security-check.mjs) (Node 20+). It covers headers, open redirects, hidden files, size limits, bad input, access control, cross-site requests, photo uploads (fake, oversized, SVG, image bombs), order floods and passcode guessing.
+
+```bash
+cd ~/Documents/chicken
+node deploy/test/security-check.mjs http://192.168.122.24                                   # safe checks
+ADMIN_PASSCODE='your passcode' node deploy/test/security-check.mjs http://192.168.122.24    # + uploads & admin input
+ADMIN_PASSCODE='…' ORDERS=1 node deploy/test/security-check.mjs http://192.168.122.24       # + order flood (adds ~25 test orders)
+BRUTE=1 node deploy/test/security-check.mjs http://192.168.122.24                           # + passcode guessing: LOCKS your IP 15 min, run last
+```
+
+Every line should say `PASS` or `SKIP`. The two skips are HTTPS-only checks that pass in production. Afterwards:
+- Delete the test orders in Dashboard → Orders → *Clear order log*.
+- To lift a `BRUTE=1` lockout early: `docker compose restart backend` on the VM.
+
+**b) OWASP ZAP baseline scan.** This is a standard, passive scan: it looks without attacking.
+
+```bash
+docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://192.168.122.24
+```
+
+Expect a few low "WARN" notes, for example that the CSP allows inline *styles*. GSAP animations need that, and it's not script execution. Anything marked **FAIL** is worth looking at.
+
+**c) Open ports.** Only 22 (SSH) and 80 should answer:
+
+```bash
+for p in 22 80 3000 4000 5432 8080; do (timeout 2 bash -c "</dev/tcp/192.168.122.24/$p") 2>/dev/null && echo "$p open" || echo "$p closed"; done
+```
+
+## 9. Everyday commands (on the VM)
+
+```bash
+cd /srv/ohhmychicken
+docker compose ps                                   # status
+docker compose logs -f --tail=100 backend           # logs (also: frontend, db)
+git pull && docker compose up -d --build            # manual update (the runner normally does this)
+docker compose restart backend                      # clears login lockouts and rate-limit counters
+docker compose down -v && docker compose up -d      # WIPE the test database and photos, start fresh
+docker compose exec backend node src/db.js reset-menu   # replace only the menu with the one in the code (keeps orders, settings, photos)
+docker compose exec backend node src/db.js set-passcode # staff forgot the passcode: set a new one (signs everyone out)
+docker compose exec -T backend node src/db.js customers > customers.csv   # opt-in customer list (keep the file private)
+docker compose exec backend node src/db.js forget-customer 98XXXXXXXX     # remove someone on request
+docker compose logs backup && ls -lh backups/          # automatic backups (start-up + nightly 3 AM)
+```
+
+Rollback: `git log --oneline -5`, then `git reset --hard <commit> && docker compose up -d --build`. The next push to `main` moves it forward again.
+
+---
+
+## Speed for visitors in Nepal
+
+The server's location decides how long each round trip takes from Kathmandu: roughly 60–100 ms to Singapore or Mumbai, 250–300 ms to Europe or North America. A first visit needs several round trips, so a far server adds about 1–1.5 s.
+
+1. **Best:** rent the VPS in Asia (Singapore or Mumbai) if your provider offers it.
+2. **Far server (or as an extra):** put **Cloudflare** (free plan) in front. It has a point of presence in Kathmandu, so visitors connect there and almost everything is served from it:
+   - Add the domain to Cloudflare, switch the DNS records `@` and `www` to *Proxied* (orange cloud).
+   - SSL/TLS → mode **Full (strict)** (keep certbot's certificate on the server).
+   - Caching → Cache Rules → new rule: *Hostname equals your-domain.com* **and** *URI Path does not start with `/api/`* **and** *URI Path does not start with `/your-ADMIN_PATH`* → **Eligible for cache**, Edge TTL **Use cache-control header**. The app already marks what may be kept: scripts, styles and logos for a year, icons for a day, pages for 60 seconds (menu changes show up within about two minutes); the API, orders and the dashboard are never cached.
+   - On the server: `sudo sh deploy/nginx/cloudflare-realip.sh`, so rate limits still see each visitor's own IP.
+   Orders, the promo check and the dashboard still travel to the server, which is fine: they are small and happen once per visit.
+3. Turn on HTTP/2 and TLS session reuse in Nginx (see the comment at the top of `deploy/nginx/ohhmychicken.conf`).
+
+---
+
+## Later: moving to production
+
+Same steps on a real Ubuntu server, with these changes:
+
+1. **Domain and HTTPS.** Point the domain's DNS A records (`@` and `www`) at the server. In step 5 use your domain instead of the IP:
+   ```bash
+   sudo sed -i 's/example\.com/your-domain.com/g' /etc/nginx/sites-available/ohhmychicken
+   sudo apt install -y certbot python3-certbot-nginx
+   sudo certbot --nginx -d your-domain.com -d www.your-domain.com --redirect
+   ```
+2. **`.env`:** `PUBLIC_URL=https://your-domain.com`, `COOKIE_SECURE=` (empty, so cookies are Secure). Use **new** secrets (fresh `POSTGRES_PASSWORD` and `ADMIN_PASSCODE`); never reuse the test VM's.
+3. **Firewall:** `sudo ufw allow OpenSSH && sudo ufw allow 'Nginx Full' && sudo ufw enable`
+   **Harden the VPS** (open a second SSH session first and keep it open until you've checked you can still log in):
+   ```bash
+   # SSH: keys only, no root login
+   printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin no\n' | sudo tee /etc/ssh/sshd_config.d/90-omc.conf
+   sudo sshd -t && sudo systemctl reload ssh
+   sudo apt install -y fail2ban unattended-upgrades         # bans SSH password guessers; installs security updates daily
+   sudo dpkg-reconfigure -plow unattended-upgrades
+   chmod 600 /srv/ohhmychicken/.env                          # secrets readable by you only
+   sudo ss -tlnp    # only :22, :80, :443 on 0.0.0.0; the app's :3000 must show 127.0.0.1
+   ```
+   If your VPS provider has its own firewall panel, allow only 22, 80 and 443 there too.
+4. **Private repository:** the server needs a read-only deploy key to `git pull`:
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/omc_repo -N ""     # add ~/.ssh/omc_repo.pub in GitHub → Settings → Deploy keys (read-only)
+   printf 'Host github.com\n  IdentityFile ~/.ssh/omc_repo\n  IdentitiesOnly yes\n' >> ~/.ssh/config
+   git -C /srv/ohhmychicken remote set-url origin git@github.com:ooo1650/OhhMyChicken.git
+   ```
+5. **Deploy mode:** either install the runner on the server as in step 6 (`DEPLOY_MODE=runner`), or have GitHub log in over SSH (`DEPLOY_MODE=ssh`) with these **environment secrets** (Settings → Environments → `production`):
+
+   | Secret | Value |
+   | --- | --- |
+   | `SSH_HOST` | server IP or hostname |
+   | `SSH_USER` | the deploy user |
+   | `SSH_PRIVATE_KEY` | private key from `ssh-keygen -t ed25519 -f omc_actions -N ""` (put `omc_actions.pub` in the server's `~/.ssh/authorized_keys`) |
+   | `SSH_KNOWN_HOSTS` | output of `ssh-keyscan your-server`; check its fingerprint matches `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the server |
+   | `DEPLOY_PATH` | `/srv/ohhmychicken` |
+   | `SSH_PORT` | only if not 22 |
+
+6. **Approvals:** in Settings → Environments → `production`, add yourself as a required reviewer to approve each deploy.
+7. **Backups** are taken automatically into `/srv/ohhmychicken/backups` (nightly, 14 days). A server that dies takes them with it, so also copy them somewhere else every day, e.g. from your own computer or a second server (they hold customers' names and phones: keep the copy private):
+   ```bash
+   rsync -a deploy@your-server:/srv/ohhmychicken/backups/ ~/omc-backups/
+   ```
+   Test a restore once (README → Backups) before you rely on it.
+8. **Dashboard address:** set `ADMIN_PATH` to something hard to guess (e.g. `staff-7f3k`); the server logs a warning while it is `/admin`.
+9. **Uptime alerts:** a free monitor (e.g. UptimeRobot) checking `https://your-domain/healthz` every 5 minutes, alerting the owner's phone.
+10. **Optional:** Cloudflare (free plan) in front for large-scale DDoS protection.
+11. **Re-run** the load and security tests (steps 7–8) against the production URL. The two HTTPS checks then pass instead of being skipped.

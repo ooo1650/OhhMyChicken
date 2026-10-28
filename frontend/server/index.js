@@ -152,6 +152,8 @@ app.get(/.*/, async (req, res) => {
   const b = await getBoot();
   const route = resolveRoute(req.path, b ? b.defaults.CATEGORIES : []);
   let html = indexTpl;
+  // The loading skeleton looks like the page being opened.
+  if (route.view === 'menu') html = html.replace('shell shell-home', 'shell shell-menu');
   if (b) {
     html = html.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, headHtml(route, b, originOf(req)))
       .replace('<!--boot-->', '<script type="application/json" id="boot-data">' + safeJson(b) + '</script>');
@@ -159,9 +161,16 @@ app.get(/.*/, async (req, res) => {
   // Without menu data we can't tell a category from a typo: serve the app, don't index.
   const status = b && route.view === 'notfound' ? 404 : 200;
   if (!b) html = html.replace('<!--seo:start-->', '<meta name="robots" content="noindex"><!--seo:start-->');
-  res.status(status).set('Cache-Control', 'no-cache').type('html').send(html);
+  // Pages are the same for every visitor, so a CDN (e.g. Cloudflare's Kathmandu edge)
+  // may keep a copy for a minute: far-away servers then only answer the CDN, not each
+  // visitor. Browsers still check every time (max-age=0). Fallback pages aren't shared.
+  const shared = b && status === 200;
+  res.status(status).set('Cache-Control', shared ? 'public, max-age=0, s-maxage=60, stale-while-revalidate=60' : 'no-cache').type('html').send(html);
 });
 
+if (process.env.NODE_ENV === 'production' && ADMIN_PATH === '/admin') {
+  console.warn('The dashboard is at /admin, the first address anyone tries. Set ADMIN_PATH to something hard to guess (e.g. staff-7f3k).');
+}
 if (process.env.NODE_ENV === 'production' && !PUBLIC_URL) {
   console.warn('PUBLIC_URL is not set: canonical links and the sitemap will use whatever Host header visitors send. Set PUBLIC_URL=https://your-domain.');
 }

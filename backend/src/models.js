@@ -15,6 +15,7 @@ function toItem(r) {
     id: r.id, category: r.category, name: r.name, diet: r.diet, desc: r.description,
     prices: r.prices, available: r.available, popular: r.popular, isPizza: validate.isPizza(r.category),
     imageId: r.image_id || null,
+    art: r.art || '',
     image: r.m_id ? media.toMedia({
       id: r.m_id, alt: r.m_alt, width: r.m_width, height: r.m_height, placeholder: r.m_placeholder,
       sizes: r.m_sizes, in_gallery: r.m_in_gallery, sort_order: r.m_sort_order
@@ -43,12 +44,12 @@ async function upsertItem(raw) {
     if (dupe.rows.length) validate.fail('An item called “' + dupe.rows[0].name + '” already exists.');
     if (m.imageId && !(await media.exists(m.imageId, c))) validate.fail('That photo was deleted. Choose another one.');
     await c.query(
-      `INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, image_id, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM menu_items))
+      `INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, image_id, art, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM menu_items))
        ON CONFLICT (id) DO UPDATE SET category = EXCLUDED.category, name = EXCLUDED.name, diet = EXCLUDED.diet,
          description = EXCLUDED.description, prices = EXCLUDED.prices, available = EXCLUDED.available,
-         popular = EXCLUDED.popular, image_id = EXCLUDED.image_id, updated_at = now()`,
-      [m.id, m.category, m.name, m.diet, m.desc, JSON.stringify(m.prices), m.available, m.popular, m.imageId]
+         popular = EXCLUDED.popular, image_id = EXCLUDED.image_id, art = EXCLUDED.art, updated_at = now()`,
+      [m.id, m.category, m.name, m.diet, m.desc, JSON.stringify(m.prices), m.available, m.popular, m.imageId, m.art]
     );
     return getItem(c, m.id);
   });
@@ -105,17 +106,28 @@ function toOrder(r) {
   return {
     id: Number(r.id), at: new Date(r.created_at).getTime(), name: r.name, phone: r.phone, address: r.address,
     items: r.items, promoCode: r.promo_code, subtotal: r.subtotal, discount: r.discount, delivery: r.delivery, total: r.total,
-    status: r.status
+    status: r.status, outlet: r.outlet || '', mode: r.mode || 'delivery'
   };
 }
 
 async function createOrder(o) {
   const { rows } = await pool.query(
-    `INSERT INTO orders (name, phone, address, items, promo_code, subtotal, discount, delivery, total)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-    [o.name, o.phone, o.address, JSON.stringify(o.items), o.promoCode || null, o.subtotal, o.discount, o.delivery, o.total]
+    `INSERT INTO orders (name, phone, address, items, promo_code, subtotal, discount, delivery, total, outlet, mode)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+    [o.name, o.phone, o.address, JSON.stringify(o.items), o.promoCode || null, o.subtotal, o.discount, o.delivery, o.total, o.outlet || '', o.mode || 'delivery']
   );
   return toOrder(rows[0]);
+}
+
+// Has this phone number already ordered with this promo code? (Ignores cancelled orders;
+// compares the last 10 digits so +977 98..., 98... and spaces all match.)
+async function promoUsedBy(phone, code) {
+  const digits = String(phone || '').replace(/\D/g, '').slice(-10);
+  if (digits.length < 7 || !code) return false;
+  const { rows } = await pool.query(
+    `SELECT 1 FROM orders WHERE upper(promo_code) = upper($2) AND status <> 'cancelled'
+       AND right(regexp_replace(phone, '\\D', '', 'g'), 10) = $1 LIMIT 1`, [digits, String(code)]);
+  return rows.length > 0;
 }
 
 async function listOrders(limit) {
@@ -132,10 +144,41 @@ async function setOrderStatus(id, status) {
   return rows.length ? toOrder(rows[0]) : null;
 }
 
+// Customers' names, phones and addresses are only needed while an order is handled.
+// After ORDER_DETAILS_DAYS they are blanked; items, totals and dates stay for reports.
+const ORDER_DETAILS_DAYS = Math.max(1, Number(process.env.ORDER_DETAILS_DAYS) || 90);
+async function forgetOldCustomerDetails() {
+  const { rowCount } = await pool.query(
+    `UPDATE orders SET name = '', phone = '', address = CASE WHEN address ~* '^(table [\\w-]+|pickup)$' THEN address ELSE '' END
+      WHERE created_at < now() - make_interval(days => $1) AND (name <> '' OR phone <> '' OR address !~* '^(table [\\w-]+|pickup|)$')`, [ORDER_DETAILS_DAYS]);
+  return rowCount;
+}
+
+// Opt-in customer list (see schema.sql). Called only when the customer ticked the box.
+const phoneKey = (phone) => String(phone || '').replace(/\D/g, '').slice(-10);
+async function rememberCustomer({ name, phone, outlet }) {
+  const key = phoneKey(phone);
+  if (key.length < 7) return;
+  await pool.query(
+    `INSERT INTO customers (phone_key, phone, name, outlet) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (phone_key) DO UPDATE SET phone = EXCLUDED.phone, name = COALESCE(NULLIF(EXCLUDED.name, ''), customers.name),
+       outlet = EXCLUDED.outlet, orders = customers.orders + 1, last_order = now(), consent_at = now()`, [key, phone, name || '', outlet || '']);
+}
+async function listCustomers() {
+  const { rows } = await pool.query('SELECT name, phone, orders, outlet, consent_at, last_order FROM customers ORDER BY last_order DESC');
+  return rows;
+}
+async function forgetCustomer(phone) {
+  const key = phoneKey(phone);
+  const { rowCount } = await pool.query('DELETE FROM customers WHERE phone_key = $1', [key]);
+  return rowCount;
+}
+
 async function clearOrders() { await pool.query('TRUNCATE orders'); }
 
 module.exports = {
   listMenu, upsertItem, deleteItem, replaceMenu, resetMenu,
   getSettings, saveSettings, resetSettings, contentUpdatedAt,
-  createOrder, listOrders, setOrderStatus, clearOrders, ORDER_STATUSES
+  createOrder, listOrders, promoUsedBy, forgetOldCustomerDetails, ORDER_DETAILS_DAYS,
+  rememberCustomer, listCustomers, forgetCustomer, phoneKey, setOrderStatus, clearOrders, ORDER_STATUSES
 };

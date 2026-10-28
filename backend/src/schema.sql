@@ -77,3 +77,71 @@ CREATE INDEX IF NOT EXISTS media_gallery_idx ON media (in_gallery, sort_order, c
 
 -- Deleting a photo just unlinks it from dishes.
 ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_id TEXT REFERENCES media(id) ON DELETE SET NULL;
+
+-- v1.4: which built-in drawing a dish shows when it has no photo ('' = picked from its name).
+ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS art TEXT NOT NULL DEFAULT '';
+
+-- v1.5: which branch an order was sent to (its name at the time; '' before outlets existed).
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS outlet TEXT NOT NULL DEFAULT '';
+
+-- v1.3: privacy-friendly analytics. No IPs, cookies or user agents are stored:
+-- `visitor` is a one-way hash of IP + browser with a salt that changes every
+-- day (and is then deleted), so visits can be counted per day but not linked
+-- to a person or across days.
+CREATE TABLE IF NOT EXISTS events (
+  id        BIGSERIAL PRIMARY KEY,
+  at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  visitor   TEXT        NOT NULL,           -- daily-salted hash, 16 hex chars
+  name      TEXT        NOT NULL,           -- page_view, add_to_cart, search, …
+  path      TEXT,
+  item_id   TEXT,
+  category  TEXT,
+  value     TEXT,                           -- search text, variant label, chatbot topic, …
+  num       INTEGER,                        -- result count, quantity, total
+  device    TEXT,                           -- mobile | tablet | desktop
+  referrer  TEXT,                           -- referring site's host name only
+  table_no  TEXT
+);
+CREATE INDEX IF NOT EXISTS events_at_idx ON events (at);
+CREATE INDEX IF NOT EXISTS events_name_at_idx ON events (name, at);
+
+-- Today's salt for the visitor hash. Older salts are deleted, so old hashes
+-- can't be recomputed from an IP.
+CREATE TABLE IF NOT EXISTS analytics_salt (
+  day  DATE PRIMARY KEY,
+  salt TEXT NOT NULL
+);
+
+-- v1.6: dashboard sign-ins (successful and failed), shown to staff so a break-in
+-- gets noticed. Only a rough device name and a masked IP are kept, for 90 days.
+CREATE TABLE IF NOT EXISTS admin_logins (
+  id     BIGSERIAL PRIMARY KEY,
+  at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ok     BOOLEAN     NOT NULL,
+  device TEXT        NOT NULL DEFAULT '',
+  ip     TEXT        NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS admin_logins_at_idx ON admin_logins (at DESC);
+
+-- v1.7: how the order is served. Name and phone became optional (WhatsApp already
+-- shows the outlet the customer's number); personal details are blanked after
+-- ORDER_DETAILS_DAYS (default 90), keeping the items and totals for reports.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'delivery';
+
+-- v1.8: customers who ticked "keep my details" at checkout (opt-in, never pre-ticked).
+-- Kept for the site operator (PaperKite), read only from the server
+-- (node src/db.js customers), not shown in the restaurant dashboard.
+-- Not touched by the 90-day order clean-up; removed on request (forget-customer).
+CREATE TABLE IF NOT EXISTS customers (
+  phone_key  TEXT PRIMARY KEY,               -- last 10 digits of the phone
+  phone      TEXT        NOT NULL,
+  name       TEXT        NOT NULL DEFAULT '',
+  orders     INTEGER     NOT NULL DEFAULT 1,
+  outlet     TEXT        NOT NULL DEFAULT '',
+  consent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_order TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- v1.9: the chatbot runs only in the browser and no longer reports what people ask;
+-- remove the topics recorded before.
+DELETE FROM events WHERE name = 'chat_question';

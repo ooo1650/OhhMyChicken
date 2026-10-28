@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api } from '../shared/api.js';
 import { isOpenNow, money } from '../shared/format.js';
 
-const KEYS = { cart: 'omc.cart.v1', promoSeen: 'omc.promoSeen.v1', promoUsed: 'omc.promoUsed.v1' };
+const KEYS = { cart: 'omc.cart.v1', promoSeen: 'omc.promoSeen.v1', promoUsed: 'omc.promoUsed.v1', outlet: 'omc.outlet.v1' };
 
 function read(key, fallback) {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
@@ -28,8 +28,17 @@ export function SiteProvider({ boot, children }) {
   const [menu] = useState(boot.menu);
   const [settings] = useState(boot.settings);
   const [gallery] = useState(boot.gallery || []);
-  const [cart, setCartState] = useState(() => read(KEYS.cart, []));
+  // A saved cart can name dishes or sizes that have since left the menu: drop those lines.
+  const [cart, setCartState] = useState(() => {
+    const saved = read(KEYS.cart, []);
+    const ok = Array.isArray(saved) ? saved.filter((c) => boot.menu.some((m) => m.id === c.id && m.prices.some((p) => p.label === c.label))) : [];
+    if (!Array.isArray(saved) || ok.length !== saved.length) write(KEYS.cart, ok);
+    return ok;
+  });
   const [now, setNow] = useState(() => new Date());
+  // The outlet the customer last ordered from (pre-selected next time), and one fixed by a table QR code.
+  const [outletId, setOutletIdState] = useState(() => read(KEYS.outlet, ''));
+  const [tableOutlet, setTableOutlet] = useState('');
 
   // Shared UI state
   const [cartOpen, setCartOpen] = useState(false);
@@ -37,7 +46,7 @@ export function SiteProvider({ boot, children }) {
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoInput, setPromoInput] = useState('');
   const [promoCode, setPromoCode] = useState('');
-  const [checkout, setCheckout] = useState({ name: '', phone: '', address: '' });
+  const [checkout, setCheckout] = useState({ mode: 'delivery', table: '', name: '', phone: '', address: '', saveDetails: false });
   const [menuQuery, setMenuQuery] = useState('');
   const [menuDiet, setMenuDiet] = useState('all');
   const [menuJump, setMenuJump] = useState(null); // { cat, n } — scroll to a category
@@ -46,6 +55,7 @@ export function SiteProvider({ boot, children }) {
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(t); }, []);
 
   const setCart = useCallback((c) => { write(KEYS.cart, c); setCartState(c); }, []);
+  const setOutletId = useCallback((id) => { write(KEYS.outlet, id); setOutletIdState(id); }, []);
   const getItem = useCallback((id) => menu.find((m) => m.id === id), [menu]);
 
   const value = useMemo(() => {
@@ -59,7 +69,8 @@ export function SiteProvider({ boot, children }) {
     }).filter(Boolean);
 
     /* Totals. The promo applies to ONE 22" XL pizza (the priciest one in the cart). */
-    function totals(code) {
+    // mode: 'delivery' (fee applies), 'pickup' or 'table' (no fee). Same maths as the server.
+    function totals(code, mode) {
       const s = settings;
       const subtotal = cartLines.reduce((n, l) => n + l.total, 0);
       let discount = 0, promoMsg = '';
@@ -73,7 +84,7 @@ export function SiteProvider({ boot, children }) {
           else { discount = Math.round(xl.unit * s.promo.percent / 100); promoMsg = s.promo.percent + '% off your 22" ' + xl.name + '!'; }
         }
       }
-      const delivery = subtotal === 0 || subtotal - discount >= s.freeDeliveryOver ? 0 : +s.deliveryFee;
+      const delivery = (mode && mode !== 'delivery') || subtotal === 0 || subtotal - discount >= s.freeDeliveryOver ? 0 : +s.deliveryFee;
       return { subtotal, discount, delivery, total: subtotal - discount + delivery, promoMsg };
     }
 
@@ -97,12 +108,14 @@ export function SiteProvider({ boot, children }) {
       categoryName: (id) => { const c = defaults.CATEGORIES.find((x) => x.id === id); return c ? c.name : id; },
       getItem, cartQty, cartLines, totals, addToCart, setQty,
       clearCart: () => setCart([]),
-      cartCount: cart.reduce((n, c) => n + c.qty, 0),
+      cartCount: cartLines.reduce((n, l) => n + l.qty, 0),
+      now, outletId, setOutletId, tableOutlet, setTableOutlet,
       isOpen: isOpenNow(settings, now),
       money: (n) => money(settings, n),
       markPromoUsed: () => write(KEYS.promoUsed, true),
       // The server re-checks prices & promo.
       placeOrder: (order) => api('POST', 'orders', order),
+      checkPromo: (code, phone) => api('POST', 'promo/check', { code, phone }),
 
       cartOpen, setCartOpen, chatOpen, setChatOpen, promoOpen, setPromoOpen,
       promoInput, setPromoInput, promoCode, setPromoCode,
@@ -112,7 +125,7 @@ export function SiteProvider({ boot, children }) {
       jumpToCategory: (cat) => setMenuJump((j) => ({ cat, n: (j ? j.n : 0) + 1 })),
       clearMenuFilters: () => { setMenuQuery(''); setMenuDiet('all'); }
     };
-  }, [defaults, menu, settings, gallery, cart, now, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
+  }, [defaults, menu, settings, gallery, cart, now, outletId, setOutletId, tableOutlet, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
 
   return <SiteCtx.Provider value={value}>{children}</SiteCtx.Provider>;
 }

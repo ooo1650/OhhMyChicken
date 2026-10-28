@@ -1,4 +1,4 @@
-/* Store info, offer pop-up and passcode change. */
+/* Store info, offer pop-up, passcode change and recent sign-ins. */
 import { useEffect, useRef, useState } from 'react';
 import { useAdmin } from './store.jsx';
 import { useConfirm } from './confirm.jsx';
@@ -38,11 +38,11 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       name: admin.settings.name,
       street: f.street.trim(), city: f.city.trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
       country: f.country.trim(), currencyCode: f.currencyCode.trim(), lat: f.lat === '' ? null : f.lat, lng: f.lng === '' ? null : f.lng,
-      mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway,
+      mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway, dishPhotos: !!f.dishPhotos,
       promo: { enabled: !!f.promo.enabled, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
     };
     const pass = f.newPass, current = f.currentPass;
-    if (pass && pass.length < 8) { toast('New passcode must be at least 8 characters', 'error'); form.newPass.focus(); return; }
+    if (pass && pass.length < 10) { toast('New passcode must be at least 10 characters', 'error'); form.newPass.focus(); return; }
     if (pass && !current) { toast('Enter your current passcode to change it', 'error'); form.currentPass.focus(); return; }
     try {
       if (pass) {
@@ -65,6 +65,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       <form ref={formRef} className="settings-grid" onSubmit={submit}>
         <fieldset>
           <legend>Store info</legend>
+          {(admin.settings.outlets || []).some((o) => o.active) && <p className="tiny muted">Main contact, used by Google and as a fallback. Each branch's own phone and WhatsApp are set in <b>Outlets</b>.</p>}
           <label className="field"><span>Phone</span><input type="tel" {...field('phone')} /></label>
           <label className="field"><span>WhatsApp number (country code, digits only)</span><input inputMode="numeric" pattern="[0-9]{8,15}" {...field('whatsapp')} /></label>
           <label className="field"><span>Address</span><input {...field('address')} /></label>
@@ -80,6 +81,13 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
             <label className="field"><span>Free delivery over</span><input type="number" min="0" {...field('freeDeliveryOver')} /></label>
             <label className="field"><span>Currency</span><input maxLength="5" {...field('currency')} /></label>
           </div>
+        </fieldset>
+        <fieldset>
+          <legend>Menu display</legend>
+          <label className="switch">
+            <input type="checkbox" checked={!!f.dishPhotos} onChange={(e) => setF((x) => ({ ...x, dishPhotos: e.target.checked }))} /><span /> Show dish photos on the menu
+          </label>
+          <p className="tiny muted"><Icon name="info" /> Off: every dish shows its illustration. Photos you've already attached stay saved and come back if you switch this on. The home-page gallery is separate (Photos tab).</p>
         </fieldset>
         <fieldset>
           <legend>Google &amp; local search</legend>
@@ -123,14 +131,58 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
         <fieldset>
           <legend>Security</legend>
           <label className="field"><span>Current passcode</span><input type="password" autoComplete="current-password" {...field('currentPass')} /></label>
-          <label className="field"><span>New passcode <em>(8+ characters)</em></span><input type="password" minLength="8" maxLength="128" autoComplete="new-password" {...field('newPass')} /></label>
-          <p className="tiny muted"><Icon name="shield" /> Leave both blank to keep the current passcode. Changing it signs out every other device.</p>
+          <label className="field"><span>New passcode <em>(10+ characters)</em></span><input type="password" minLength="10" maxLength="128" autoComplete="new-password" {...field('newPass')} /></label>
+          <p className="tiny muted"><Icon name="shield" /> Leave both blank to keep the current passcode. Changing it signs out every other device. Avoid the restaurant's name, place names and number runs; a short phrase like <i>red-door-momo-42</i> is easy to remember and hard to guess.</p>
+          <SignIns visible={!hidden} />
         </fieldset>
         <div className="settings-actions">
           <button type="submit" className="btn btn-red">Save settings</button>
           <button type="button" className="btn btn-link danger" onClick={reset}>Reset to defaults</button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// Who signed in recently, wrong tries, and a way to sign out lost or old devices.
+function SignIns({ visible }) {
+  const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
+  const [info, setInfo] = useState(null);
+  const load = () => admin.security().then(setInfo, () => {});
+  useEffect(() => { if (visible) load(); }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function signOutOthers() {
+    if (!(await confirm('Sign out every other phone and computer? Anyone using the dashboard elsewhere will need the passcode again.', 'Sign out others'))) return;
+    try { const r = await admin.signOutOthers(); toast(r.signedOut ? 'Signed out ' + r.signedOut + ' other device' + (r.signedOut === 1 ? '' : 's') : 'No other devices were signed in'); load(); }
+    catch (err) { toast(err.message, 'error'); }
+  }
+  if (!info) return null;
+  const when = (t) => new Date(t).toLocaleString('en-GB', { timeZone: 'Asia/Kathmandu', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return (
+    <div className="signins">
+      <div className="signins-head">
+        <p><b>{info.sessions}</b> device{info.sessions === 1 ? '' : 's'} signed in now</p>
+        <button type="button" className="btn btn-outline btn-sm" onClick={signOutOthers}>Sign out all other devices</button>
+      </div>
+      {info.lastBackup !== undefined && (
+        <p className={'signins-warn' + (!info.lastBackup || Date.now() - Date.parse(info.lastBackup) > 2 * 86400000 ? ' bad' : ' ok')}>
+          <Icon name={info.lastBackup ? 'check-circle' : 'alert'} />
+          {info.lastBackup ? 'Last automatic backup: ' + when(info.lastBackup) + (Date.now() - Date.parse(info.lastBackup) > 2 * 86400000 ? '. That is over 2 days ago: check the server.' : '.') : 'No automatic backup found. Ask whoever runs the server to check the backup service.'}
+        </p>
+      )}
+      {info.failed24h > 0 && (
+        <p className={'signins-warn' + (info.failed24h >= 5 ? ' bad' : '')}><Icon name="alert" /> {info.failed24h} wrong passcode tr{info.failed24h === 1 ? 'y' : 'ies'} in the last 24 hours.
+          {info.failed24h >= 5 && ' If that wasn\'t your staff, change the passcode.'}{info.paused && ' Sign-in is paused for a few minutes.'}</p>
+      )}
+      {info.recent.length > 0 && (
+        <ul className="signins-list" aria-label="Recent sign-ins">
+          {info.recent.map((r, i) => (
+            <li key={i} className={r.ok ? '' : 'fail'}>
+              <span>{when(r.at)}</span><span>{r.ok ? 'Signed in' : 'Wrong passcode'}</span><span>{r.device}{r.ip && <em> · {r.ip}</em>}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
