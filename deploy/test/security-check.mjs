@@ -2,7 +2,7 @@
    Security check: attacks the site from outside, like a visitor would, and
    prints PASS / FAIL / SKIP per check. Node 20+, no dependencies.
 
-     node deploy/test/security-check.mjs http://192.168.122.24
+     node deploy/test/security-check.mjs http://SERVER-IP
 
    Optional (env):
      ADMIN_PASSCODE=…   also test photo uploads and admin input validation

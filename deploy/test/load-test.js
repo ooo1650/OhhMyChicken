@@ -2,8 +2,8 @@
    Load test (k6). Simulates visitors browsing: home → menu → a category,
    plus the files a browser loads (scripts, styles, icons).
    Run from the host (no install, uses Docker):
-     docker run --rm -i --network host -e TARGET=http://192.168.122.24 grafana/k6 run - < deploy/test/load-test.js
-   Options (env):  TARGET  base URL          (default http://192.168.122.24)
+     docker run --rm -i --network host -e TARGET=http://SERVER-IP grafana/k6 run - < deploy/test/load-test.js
+   Options (env):  TARGET  base URL          (required)
                    PEAK    max visitors      (default 50)
                    HOLD    time at the peak  (default 2m)
                    QUICK=1 20-second smoke run with 3 visitors (check the setup first)
@@ -16,7 +16,8 @@ import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { Counter, Rate } from 'k6/metrics';
 
-const TARGET = (__ENV.TARGET || 'http://192.168.122.24').replace(/\/$/, '');
+if (!__ENV.TARGET) throw new Error('Set TARGET, e.g. -e TARGET=http://SERVER-IP');
+const TARGET = __ENV.TARGET.replace(/\/$/, '');
 const PEAK = Number(__ENV.PEAK || 50);
 const HOLD = __ENV.HOLD || '2m';
 const CATEGORIES = ['chicken-pizza', 'veg-pizza', 'pork-buff-pizza', 'fried-chicken', 'momo'];

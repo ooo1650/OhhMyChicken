@@ -88,7 +88,7 @@ it('cross-site and non-JSON writes are blocked', async () => {
 });
 
 it('login: wrong passcode fails, right one sets an httpOnly cookie', async () => {
-  const bad = await req('POST', '/api/admin/login', { body: { passcode: 'ohh2026' } });
+  const bad = await req('POST', '/api/admin/login', { body: { passcode: 'wrong-guess-123' } });
   assert.equal(bad.status, 401);
   const ok = await req('POST', '/api/admin/login', { body: { passcode: PASS } });
   assert.equal(ok.status, 200);
@@ -355,7 +355,7 @@ it('forgotten passcode: set-passcode on the server replaces it and signs everyon
   const { spawnSync } = require('node:child_process');
   const run = (pass) => spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'set-passcode'],
     { env: { ...process.env, NEW_PASSCODE: pass }, encoding: 'utf8' });
-  assert.notEqual(run('ohh2026').status, 0);
+  assert.notEqual(run('short1').status, 0);
   const ok = run('kitchen-door-blue-77');
   assert.equal(ok.status, 0, ok.stderr);
   assert.equal((await req('GET', '/api/orders')).status, 401);

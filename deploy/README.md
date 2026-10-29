@@ -3,13 +3,13 @@
 For now the site runs on an **Ubuntu VM on this computer** (libvirt/KVM). You test it from the host before moving to a real server. Moving to production later is a short checklist at the end.
 
 ```
-Your PC (host)                                 VM "ubuntu24.04"  (192.168.122.24)
+Your PC (host)                                 VM "my-vm"  (SERVER-IP)          
   browser, load test, security test ──http──►  Nginx :80 ──► app :3000 (Docker: frontend, backend, Postgres)
 
 GitHub ── push to main ──► Actions: tests + Docker build ──► runner on the VM: git pull, rebuild, health check
 ```
 
-Everywhere below, `192.168.122.24` is the VM's address. Find yours on the host with `virsh -c qemu:///system domifaddr ubuntu24.04`, or inside the VM with `ip -4 addr`.
+Everywhere below, `SERVER-IP` stands for the VM's address. Find it on the host with `virsh -c qemu:///system domifaddr <vm-name>`, or inside the VM with `ip -4 addr`.
 
 ---
 
@@ -36,7 +36,7 @@ sudo usermod -aG docker $USER
 
 ```bash
 sudo mkdir -p /srv/ohhmychicken && sudo chown $USER: /srv/ohhmychicken
-git clone https://github.com/ooo1650/OhhMyChicken.git /srv/ohhmychicken
+git clone https://github.com/<your-github-user>/<your-repo>.git /srv/ohhmychicken
 cd /srv/ohhmychicken && git checkout main
 ```
 
@@ -56,7 +56,7 @@ Set these lines (leave the rest as they are):
 ```ini
 POSTGRES_PASSWORD=<the openssl value>
 ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # required: the app won't start without it
-PUBLIC_URL=http://192.168.122.24
+PUBLIC_URL=http://SERVER-IP
 APP_PORT=3000
 APP_BIND=127.0.0.1          # only Nginx (step 5) can reach the app
 COOKIE_SECURE=false         # plain http on the LAN; otherwise the admin login cookie is dropped
@@ -85,7 +85,7 @@ Nginx adds rate limits, upload size limits and slow-client protection before req
 ```bash
 sudo apt install -y nginx
 sudo cp /srv/ohhmychicken/deploy/nginx/ohhmychicken.conf /etc/nginx/sites-available/ohhmychicken
-sudo sed -i 's/example\.com/192.168.122.24/g' /etc/nginx/sites-available/ohhmychicken   # your VM's IP
+sudo sed -i 's/example\.com/SERVER-IP/g' /etc/nginx/sites-available/ohhmychicken   # your VM's IP
 sudo ln -sf /etc/nginx/sites-available/ohhmychicken /etc/nginx/sites-enabled/ohhmychicken
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
@@ -93,14 +93,14 @@ sudo nginx -t && sudo systemctl reload nginx
 
 **From the host**, open:
 
-- Site: **http://192.168.122.24**
-- Dashboard: **http://192.168.122.24/admin/** (log in with `ADMIN_PASSCODE`)
+- Site: **http://SERVER-IP**
+- Dashboard: **http://SERVER-IP/admin/** (log in with `ADMIN_PASSCODE`)
 
 And check that only Nginx is exposed:
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' http://192.168.122.24/          # 200
-curl -s -m 3 http://192.168.122.24:3000/ || echo "port 3000 closed: good"
+curl -s -o /dev/null -w '%{http_code}\n' http://SERVER-IP/          # 200
+curl -s -m 3 http://SERVER-IP:3000/ || echo "port 3000 closed: good"
 ```
 
 ## 6. Auto-deploy from GitHub (runner on the VM)
@@ -140,10 +140,10 @@ Run these from the **host**. The test is [deploy/test/load-test.js](test/load-te
 cd ~/Documents/chicken
 
 # 1. Smoke run: 3 visitors for 20 s (checks the setup)
-docker run --rm -i --network host -e TARGET=http://192.168.122.24 -e QUICK=1 grafana/k6 run - < deploy/test/load-test.js
+docker run --rm -i --network host -e TARGET=http://SERVER-IP -e QUICK=1 grafana/k6 run - < deploy/test/load-test.js
 
 # 2. Real run: ramps up to 50 visitors and holds for 2 minutes
-docker run --rm -i --network host -e TARGET=http://192.168.122.24 -e PEAK=50 -e HOLD=2m grafana/k6 run - < deploy/test/load-test.js
+docker run --rm -i --network host -e TARGET=http://SERVER-IP -e PEAK=50 -e HOLD=2m grafana/k6 run - < deploy/test/load-test.js
 ```
 
 While it runs, watch the VM: `docker stats` (CPU and memory per container) and `htop`.
@@ -179,10 +179,10 @@ Run these from the **host** against the VM.
 
 ```bash
 cd ~/Documents/chicken
-node deploy/test/security-check.mjs http://192.168.122.24                                   # safe checks
-ADMIN_PASSCODE='your passcode' node deploy/test/security-check.mjs http://192.168.122.24    # + uploads & admin input
-ADMIN_PASSCODE='…' ORDERS=1 node deploy/test/security-check.mjs http://192.168.122.24       # + order flood (adds ~25 test orders)
-BRUTE=1 node deploy/test/security-check.mjs http://192.168.122.24                           # + passcode guessing: LOCKS your IP 15 min, run last
+node deploy/test/security-check.mjs http://SERVER-IP                                   # safe checks
+ADMIN_PASSCODE='your passcode' node deploy/test/security-check.mjs http://SERVER-IP    # + uploads & admin input
+ADMIN_PASSCODE='…' ORDERS=1 node deploy/test/security-check.mjs http://SERVER-IP       # + order flood (adds ~25 test orders)
+BRUTE=1 node deploy/test/security-check.mjs http://SERVER-IP                           # + passcode guessing: LOCKS your IP 15 min, run last
 ```
 
 Every line should say `PASS` or `SKIP`. The two skips are HTTPS-only checks that pass in production. Afterwards:
@@ -192,7 +192,7 @@ Every line should say `PASS` or `SKIP`. The two skips are HTTPS-only checks that
 **b) OWASP ZAP baseline scan.** This is a standard, passive scan: it looks without attacking.
 
 ```bash
-docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://192.168.122.24
+docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://SERVER-IP
 ```
 
 Expect a few low "WARN" notes, for example that the CSP allows inline *styles*. GSAP animations need that, and it's not script execution. Anything marked **FAIL** is worth looking at.
@@ -200,7 +200,7 @@ Expect a few low "WARN" notes, for example that the CSP allows inline *styles*. 
 **c) Open ports.** Only 22 (SSH) and 80 should answer:
 
 ```bash
-for p in 22 80 3000 4000 5432 8080; do (timeout 2 bash -c "</dev/tcp/192.168.122.24/$p") 2>/dev/null && echo "$p open" || echo "$p closed"; done
+for p in 22 80 3000 4000 5432 8080; do (timeout 2 bash -c "</dev/tcp/SERVER-IP/$p") 2>/dev/null && echo "$p open" || echo "$p closed"; done
 ```
 
 ## 9. Everyday commands (on the VM)
@@ -265,7 +265,7 @@ Same steps on a real Ubuntu server, with these changes:
    ```bash
    ssh-keygen -t ed25519 -f ~/.ssh/omc_repo -N ""     # add ~/.ssh/omc_repo.pub in GitHub → Settings → Deploy keys (read-only)
    printf 'Host github.com\n  IdentityFile ~/.ssh/omc_repo\n  IdentitiesOnly yes\n' >> ~/.ssh/config
-   git -C /srv/ohhmychicken remote set-url origin git@github.com:ooo1650/OhhMyChicken.git
+   git -C /srv/ohhmychicken remote set-url origin git@github.com:<your-github-user>/<your-repo>.git
    ```
 5. **Deploy mode:** either install the runner on the server as in step 6 (`DEPLOY_MODE=runner`), or have GitHub log in over SSH (`DEPLOY_MODE=ssh`) with these **environment secrets** (Settings → Environments → `production`):
 

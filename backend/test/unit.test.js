@@ -101,7 +101,7 @@ test('load gate: runs a few at a time, refuses beyond its queue with 503', async
 
 test('passcode strength: length, variety, no restaurant or place names', () => {
   const { weakness } = require('../src/passcode');
-  assert.match(weakness('ohh2026'), /at least 10/);
+  assert.match(weakness('short1'), /at least 10/);
   assert.match(weakness('aaaaaaaaaaaa'), /different characters/);
   for (const p of ['pizza12345', 'Ohhmychicken2026!', 'Kathmandu123456', 'password1234']) assert.match(weakness(p), /Too easy/, p);
   for (const p of ['red-door-momo-42', 'kitchen-door-blue-77', '4829173650']) assert.equal(weakness(p), '', p);

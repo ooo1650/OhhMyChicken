@@ -123,7 +123,7 @@ function Dashboard({ defaultPass, onPassChanged, onLock }) {
       <div className="wrap admin-body">
         <div className="admin-alert" role="alert" hidden={!defaultPass}>
           <Icon name="alert" />
-          <p><b>You're still using the default passcode.</b> Anyone who knows it can edit your menu. Change it now.</p>
+          <p><b>You're still using a start-up passcode.</b> Choose your own so only your staff can edit the menu.</p>
           <button type="button" className="btn btn-yellow btn-sm" onClick={() => { setTab('settings'); setFocusPass((n) => n + 1); }}>Change passcode</button>
         </div>
         <MenuPanel hidden={tab !== 'menu'} searchRef={searchRef} />

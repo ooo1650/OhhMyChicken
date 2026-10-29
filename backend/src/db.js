@@ -5,6 +5,7 @@
          node src/db.js reset       → wipe everything and re-seed defaults
    ========================================================================== */
 'use strict';
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
@@ -71,9 +72,8 @@ async function backfillOutletPins(c) {
 
 async function seed() {
   const envPass = process.env.ADMIN_PASSCODE || '';
-  if (envPass === defaults.DEFAULT_PASSCODE) throw new Error('ADMIN_PASSCODE must not be the published default passcode.');
   // Strength is checked only when ADMIN_PASSCODE is about to be used (new database, or
-  // still on the default); once staff set their own, it is ignored, so old values don't block start-up.
+  // still on a start-up passcode); once staff set their own, it is ignored, so old values don't block start-up.
   const envWeak = envPass ? weakness(envPass) : '';
   await tx(async (c) => {
     const { rows } = await c.query('SELECT count(*)::int AS n FROM menu_items');
@@ -82,19 +82,27 @@ async function seed() {
     await backfillOutletPins(c);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');
     if (envWeak && (!existing.rows.length || existing.rows[0].is_default)) throw new Error('ADMIN_PASSCODE is too weak: ' + envWeak);
-    const pass = envPass || defaults.DEFAULT_PASSCODE;
-    await c.query('INSERT INTO admin_auth (id, pass_hash, is_default) VALUES (1, $1, $2) ON CONFLICT (id) DO NOTHING',
-      [await hashPasscode(pass), !envPass]);
+    // No built-in passcode: a new database without ADMIN_PASSCODE gets a random one,
+    // shown once in the log (development only) until staff choose their own.
+    const generated = !envPass && !existing.rows.length ? crypto.randomBytes(9).toString('base64url') : '';
+    if (envPass || generated) {
+      await c.query('INSERT INTO admin_auth (id, pass_hash, is_default) VALUES (1, $1, $2) ON CONFLICT (id) DO NOTHING',
+        [await hashPasscode(envPass || generated), !envPass]);
+    }
+    if (generated && process.env.NODE_ENV !== 'production') {
+      console.log('No ADMIN_PASSCODE set: the dashboard passcode is ' + generated + ' (shown once; change it in Store → Security).');
+    }
 
-    // The default passcode is public (it's in the code), so it must never guard a live site.
+    // A start-up passcode (generated, or from an older version) must never guard a live site.
     const auth = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');
+    if (!auth.rows.length) throw new Error('No admin passcode has been chosen yet. Set ADMIN_PASSCODE (10+ characters, not easy to guess) and start again.');
     if (auth.rows[0].is_default) {
       if (envPass) {
-        // ADMIN_PASSCODE replaces the default; it never overwrites a passcode changed in the dashboard.
+        // ADMIN_PASSCODE replaces a start-up passcode; it never overwrites one changed in the dashboard.
         await c.query('UPDATE admin_auth SET pass_hash = $1, is_default = false, updated_at = now() WHERE id = 1', [await hashPasscode(envPass)]);
         await c.query('DELETE FROM admin_sessions');
       } else if (process.env.NODE_ENV === 'production') {
-        throw new Error('The admin passcode is still the public default. Set ADMIN_PASSCODE (10+ characters, not easy to guess) and start again.');
+        throw new Error('No admin passcode has been chosen yet. Set ADMIN_PASSCODE (10+ characters, not easy to guess) and start again.');
       }
     }
   });
@@ -115,7 +123,6 @@ async function setPasscode() {
   const pass = process.env.NEW_PASSCODE || await askHidden();
   const weak = weakness(pass);
   if (weak) throw new Error('Passcode not changed. ' + weak);
-  if (pass === defaults.DEFAULT_PASSCODE) throw new Error('Passcode not changed: that is the published default.');
   const hash = await hashPasscode(pass);
   await tx(async (c) => {
     await c.query(`INSERT INTO admin_auth (id, pass_hash, is_default) VALUES (1, $1, false)
