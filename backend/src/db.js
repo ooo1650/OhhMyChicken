@@ -120,6 +120,13 @@ async function dropDeliveryTime(c) {
   await c.query("UPDATE settings SET data = data - 'deliveryMins' WHERE id = 1");
 }
 
+// The photo uploaded as "pizatoday": it gets a real description, and comes off the dishes
+// using it, which go back to their drawing.
+async function fixPizaToday(c) {
+  await c.query("UPDATE menu_items SET image_id = NULL, updated_at = now() WHERE image_id IN (SELECT id FROM media WHERE lower(alt) = 'pizatoday')");
+  await c.query("UPDATE media SET alt = 'A freshly baked pizza from our oven' WHERE lower(alt) = 'pizatoday'");
+}
+
 // Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
 async function once(c, id, change) {
   const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
@@ -141,6 +148,7 @@ async function seed() {
     await once(c, 'counter-drinks-no-delivery', markNoDelivery);
     await once(c, 'delivery-range-and-hours', moveDeliveryAndHours);
     await once(c, 'no-delivery-time', dropDeliveryTime);
+    await once(c, 'photo-pizatoday', fixPizaToday);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');

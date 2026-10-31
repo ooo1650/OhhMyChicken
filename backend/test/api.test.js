@@ -236,7 +236,7 @@ it('photos: upload, link to a dish, serve, delete', async () => {
 
   const up = await req('POST', '/api/media', { raw: png, headers: { 'Content-Type': 'image/png', 'X-File-Name': encodeURIComponent('Chicken BBQ.png') } });
   assert.equal(up.status, 201);
-  assert.equal(up.json.alt, 'Chicken BBQ');
+  assert.equal(up.json.alt, '', 'a file name is not a description');
   assert.deepEqual(up.json.sizes.map((s) => s.w), [320, 480, 640, 800]);
 
   const file = await fetch(B + up.json.sizes[0].url);
@@ -523,6 +523,21 @@ it('settings: saved delivery fee becomes a range, default hours become 9 to 9, c
 
 it('settings: no delivery time is promised any more', async () => {
   assert.ok(!('deliveryMins' in (await req('GET', '/api/settings')).json));
+});
+
+it('photos: the one uploaded as "pizatoday" gets a description and leaves its dishes', async () => {
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  await db.query("INSERT INTO media (id, original_name, alt, width, height, bytes, sizes, placeholder, sort_order) VALUES ('aaaaaaaaaaaaaaaaaaaaaaaa', 'pizatoday.jpg', 'pizatoday', 1, 1, 1, '[]', '', 0)");
+  await db.query("UPDATE menu_items SET image_id = 'aaaaaaaaaaaaaaaaaaaaaaaa' WHERE id = 'chicken-bbq-pizza'");
+  await db.query("DELETE FROM data_changes WHERE id = 'photo-pizatoday'");
+  spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
+  const m = (await db.query("SELECT alt FROM media WHERE id = 'aaaaaaaaaaaaaaaaaaaaaaaa'")).rows[0];
+  assert.notEqual(m.alt, 'pizatoday');
+  assert.equal((await db.query("SELECT image_id FROM menu_items WHERE id = 'chicken-bbq-pizza'")).rows[0].image_id, null);
+  await db.query("DELETE FROM media WHERE id = 'aaaaaaaaaaaaaaaaaaaaaaaa'");
+  await db.end();
 });
 
 it('logout ends the session', async () => {

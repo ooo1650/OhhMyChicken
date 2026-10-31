@@ -37,9 +37,12 @@ function Lightbox({ photos, index, onIndex, onClose }) {
 }
 
 export function Gallery() {
-  const { gallery, settings } = useSite();
+  const site = useSite(), { settings } = site;
   const [index, setIndex] = useState(null);
-  if (!gallery.length) return null;
+  // TODO(photos): the real kitchen photos go in Dashboard → Photos: upload them, describe
+  // each one, and turn on "Gallery". 3–6 look right. One alone hides the section.
+  const gallery = site.gallery.slice(0, 6);
+  if (gallery.length < 2) return null;
   return (
     <section className="section gallery" aria-labelledby="galleryTitle">
       <div className="wrap">
@@ -47,11 +50,11 @@ export function Gallery() {
           <p className="eyebrow">Fresh from our kitchen in {settings.city}</p>
           <h2 className="tilt-title" id="galleryTitle"><span>Hot</span> <span className="hl">off the oven</span></h2>
         </div>
-        <ul className="gallery-grid">
+        <ul className={'gallery-grid' + (gallery.length === 2 ? ' two' : '')}>
           {gallery.map((p, i) => (
             <li key={p.id}>
               <button type="button" onClick={() => { setIndex(i); track('gallery_open'); }} aria-label={'View photo: ' + (p.alt || 'photo ' + (i + 1))}>
-                <Photo media={p} sizes="(max-width: 520px) 100vw, (max-width: 1000px) 50vw, 33vw" />
+                <Photo media={p} alt={p.alt || 'A dish from our kitchen'} sizes="(max-width: 480px) 100vw, (max-width: 900px) 50vw, 33vw" />
               </button>
             </li>
           ))}

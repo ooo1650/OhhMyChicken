@@ -29,11 +29,6 @@ sharp.cache(false); // keep memory flat; every upload is processed once
 
 async function ensureDir() { await fs.mkdir(UPLOAD_DIR, { recursive: true }); }
 
-// Name the photo after the file until someone writes real alt text.
-function altFromName(name) {
-  return String(name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, ALT_MAX);
-}
-
 function toMedia(r) {
   const sizes = r.sizes.map((s) => ({ w: s.w, h: s.h, url: '/media/' + s.file }));
   return {
@@ -97,7 +92,7 @@ async function createNow(buffer, originalName) {
     const { rows } = await pool.query(
       `INSERT INTO media (id, original_name, alt, width, height, bytes, sizes, placeholder, sort_order)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM media)) RETURNING *, 0 AS used_by`,
-      [id, String(originalName || '').slice(0, 200), altFromName(originalName), largest.w, largest.h, bytes, JSON.stringify(sizes), placeholder]
+      [id, String(originalName || '').slice(0, 200), '', largest.w, largest.h, bytes, JSON.stringify(sizes), placeholder]
     );
     for (const f of files) await pool.query('INSERT INTO media_files (file, media_id, bytes) VALUES ($1, $2, $3)', [f.file, id, f.data]);
     return toAdminMedia(rows[0]);
