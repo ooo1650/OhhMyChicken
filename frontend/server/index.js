@@ -99,6 +99,13 @@ function getBoot() {
   return pending;
 }
 
+// The home-page photo is the biggest thing on screen: start it with the page, not after the scripts.
+function heroPreload(route, b) {
+  if (route.view !== 'home' || route.section || !b.hero) return '';
+  const set = b.hero.sizes.map((s) => s.url + ' ' + s.w + 'w').join(', ');
+  return '<link rel="preload" as="image" type="image/webp" fetchpriority="high" imagesrcset="' + set + '" imagesizes="100vw">';
+}
+
 const originOf = (req) => PUBLIC_URL || req.protocol + '://' + req.get('host');
 
 app.get('/healthz', (req, res) => res.type('text/plain').send('ok\n'));
@@ -156,7 +163,7 @@ app.get(/.*/, async (req, res) => {
   if (route.view === 'menu') html = html.replace('shell shell-home', 'shell shell-menu');
   if (b) {
     html = html.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, headHtml(route, b, originOf(req)))
-      .replace('<!--boot-->', '<script type="application/json" id="boot-data">' + safeJson(b) + '</script>');
+      .replace('<!--boot-->', heroPreload(route, b) + '<script type="application/json" id="boot-data">' + safeJson(b) + '</script>');
   }
   // Without menu data we can't tell a category from a typo: serve the app, don't index.
   const status = b && route.view === 'notfound' ? 404 : 200;

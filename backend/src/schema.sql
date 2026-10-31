@@ -145,3 +145,12 @@ CREATE TABLE IF NOT EXISTS customers (
 -- v1.9: the chatbot runs only in the browser and no longer reports what people ask;
 -- remove the topics recorded before.
 DELETE FROM events WHERE name = 'chat_question';
+
+-- v2.0: the image files themselves, so photos survive hosts whose disk is wiped on
+-- every deploy. The disk (UPLOAD_DIR) stays the fast path and is refilled from here.
+CREATE TABLE IF NOT EXISTS media_files (
+  file     TEXT PRIMARY KEY,
+  media_id TEXT  NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+  bytes    BYTEA NOT NULL
+);
+CREATE INDEX IF NOT EXISTS media_files_media_idx ON media_files (media_id);

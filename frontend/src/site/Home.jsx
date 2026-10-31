@@ -18,12 +18,17 @@ import { track } from '../shared/track.js';
 import logo240 from '../assets/logo-240.webp';
 
 /* ---------- Hero ---------- */
-function Hero() {
-  const site = useSite(), s = site.settings, photo = site.hero;
+function Hero({ active }) {
+  const site = useSite(), s = site.settings;
+  const [broken, setBroken] = useState(false);
+  const photo = broken ? null : site.hero;
+  // The home view stays mounted behind other pages: only fetch its photo once it has been opened.
+  const opened = useRef(active);
+  if (active) opened.current = true;
   const outlets = outletList(s).length;
   return (
     <div className={'hero' + (photo ? ' has-photo' : '')} id="hero">
-      {photo && <Photo media={photo} alt="" sizes="100vw" eager fetchPriority="high" className="hero-photo" />}
+      {photo && opened.current && <Photo media={photo} alt="" sizes="100vw" eager fetchPriority="high" className="hero-photo" onFail={() => setBroken(true)} />}
       <div className="wrap hero-inner">
         <div className="hero-copy">
           <p className="hero-badge"><Icon name="flame" /> Home of the giant 22" pizza</p>
@@ -194,7 +199,7 @@ export function HomeView({ active }) {
 
   return (
     <section className="view" id="view-home" ref={rootRef} hidden={!active}>
-      <Hero />
+      <Hero active={active} />
       <Categories />
 
       <section className="section section-light" aria-labelledby="specialsTitle">

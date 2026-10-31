@@ -102,6 +102,7 @@ function PhotoCard({ m, galleryIndex, galleryCount, onMove }) {
         <input value={alt} maxLength="160" placeholder="e.g. Chicken BBQ pizza, 22 inch" onChange={(e) => setAlt(e.target.value)}
           onBlur={saveAlt} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
       </label>
+      {m.missing && <p className="form-error">This file was lost. Delete it and upload the photo again.</p>}
       <p className="pc-meta tiny muted">
         {m.width}×{m.height} · {kb(m.bytes)}
         {dishes.length ? <> · <b>Used by {dishes.map((d) => d.name).join(', ')}</b></> : ' · Not on a dish'}
