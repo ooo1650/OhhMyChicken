@@ -20,7 +20,10 @@ const SIZES = [
 const CATEGORIES = [
   { id: 'nonveg',  name: 'Chicken Pizza',              short: 'Chicken Pizza', icon: 'cat-chicken-pizza', slug: 'chicken-pizza',
     seo: 'Chicken Pizza in {city}',
-    blurb: 'Chicken BBQ, sausage, ham, bacon, salami, pepperoni, Hawaiian and tuna pizzas in 12", 15", 18" and our giant 22" XL.' },
+    blurb: 'Chicken BBQ, sausage, ham, bacon, salami, pepperoni and Hawaiian pizzas in 12", 15", 18" and our giant 22" XL.' },
+  { id: 'fish',    name: 'Fish Pizza',                 short: 'Fish Pizza',    icon: 'cat-fish-pizza', slug: 'fish-pizza',
+    seo: 'Fish Pizza in {city}',
+    blurb: 'Tuna pizza in 12", 15", 18" and our giant 22" XL.' },
   { id: 'porkbuff',name: 'Pork, Buff & Mix Pizza',     short: 'Pork & Buff',   icon: 'cat-pork-pizza', slug: 'pork-buff-pizza',
     seo: 'Pork & Buff Pizza in {city}',
     blurb: 'Pork BBQ, ham, bacon, pepperoni and Hawaiian pizzas, buff sausage and salami, and mixed-meat pizzas up to 22" XL.' },
@@ -38,7 +41,7 @@ const CATEGORIES = [
     blurb: 'Espresso coffees, milk and lemon teas, iced coffees and frappes, plus soft drinks and water.' }
 ];
 
-const PIZZA_CATEGORIES = ['nonveg', 'veg', 'porkbuff'];
+const PIZZA_CATEGORIES = ['nonveg', 'fish', 'veg', 'porkbuff'];
 const DIETS = ['veg', 'chicken', 'fish', 'buff', 'pork', 'mix'];
 
 // The real menu of OHH !!! MY CHICKEN PIZZA HUB (prices in NPR).
@@ -86,7 +89,7 @@ const MENU = [
   item('chicken-pepperoni',      'nonveg', 'Chicken Pepperoni',      'chicken', sizes(850, 1000, 1100, 2000)),
   item('chicken-lovers-pizza',   'nonveg', 'Chicken Lovers Pizza',   'chicken', sizes(1000, 1150, 1250, 2250), HOT),
   item('chicken-hawaiian',       'nonveg', 'Chicken Hawaiian',       'chicken', sizes(870, 1050, 1200, 1820), HOT),
-  item('tuna-pizza',             'nonveg', 'Tuna Pizza',             'fish',    sizes(650, 800, 900, 1400)),
+  item('tuna-pizza',             'fish',   'Tuna Pizza',             'fish',    sizes(650, 800, 900, 1400)),
 
   // ---- Non-veg toppings pizza: pork, buff, mix ----
   item('pork-bbq-pizza',         'porkbuff', 'Pork BBQ Pizza',       'pork', sizes(650, 800, 900, 1400)),
@@ -120,6 +123,7 @@ const MENU = [
 
   // ---- OHH !!! MY CHICKEN ----
   item('crispy-fried-chicken',   'special', 'Crispy Fried Chicken',  'chicken', [{ label: 'Half', price: 550 }, { label: 'Full', price: 1000 }], HOT),
+  // TODO: confirm pricing. 6 Chicken Wings cost Rs. 550 but 8 Hot Wings cost Rs. 500; is that right?
   item('chicken-wings',          'special', 'Chicken Wings',         'chicken', one('6 pcs', 550)),
   item('hot-wings',              'special', 'Hot Wings',             'chicken', one('8 pcs', 500)),
 
@@ -174,6 +178,9 @@ const SETTINGS = {
   // The outlet confirms the actual fee, so it isn't part of the order total.
   deliveryFeeMin: 0,
   deliveryFeeMax: 150,
+  // TODO(delivery): replace with the real rule (by distance? minimum order? free over an amount?).
+  // Shown in one place, the FAQ's delivery answer. Editable in Dashboard → Store.
+  deliveryNote: 'The outlet confirms the exact fee on WhatsApp.',
   currency: 'Rs.',
   // Search engines & Google Business: structured address, map pin, services.
   street: '',

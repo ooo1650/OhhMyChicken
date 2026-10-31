@@ -5,14 +5,14 @@
    ========================================================================== */
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { api, uploadImage } from '../shared/api.js';
-import { money } from '../shared/format.js';
+import { money, PIZZA_CATEGORIES } from '../shared/format.js';
 import { useToast } from '../shared/toast.jsx';
 
 const AdminCtx = createContext(null);
 export const useAdmin = () => useContext(AdminCtx);
 
 const uid = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const isPizzaCat = (c) => c === 'nonveg' || c === 'veg' || c === 'porkbuff';
+const isPizzaCat = (c) => PIZZA_CATEGORIES.includes(c);
 
 export function AdminProvider({ boot, children }) {
   const toast = useToast();

@@ -145,7 +145,7 @@ export function faqs(boot) {
   }
   list.push({
     q: 'Do you deliver pizza in ' + serviceArea(s) + '?',
-    a: 'Yes. The delivery fee is ' + deliveryRange(s) + '.'
+    a: 'Yes. The delivery fee is ' + deliveryRange(s) + '.' + (s.deliveryNote ? ' ' + s.deliveryNote : '')
   });
   list.push({
     q: 'What pizza sizes do you have?',

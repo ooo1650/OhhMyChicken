@@ -540,6 +540,13 @@ it('photos: the one uploaded as "pizatoday" gets a description and leaves its di
   await db.end();
 });
 
+it('menu: tuna has its own category, and it still counts as a pizza', async () => {
+  const tuna = (await req('GET', '/api/menu')).json.find((m) => m.id === 'tuna-pizza');
+  assert.equal(tuna.category, 'fish');
+  assert.equal(tuna.isPizza, true);
+  assert.match((await req('GET', '/api/settings')).json.deliveryNote, /outlet confirms/);
+});
+
 it('logout ends the session', async () => {
   assert.equal((await req('POST', '/api/admin/logout', { body: {} })).status, 200);
   assert.equal((await req('GET', '/api/orders')).status, 401);

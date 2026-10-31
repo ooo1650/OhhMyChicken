@@ -133,6 +133,7 @@ function settings(raw, current) {
     hoursClose: s.hoursClose,
     deliveryFeeMin: int(s.deliveryFeeMin, 0, 1000000, 'Lowest delivery fee'),
     deliveryFeeMax: int(s.deliveryFeeMax, 0, 1000000, 'Highest delivery fee'),
+    deliveryNote: str(s.deliveryNote, 200, 'How the delivery fee works'),
     currency: str(s.currency, 5, 'Currency'),
     street: str(s.street, 120, 'Street address'),
     city: str(s.city, 60, 'City', { required: true }),

@@ -11,7 +11,7 @@ import { Art } from '../site/art.jsx';
 import { ART_GROUPS, artKey, artLabel, artSvg } from '../shared/food-art.js';
 
 // Picture groups to list first for each category.
-const ART_FIRST = { nonveg: ['Pizza'], veg: ['Pizza'], porkbuff: ['Pizza'], special: ['Chicken'], momo: ['MoMo', 'Sides & add-ons'], drinks: ['Coffee', 'Tea & hot drinks', 'Cold drinks'] };
+const ART_FIRST = { nonveg: ['Pizza'], fish: ['Pizza'], veg: ['Pizza'], porkbuff: ['Pizza'], special: ['Chicken'], momo: ['MoMo', 'Sides & add-ons'], drinks: ['Coffee', 'Tea & hot drinks', 'Cold drinks'] };
 
 let rowKey = 0;
 const row = (label, price) => ({ key: ++rowKey, label: label || '', price: price == null ? '' : String(price) });

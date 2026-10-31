@@ -141,6 +141,12 @@ async function addServiceArea(c) {
   await c.query('UPDATE settings SET data = data || $1::jsonb WHERE id = 1', [JSON.stringify({ serviceArea: rows[0].data.serviceArea || defaults.SETTINGS.serviceArea, outlets })]);
 }
 
+// Tuna is fish, so it moves out of Chicken Pizza; and the delivery note reaches saved settings.
+async function moveTunaAddNote(c) {
+  await c.query("UPDATE menu_items SET category = 'fish', updated_at = now() WHERE id = 'tuna-pizza' AND category = 'nonveg'");
+  await c.query("UPDATE settings SET data = jsonb_build_object('deliveryNote', $1::text) || data WHERE id = 1", [defaults.SETTINGS.deliveryNote]);
+}
+
 // Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
 async function once(c, id, change) {
   const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
@@ -165,6 +171,7 @@ async function seed() {
     await once(c, 'photo-pizatoday', fixPizaToday);
     await once(c, 'feature-fried-chicken', featureFriedChicken);
     await once(c, 'service-area', addServiceArea);
+    await once(c, 'fish-category-delivery-note', moveTunaAddNote);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');

@@ -26,7 +26,16 @@
     "icon": "cat-chicken-pizza",
     "slug": "chicken-pizza",
     "seo": "Chicken Pizza in {city}",
-    "blurb": "Chicken BBQ, sausage, ham, bacon, salami, pepperoni, Hawaiian and tuna pizzas in 12\", 15\", 18\" and our giant 22\" XL."
+    "blurb": "Chicken BBQ, sausage, ham, bacon, salami, pepperoni and Hawaiian pizzas in 12\", 15\", 18\" and our giant 22\" XL."
+   },
+   {
+    "id": "fish",
+    "name": "Fish Pizza",
+    "short": "Fish Pizza",
+    "icon": "cat-fish-pizza",
+    "slug": "fish-pizza",
+    "seo": "Fish Pizza in {city}",
+    "blurb": "Tuna pizza in 12\", 15\", 18\" and our giant 22\" XL."
    },
    {
     "id": "porkbuff",
@@ -367,7 +376,7 @@
   },
   {
    "id": "tuna-pizza",
-   "category": "nonveg",
+   "category": "fish",
    "name": "Tuna Pizza",
    "diet": "fish",
    "desc": "",
@@ -2059,6 +2068,7 @@
   "hoursClose": "21:00",
   "deliveryFeeMin": 0,
   "deliveryFeeMax": 150,
+  "deliveryNote": "The outlet confirms the exact fee on WhatsApp.",
   "currency": "Rs.",
   "street": "",
   "city": "Kathmandu",

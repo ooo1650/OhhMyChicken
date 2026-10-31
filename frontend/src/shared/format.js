@@ -1,5 +1,5 @@
 /* Formatting and small pure helpers shared by the site and the dashboard. */
-export const PIZZA_CATEGORIES = ['nonveg', 'veg', 'porkbuff'];
+export const PIZZA_CATEGORIES = ['nonveg', 'fish', 'veg', 'porkbuff'];
 
 export function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

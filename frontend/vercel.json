@@ -25,6 +25,10 @@
       "destination": "/menu/chicken-pizza/index.html"
     },
     {
+      "source": "/menu/fish-pizza",
+      "destination": "/menu/fish-pizza/index.html"
+    },
+    {
       "source": "/menu/pork-buff-pizza",
       "destination": "/menu/pork-buff-pizza/index.html"
     },
