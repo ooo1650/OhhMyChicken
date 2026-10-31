@@ -60,6 +60,14 @@ test('pages arrive with their real content, from the live data', { skip }, async
   assert.match(menu, /Rs\. 650/);
 });
 
+test('every page has exactly one h1', { skip }, async () => {
+  for (const u of ['/', '/menu', '/menu/drinks', '/sizes', '/find', '/menu/does-not-exist']) {
+    const html = await (await get(u)).text();
+    assert.equal((html.match(/<h1[\s>]/g) || []).length, 1, u);
+  }
+  assert.match(await (await get('/')).text(), /<h1[^>]*>\s*<span class="sr-only">Ohh My Chicken Pizza Hub<\/span>/);
+});
+
 test('the built static files are real pages too', { skip: !fs.existsSync(path.join(ROOT, 'dist', 'index.html')) && 'build first' }, () => {
   const page = (f) => fs.readFileSync(path.join(ROOT, 'dist', f), 'utf8');
   assert.match(page('index.html'), /The largest pizza in town/);

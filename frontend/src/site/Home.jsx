@@ -25,10 +25,10 @@ function Hero() {
 
       <div className="wrap hero-grid">
         <div className="hero-copy">
-          {/* The visible H1 carries the search keywords; the wavy logo below is a picture. */}
-          <h1 className="eyebrow hero-h1"><Icon name="flame" /> Pizza restaurant in {settings.city} · Home of the GIANT 22" pizza</h1>
+          <p className="eyebrow hero-h1"><Icon name="flame" /> Pizza restaurant in {settings.city} · Home of the GIANT 22" pizza</p>
 
-          <div className="wavy-title" role="img" aria-label="Ohh My Chicken Pizza Hub">
+          <h1 className="wavy-title">
+            <span className="sr-only">Ohh My Chicken Pizza Hub</span>
             <svg viewBox="0 0 760 232" className="wavy-svg" aria-hidden="true" focusable="false">
               <defs>
                 <path id="wave1" d="M8 104 Q 190 88 380 104 T 752 104" />
@@ -39,7 +39,7 @@ function Hero() {
               <text className="wt-shadow"><textPath href="#wave2">Pizza Hub</textPath></text>
               <text className="wt-main wt-1"><textPath href="#wave2">Pizza Hub</textPath></text>
             </svg>
-          </div>
+          </h1>
 
           <p className="hero-claim">The largest pizza in town</p>
           <p className="hero-tag">Pizzas so big they need their own seat. <strong>Crispy chicken</strong> so good you'll say it out loud.</p>
@@ -196,12 +196,12 @@ function Pick({ item }) {
 }
 
 /* ---------- Home view ---------- */
-export function HomeView({ active }) {
+export function HomeView() {
   const site = useSite(), s = site.settings;
   const picks = site.menu.filter((m) => m.popular && m.available).slice(0, 4);
 
   return (
-    <section className="view" id="view-home" hidden={!active}>
+    <section className="view" id="view-home">
       <Hero />
 
       <div className="marquee" aria-hidden="true">

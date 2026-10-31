@@ -103,9 +103,9 @@ function PromoModal() {
   );
 }
 
-function NotFoundView({ active }) {
+function NotFoundView() {
   return (
-    <section className="view section section-light not-found" id="view-notfound" hidden={!active}>
+    <section className="view section section-light not-found" id="view-notfound">
       <div className="wrap center">
         <p className="eyebrow eyebrow-red">Error 404</p>
         <h1 className="tilt-title"><span>Ohh no!</span> <span className="hl">Page not found</span></h1>
@@ -199,8 +199,9 @@ export function App() {
         setTable(t);
         if (site.settings.dineIn) site.setCheckout((c) => ({ ...c, mode: 'table', table: t }));
       }
-      if (page.cat) site.jumpToCategory(page.cat.id);
-      else if (changed) window.scrollTo(0, 0);
+      // The menu is rebuilt each time it opens: without a category, forget the last jump.
+      site.jumpToCategory(page.cat ? page.cat.id : null);
+      if (!page.cat && changed) window.scrollTo(0, 0);
       return undefined;
     }
     if (page.section) {
@@ -232,9 +233,10 @@ export function App() {
       <a className="skip-link" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main').focus(); }}>Skip to content</a>
       <Header navKey={navKey} n={route.n} />
       <main id="main" tabIndex={-1}>
-        <HomeView active={view === 'home'} />
-        <MenuView active={view === 'menu'} table={table} cat={view === 'menu' ? page.cat : null} />
-        <NotFoundView active={view === 'notfound'} />
+        {/* Only the current page is in the document, so each one has a single <h1>. */}
+        {view === 'home' && <HomeView />}
+        {view === 'menu' && <MenuView active table={table} cat={page.cat} />}
+        {view === 'notfound' && <NotFoundView />}
       </main>
       <CartBar />
       <Footer />
