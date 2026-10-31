@@ -243,6 +243,11 @@ it('photos: upload, link to a dish, serve, delete', async () => {
   assert.match(file.headers.get('cache-control'), /immutable/);
 
   const menu = (await req('GET', '/api/menu')).json;
+  // The same library photo can be the home-page hero; a deleted one simply disappears.
+  assert.equal((await req('PUT', '/api/settings', { body: { heroImageId: 'not-a-photo' } })).status, 400);
+  assert.equal((await req('PUT', '/api/settings', { body: { heroImageId: up.json.id } })).status, 200);
+  await new Promise((r) => setTimeout(r, 2100)); // public reads are cached for 2 s
+  assert.equal((await req('GET', '/api/bootstrap')).json.hero.id, up.json.id);
   const linked = await req('PUT', '/api/menu/' + menu[0].id, { body: { ...menu[0], imageId: up.json.id, art: 'pizza-smoky' } });
   assert.equal(linked.json.image.id, up.json.id);
   assert.equal(linked.json.art, 'pizza-smoky');
@@ -251,6 +256,8 @@ it('photos: upload, link to a dish, serve, delete', async () => {
   assert.equal((await fetch(B + up.json.sizes[0].url)).status, 404);
   const after = (await req('GET', '/api/menu')).json.find((m) => m.id === menu[0].id);
   assert.equal(after.image, null);
+  await new Promise((r) => setTimeout(r, 2100));
+  assert.equal((await req('GET', '/api/bootstrap')).json.hero, null);
 });
 
 it('oversized bodies and image bombs are refused', async () => {

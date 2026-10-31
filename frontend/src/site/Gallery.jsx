@@ -45,7 +45,7 @@ export function Gallery() {
       <div className="wrap">
         <div className="section-head">
           <p className="eyebrow">Fresh from our kitchen in {settings.city}</p>
-          <h2 className="tilt-title" id="galleryTitle"><span>Hot</span> <span className="hl">off the oven</span></h2>
+          <h2 className="sec-title" id="galleryTitle"><span>Hot</span> <span className="hl">off the oven</span></h2>
         </div>
         <ul className="gallery-grid">
           {gallery.map((p, i) => (

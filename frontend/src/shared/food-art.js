@@ -142,7 +142,7 @@ const GLYPH = {
   buff: '<path d="M-5 -2 C -10 -3 -11 -8 -8 -10M5 -2 C 10 -3 11 -8 8 -10" stroke="#CDBB92" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cy="2" rx="6" ry="7" fill="#5A3A2A"/><ellipse cy="6" rx="3.5" ry="2.5" fill="#8A6A55"/>',
   chicken: '<path d="M-1 2 L-6 7" stroke="#FFF3DC" stroke-width="3.5" stroke-linecap="round"/><circle cx="-6.5" cy="7.5" r="2" fill="#FFF3DC"/><circle cx="2" cy="-2" r="6" fill="#D98B32"/>',
   pork: '<circle r="8" fill="#F4A6B5"/><path d="M-7 -5 L-4 -10 L-2 -6zM7 -5 L4 -10 L2 -6z" fill="#E57F97"/><ellipse cy="2" rx="4" ry="3" fill="#E57F97"/><circle cx="-1.5" cy="2" r=".9" fill="' + INK + '"/><circle cx="1.5" cy="2" r=".9" fill="' + INK + '"/>',
-  two: '<text y="4.5" font-family="Lilita One, Impact, sans-serif" font-size="13" text-anchor="middle" fill="#E50914">2×</text>',
+  two: '<text y="4.5" font-family="Archivo Black, Impact, sans-serif" font-size="13" text-anchor="middle" fill="#E50914">2×</text>',
   plus: '<path d="M0 -6 V6 M-6 0 H6" stroke="#E50914" stroke-width="3.5" stroke-linecap="round"/>',
   fire: '<path d="M0 -9 C 6 -3 7 2 4 6 C 2 9 -3 9 -5 6 C -7 2 -4 -1 -2 -4 C -1 -1 1 0 1 -2 C 2 -4 1 -7 0 -9z" fill="#FF7A1A"/><path d="M0 0 C 3 3 2 6 0 7 C -2 6 -3 3 0 0z" fill="#FFD23F"/>'
 };
@@ -294,7 +294,7 @@ function cans() {
 const BOTTLE = '<path d="M44 6 h12 v8 h-12z" fill="#1E6FD9" stroke="' + INK + '" stroke-width="2.5"/><path d="M45 14 h10 v6 c0 4 10 8 10 18 v48 c0 4-3 6-7 6 h-16 c-4 0-7-2-7-6 v-48 c0-10 10-14 10-18z" fill="#CBEBF7" stroke="' + INK + '" stroke-width="2.8" stroke-linejoin="round"/>' +
   '<path d="M36 46 h28 M36 74 h28" stroke="#9CCBE0" stroke-width="2"/><rect x="35" y="52" width="30" height="16" fill="#fff" stroke="' + INK + '" stroke-width="2"/><path d="M50 55 C 47 59 46 61 46 62.5 a4 4 0 0 0 8 0 C 54 61 53 59 50 55z" fill="#1E6FD9"/><path d="M41 24 C 38 30 38 36 38 40" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
 const OREO = '<g transform="translate(60 22) rotate(-18)"><rect x="-9" y="-6" width="18" height="12" rx="4" fill="#2B2B2B" stroke="' + INK + '" stroke-width="1.5"/><rect x="-8.5" y="-1.4" width="17" height="2.8" fill="#FFF8EC"/></g>';
-const SODA_CUP = '<path d="M58 6 L 54 30" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/><path d="M26 28 L 74 28 L 66 94 L 34 94 Z" fill="#E50914" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><rect x="22" y="22" width="56" height="10" rx="4" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M32 52 L 68 52 L 66 70 L 34 70 Z" fill="#fff"/><text x="50" y="66" font-family="Lilita One, sans-serif" font-size="12" text-anchor="middle" fill="#E50914">OMC</text>';
+const SODA_CUP = '<path d="M58 6 L 54 30" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/><path d="M26 28 L 74 28 L 66 94 L 34 94 Z" fill="#E50914" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><rect x="22" y="22" width="56" height="10" rx="4" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M32 52 L 68 52 L 66 70 L 34 70 Z" fill="#fff"/><text x="50" y="66" font-family="Archivo Black, sans-serif" font-size="12" text-anchor="middle" fill="#E50914">OMC</text>';
 
 const COFFEE = '#3B2314', MILK_COFFEE = '#B98458';
 

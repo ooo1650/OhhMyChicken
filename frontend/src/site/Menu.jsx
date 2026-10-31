@@ -71,8 +71,7 @@ export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   const actionRef = useRef(null), focusStep = useRef(false);
-  // Dish photos only when the restaurant has switched them on (Store settings).
-  const photo = site.settings.dishPhotos ? item.image : null;
+  const photo = item.image; // a library photo when the dish has one, otherwise its drawing
   const art = useMemo(() => (photo ? '' : iconFor(item)), [item, photo]);
   const price = (item.prices.find((p) => p.label === label) || item.prices[0]).price;
   const n = site.cartQty(item.id, label), what = item.name + ' (' + label + ')';
@@ -108,7 +107,7 @@ export function DishCard({ item, q }) {
   return (
     <article className={'dish' + (item.available ? '' : ' is-sold')}>
       {photo
-        ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 420px) 34vw, 150px" /></div>
+        ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 600px) 110px, (max-width: 1240px) 34vw, 300px" /></div>
         : <Art className="dish-art" html={art} />}
       <div className="dish-body">
         <div className="dish-meta">
@@ -239,11 +238,11 @@ export function MenuView({ active, table, cat }) {
           <div>
             {cat
               ? <>
-                  <h1 className="tilt-title light"><span className="hl">{pageMeta({ view: 'menu', cat }, boot).heading}</span></h1>
+                  <h1 className="sec-title light">{pageMeta({ view: 'menu', cat }, boot).heading}</h1>
                   <p className="menu-sub menu-blurb">{cat.blurb}</p>
                 </>
               : <>
-                  <h1 className="tilt-title light"><span>The</span> <span className="hl">Menu</span></h1>
+                  <h1 className="sec-title light">Our <span className="hl">menu</span></h1>
                   <p className="menu-sub">Pizza, fried chicken &amp; MoMo in {s.city}: giant pizzas in 12" · 15" · 18" · <b>22" XL</b>, with prices.</p>
                 </>}
           </div>

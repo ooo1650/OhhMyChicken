@@ -81,12 +81,12 @@ test('404 pages are noindex and carry no structured data', () => {
   assert.doesNotMatch(html, /rel="canonical"/);
 });
 
-test('dish photos reach structured data only when switched on', () => {
+test('a dish with a photo sends it to structured data; one without sends none', () => {
   const photo = { url: '/media/abc-1024.webp', sizes: [], alt: 'x' };
-  const withPhoto = (on) => { const b = boot({ dishPhotos: on }); b.menu[0] = { ...b.menu[0], image: photo }; return b; };
-  const firstItem = (b) => jsonLd(resolveRoute('/menu', b.defaults.CATEGORIES), b, ORIGIN)['@graph'].find((g) => g['@type'] === 'Menu').hasMenuSection[0].hasMenuItem[0];
-  assert.equal(firstItem(withPhoto(false)).image, undefined);
-  assert.equal(firstItem(withPhoto(true)).image, ORIGIN + photo.url);
+  const b = boot(); b.menu[0] = { ...b.menu[0], image: photo };
+  const items = jsonLd(resolveRoute('/menu', b.defaults.CATEGORIES), b, ORIGIN)['@graph'].find((g) => g['@type'] === 'Menu').hasMenuSection[0].hasMenuItem;
+  assert.equal(items[0].image, ORIGIN + photo.url);
+  assert.equal(items[1].image, undefined);
 });
 
 test('outlets: each branch is its own restaurant in the data, and listed in the FAQ', () => {

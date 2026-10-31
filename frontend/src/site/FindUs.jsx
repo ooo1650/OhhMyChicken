@@ -56,7 +56,7 @@ export function FindUs() {
     <section className="section section-light find" id="find" aria-labelledby="findTitle">
       <div className={'wrap find-layout' + (withMap ? '' : ' no-map')}>
         <div className="find-copy">
-          <h2 className="tilt-title" id="findTitle"><span>Find</span> <span className="hl">us</span></h2>
+          <h2 className="sec-title" id="findTitle"><span>Find</span> <span className="hl">us</span></h2>
           <p className="find-intro">
             {outlets.length > 1 ? outlets.length + ' kitchens' + (outlets.every(onMap) ? ' across the valley' : '') + ', ' : ''}open daily {fmt12(s.hoursOpen)} – {fmt12(s.hoursClose)}.
             Free delivery over {site.money(s.freeDeliveryOver)}.

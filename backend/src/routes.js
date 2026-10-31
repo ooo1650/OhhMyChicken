@@ -40,9 +40,12 @@ router.use((req, res, next) => {
 
 // Everything a page needs for its first render, in one request.
 router.get('/bootstrap', async (req, res) => {
-  const [menu, settings, gallery, updatedAt] = await cached('bootstrap', () =>
-    Promise.all([models.listMenu(), models.getSettings(), media.listGallery(), models.contentUpdatedAt()]));
-  res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES, ORDER_DETAILS_DAYS: models.ORDER_DETAILS_DAYS }, menu, settings, gallery, updatedAt });
+  const [menu, settings, gallery, updatedAt, hero] = await cached('bootstrap', async () => {
+    const s = await models.getSettings();
+    const [m, g, u, h] = await Promise.all([models.listMenu(), media.listGallery(), models.contentUpdatedAt(), media.getOne(s.heroImageId)]);
+    return [m, s, g, u, h];
+  });
+  res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES, ORDER_DETAILS_DAYS: models.ORDER_DETAILS_DAYS }, menu, settings, gallery, hero, updatedAt });
 });
 
 /* ---------- Menu ---------- */

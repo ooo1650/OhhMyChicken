@@ -53,7 +53,7 @@ test('home: server-rendered SEO head, inlined data, security headers', { skip },
 test('pages arrive with a loading skeleton shaped like the page', { skip }, async () => {
   const home = await (await get('/')).text();
   assert.match(home, /<div id="root"><div class="shell shell-home" aria-busy="true">/);
-  assert.match(home, /<link rel="preload" href="\/static\/logo-192-[\w-]+\.webp" as="image"/);
+  assert.match(home, /<link rel="preload" href="\/static\/logo-128-[\w-]+\.webp" as="image"/);
   assert.match(await (await get('/menu/drinks')).text(), /class="shell shell-menu"/);
 });
 

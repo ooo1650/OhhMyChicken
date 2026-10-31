@@ -28,6 +28,7 @@ export function SiteProvider({ boot, children }) {
   const [menu] = useState(boot.menu);
   const [settings] = useState(boot.settings);
   const [gallery] = useState(boot.gallery || []);
+  const [hero] = useState(boot.hero || null);
   // A saved cart can name dishes or sizes that have since left the menu: drop those lines.
   const [cart, setCartState] = useState(() => {
     const saved = read(KEYS.cart, []);
@@ -103,7 +104,7 @@ export function SiteProvider({ boot, children }) {
     }
 
     return {
-      defaults, menu, settings, gallery, cart, now,
+      defaults, menu, settings, gallery, hero, cart, now,
       categories: defaults.CATEGORIES,
       categoryName: (id) => { const c = defaults.CATEGORIES.find((x) => x.id === id); return c ? c.name : id; },
       getItem, cartQty, cartLines, totals, addToCart, setQty,
@@ -125,7 +126,7 @@ export function SiteProvider({ boot, children }) {
       jumpToCategory: (cat) => setMenuJump((j) => ({ cat, n: (j ? j.n : 0) + 1 })),
       clearMenuFilters: () => { setMenuQuery(''); setMenuDiet('all'); }
     };
-  }, [defaults, menu, settings, gallery, cart, now, outletId, setOutletId, tableOutlet, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
+  }, [defaults, menu, settings, gallery, hero, cart, now, outletId, setOutletId, tableOutlet, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
 
   return <SiteCtx.Provider value={value}>{children}</SiteCtx.Provider>;
 }

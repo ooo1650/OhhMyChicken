@@ -156,9 +156,16 @@ async function remove(id) {
   return true;
 }
 
+// One photo for public display, or null if it has been deleted (e.g. the hero picture).
+async function getOne(id) {
+  if (!id) return null;
+  const { rows } = await pool.query('SELECT * FROM media WHERE id = $1', [id]);
+  return rows.length ? toMedia(rows[0]) : null;
+}
+
 async function exists(id, client) {
   const { rows } = await (client || pool).query('SELECT 1 FROM media WHERE id = $1', [id]);
   return rows.length > 0;
 }
 
-module.exports = { UPLOAD_DIR, MAX_BYTES, create, listAll, listGallery, update, reorderGallery, remove, exists, toMedia, ensureDir };
+module.exports = { UPLOAD_DIR, MAX_BYTES, create, listAll, listGallery, update, reorderGallery, remove, exists, getOne, toMedia, ensureDir };

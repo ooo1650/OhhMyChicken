@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 // Fonts are bundled and served by this site (cached for a year), not fetched from Google.
-import '@fontsource/lilita-one/400.css';
-import '@fontsource-variable/rubik';
+import '@fontsource/archivo-black/400.css';
+import '@fontsource-variable/dm-sans';
 import '../styles/styles.css';
 import { loadBootstrap } from '../shared/api.js';
 import { ToastProvider } from '../shared/toast.jsx';

@@ -32,7 +32,7 @@ export function CartBar() {
 
 function CartLine({ line }) {
   const site = useSite();
-  const photo = site.settings.dishPhotos ? line.item.image : null;
+  const photo = line.item.image;
   const art = useMemo(() => (photo ? '' : iconFor(line.item)), [line.item, photo]);
   return (
     <li className="cart-line">

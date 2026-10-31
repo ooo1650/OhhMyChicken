@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useAdmin } from './store.jsx';
 import { useConfirm } from './confirm.jsx';
 import { Icon } from '../shared/Icon.jsx';
+import { Photo } from '../shared/Photo.jsx';
+import { PhotoPicker } from './PhotosPanel.jsx';
 import { useToast } from '../shared/toast.jsx';
 
 const toForm = (s) => ({
@@ -14,6 +16,8 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
   const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
   const [f, setF] = useState(() => toForm(admin.settings));
   const formRef = useRef(null);
+  const [heroMedia, setHeroMedia] = useState(admin.hero); // preview of the home-page photo
+  const [pickHero, setPickHero] = useState(false);
 
   useEffect(() => { setF(toForm(admin.settings)); }, [admin.settings]);
   useEffect(() => { if (focusPass) formRef.current.currentPass.focus(); }, [focusPass]);
@@ -38,7 +42,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       name: admin.settings.name,
       street: f.street.trim(), city: f.city.trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
       country: f.country.trim(), currencyCode: f.currencyCode.trim(), lat: f.lat === '' ? null : f.lat, lng: f.lng === '' ? null : f.lng,
-      mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway, dishPhotos: !!f.dishPhotos,
+      mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway, heroImageId: f.heroImageId || null,
       promo: { enabled: !!f.promo.enabled, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
     };
     const pass = f.newPass, current = f.currentPass;
@@ -83,11 +87,17 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
           </div>
         </fieldset>
         <fieldset>
-          <legend>Menu display</legend>
-          <label className="switch">
-            <input type="checkbox" checked={!!f.dishPhotos} onChange={(e) => setF((x) => ({ ...x, dishPhotos: e.target.checked }))} /><span /> Show dish photos on the menu
-          </label>
-          <p className="tiny muted"><Icon name="info" /> Off: every dish shows its illustration. Photos you've already attached stay saved and come back if you switch this on. The home-page gallery is separate (Photos tab).</p>
+          <legend>Home page photo</legend>
+          <div className="item-photo">
+            {heroMedia
+              ? <Photo media={heroMedia} alt="" sizes="96px" />
+              : <span className="item-photo-empty"><Icon name="image" /></span>}
+            <div className="item-photo-actions">
+              <button type="button" className="btn btn-outline btn-sm" onClick={() => setPickHero(true)}><Icon name="upload" /> {heroMedia ? 'Change photo' : 'Choose photo'}</button>
+              {heroMedia && <button type="button" className="btn btn-link btn-sm danger" onClick={() => { setHeroMedia(null); setF((x) => ({ ...x, heroImageId: null })); }}>Remove</button>}
+            </div>
+          </div>
+          <p className="tiny muted"><Icon name="info" /> The big picture behind the restaurant's name. A wide landscape photo works best; it is darkened so the text stays readable. Save settings after choosing.</p>
         </fieldset>
         <fieldset>
           <legend>Google &amp; local search</legend>
@@ -140,6 +150,8 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
           <button type="button" className="btn btn-link danger" onClick={reset}>Reset to defaults</button>
         </div>
       </form>
+      <PhotoPicker open={pickHero} selected={f.heroImageId} onClose={() => setPickHero(false)}
+        onPick={(m) => { setHeroMedia(m); setF((x) => ({ ...x, heroImageId: m.id })); setPickHero(false); }} />
     </div>
   );
 }

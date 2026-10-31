@@ -18,19 +18,6 @@ async function square(logo, size, pad, background) {
   return sharp({ create: { width: size, height: size, channels: 4, background } }).composite([{ input: img, gravity: 'centre' }]);
 }
 
-// The logo as a sticker: a white outline with a thin dark edge, so it stands out on the red header.
-async function sticker(logo) {
-  const pad = 30;
-  const src = await sharp(logo).extend({ top: pad, bottom: pad, left: pad, right: pad, background: CLEAR }).png().toBuffer();
-  const { width, height } = await sharp(src).metadata();
-  const grow = async (sigma, colour) => {
-    const mask = await sharp(src).extractChannel(3).blur(sigma).threshold(6).raw().toBuffer();
-    return sharp({ create: { width, height, channels: 3, background: colour } }).joinChannel(mask, { raw: { width, height, channels: 1 } }).png().toBuffer();
-  };
-  const layered = await sharp(await grow(9.5, '#121212')).composite([{ input: await grow(7, '#ffffff') }, { input: src }]).png().toBuffer();
-  return sharp(layered).trim().png().toBuffer();
-}
-
 // A .ico holding PNG images (supported by every browser since IE Vista era).
 function ico(pngs) {
   const head = Buffer.alloc(6 + 16 * pngs.length);
@@ -73,10 +60,9 @@ async function main() {
   await write('assets/og-image.png', sharp(sun).composite([{ input: big, gravity: 'centre' }]).png({ compressionLevel: 9, palette: true, quality: 90 }));
 
   // On-page logo (bundled by Vite with a content hash, so browsers cache it for a year).
-  const badge = await sticker(logo);
-  for (const h of [192, 240]) {
+  for (const h of [128, 240]) {
     const f = path.join(ROOT, 'src/assets/logo-' + h + '.webp');
-    await sharp(badge).resize({ height: h }).webp({ quality: 86, alphaQuality: 90, effort: 6 }).toFile(f);
+    await sharp(logo).resize({ height: h }).webp({ quality: 86, alphaQuality: 90, effort: 6 }).toFile(f);
     console.log(('src/assets/logo-' + h + '.webp').padEnd(32), fs.statSync(f).size, 'B');
   }
 }
