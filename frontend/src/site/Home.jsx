@@ -63,7 +63,7 @@ function Hero({ active }) {
         {/* The pizza is mirrored in CSS, and breaks out of the card. */}
         {!photo && opened.current && (
           <img className="hero-slice" src={slice1400} srcSet={slice760 + ' 760w, ' + slice1400 + ' 1400w'}
-            sizes="(max-width: 859px) 110vw, 1000px" width="1400" height="700" alt="" decoding="async" fetchPriority="high" />
+            sizes="(max-width: 859px) 110vw, 1000px" width="1400" height="636" alt="" decoding="async" fetchPriority="high" />
         )}
         <div className="hero-copy">
           {/* The visible H1 is the name; the rest carries the search keywords. */}
@@ -79,7 +79,7 @@ function Hero({ active }) {
           <li><b>{site.menu.length}</b><span>Dishes</span></li>
           {pizzas.length > 0 && <li><b>{site.money(Math.min(...pizzas))}</b><span>Pizzas from</span></li>}
           {outlets > 1 && <li><b>{outlets}</b><span>Outlets</span></li>}
-          <li><b>{fmt12(site.isOpen ? s.hoursClose : s.hoursOpen)}</b><span>{site.isOpen ? 'Open until' : 'Opens at'}</span></li>
+          <li className={site.isOpen ? 'is-open' : undefined}><b>{fmt12(site.isOpen ? s.hoursClose : s.hoursOpen)}</b><span>{site.isOpen ? 'Open until' : 'Opens at'}</span></li>
         </ul>
       </div>
     </div>

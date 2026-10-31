@@ -142,8 +142,8 @@ const GLYPH = {
   buff: '<path d="M-5 -2 C -10 -3 -11 -8 -8 -10M5 -2 C 10 -3 11 -8 8 -10" stroke="#CDBB92" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse cy="2" rx="6" ry="7" fill="#5A3A2A"/><ellipse cy="6" rx="3.5" ry="2.5" fill="#8A6A55"/>',
   chicken: '<path d="M-1 2 L-6 7" stroke="#FFF3DC" stroke-width="3.5" stroke-linecap="round"/><circle cx="-6.5" cy="7.5" r="2" fill="#FFF3DC"/><circle cx="2" cy="-2" r="6" fill="#D98B32"/>',
   pork: '<circle r="8" fill="#F4A6B5"/><path d="M-7 -5 L-4 -10 L-2 -6zM7 -5 L4 -10 L2 -6z" fill="#E57F97"/><ellipse cy="2" rx="4" ry="3" fill="#E57F97"/><circle cx="-1.5" cy="2" r=".9" fill="' + INK + '"/><circle cx="1.5" cy="2" r=".9" fill="' + INK + '"/>',
-  two: '<text y="4.5" font-family="Archivo Black, Impact, sans-serif" font-size="13" text-anchor="middle" fill="#E50914">2×</text>',
-  plus: '<path d="M0 -6 V6 M-6 0 H6" stroke="#E50914" stroke-width="3.5" stroke-linecap="round"/>',
+  two: '<text y="4.5" font-family="Archivo Black, Impact, sans-serif" font-size="13" text-anchor="middle" fill="#D8181E">2×</text>',
+  plus: '<path d="M0 -6 V6 M-6 0 H6" stroke="#D8181E" stroke-width="3.5" stroke-linecap="round"/>',
   fire: '<path d="M0 -9 C 6 -3 7 2 4 6 C 2 9 -3 9 -5 6 C -7 2 -4 -1 -2 -4 C -1 -1 1 0 1 -2 C 2 -4 1 -7 0 -9z" fill="#FF7A1A"/><path d="M0 0 C 3 3 2 6 0 7 C -2 6 -3 3 0 0z" fill="#FFD23F"/>'
 };
 const badge = (g) => '<g transform="translate(83 82)"><circle r="13" fill="#FFF8E6" stroke="' + INK + '" stroke-width="2.5"/>' + GLYPH[g] + '</g>';
@@ -172,7 +172,7 @@ function bucket() {
   const xl = (y) => 24 + (y - 46) * 7 / 46, xr = (y) => 76 - (y - 46) * 7 / 46;
   const stripe = (a, b) => '<path d="M' + f(xl(46) + a * (xr(46) - xl(46))) + ' 46 L' + f(xl(46) + b * (xr(46) - xl(46))) + ' 46 L' + f(xl(92) + b * (xr(92) - xl(92))) + ' 92 L' + f(xl(92) + a * (xr(92) - xl(92))) + ' 92z" fill="#fff"/>';
   return bone(56, 30, 64, 8) + crispy(34, 38, 15, 12, -20, 3) + crispy(66, 40, 14, 11, 25, 9) + crispy(50, 34, 13, 14, 0, 5) +
-    '<path d="M24 46 L76 46 L69 92 L31 92z" fill="#E50914"/>' + stripe(.2, .38) + stripe(.62, .8) +
+    '<path d="M24 46 L76 46 L69 92 L31 92z" fill="#D8181E"/>' + stripe(.2, .38) + stripe(.62, .8) +
     '<path d="M24 46 L76 46 L69 92 L31 92z" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
     '<rect x="20" y="41" width="60" height="9" rx="4" fill="#fff" stroke="' + INK + '" stroke-width="3"/>';
 }
@@ -205,7 +205,7 @@ function momo(g) {
 /* ---------- Sides ---------- */
 
 const FRIES = '<g fill="#FFD84D" stroke="#D98B32" stroke-width="2"><rect x="28" y="14" width="8" height="46" rx="2" transform="rotate(-10 32 37)"/><rect x="40" y="8" width="8" height="50" rx="2"/><rect x="52" y="10" width="8" height="48" rx="2" transform="rotate(6 56 34)"/><rect x="64" y="16" width="8" height="44" rx="2" transform="rotate(14 68 38)"/></g>';
-const CARTON = '<path d="M22 40 L 78 40 L 70 92 L 30 92 Z" fill="#E50914" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M38 58 Q 50 68 62 58" stroke="#FFC72C" stroke-width="5" fill="none" stroke-linecap="round"/>';
+const CARTON = '<path d="M22 40 L 78 40 L 70 92 L 30 92 Z" fill="#D8181E" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M38 58 Q 50 68 62 58" stroke="#F6C12A" stroke-width="5" fill="none" stroke-linecap="round"/>';
 const CHEESE_SAUCE = '<path d="M26 26 C 34 18 44 26 50 20 C 58 14 66 24 74 22 C 78 30 72 34 70 44 C 68 36 64 34 62 40 C 60 34 52 32 50 42 C 48 34 40 34 38 40 C 36 34 30 34 28 44 C 26 36 22 32 26 26z" fill="#FFB81C" stroke="#D88A00" stroke-width="2" stroke-linejoin="round"/><path d="M34 26 q6-3 10 0" stroke="#FFE08A" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
 const COMBO = plate(76, 44) +
   '<g fill="#FFD84D" stroke="#D98B32" stroke-width="2"><rect x="60" y="52" width="7" height="30" rx="2" transform="rotate(62 63 67)"/><rect x="64" y="46" width="7" height="30" rx="2" transform="rotate(75 67 61)"/><rect x="58" y="58" width="7" height="28" rx="2" transform="rotate(50 61 72)"/></g>' +
@@ -229,7 +229,7 @@ const saucer = (cy, rx) => '<ellipse cx="50" cy="' + cy + '" rx="' + rx + '" ry=
 function cup(liquid, top, band) {
   return '<path d="M74 44h4a10 10 0 0 1 0 20h-6" fill="none" stroke="' + INK + '" stroke-width="5"/>' + saucer(84, 38) +
     '<path d="M22 32h56l-6 42c-1 6-6 8-12 8H40c-6 0-11-2-12-8z" fill="#FFF6E5" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
-    '<path d="M25 52h50l-1.4 10H26.4z" fill="' + (band || '#E50914') + '"/>' +
+    '<path d="M25 52h50l-1.4 10H26.4z" fill="' + (band || '#D8181E') + '"/>' +
     '<ellipse cx="50" cy="33" rx="27" ry="5" fill="' + liquid + '" stroke="' + INK + '" stroke-width="3"/>' + (top || '');
 }
 const FOAM_HEART = '<ellipse cx="50" cy="33" rx="22" ry="3.6" fill="#F3E3CB"/><path d="M50 35.5 C 44 32 45 29.5 48 30.5 L50 31.5 L52 30.5 C 55 29.5 56 32 50 35.5z" fill="#A86A3A"/>';
@@ -266,7 +266,7 @@ function glass(layers, o) {
 
 // Plastic cup with a dome lid and straw (frappes).
 function frappe(liquid, cream, extra) {
-  return '<path d="M54 2 L50 44" stroke="' + INK + '" stroke-width="7" stroke-linecap="round"/><path d="M54 2 L50 44" stroke="#E50914" stroke-width="4" stroke-linecap="round"/>' +
+  return '<path d="M54 2 L50 44" stroke="' + INK + '" stroke-width="7" stroke-linecap="round"/><path d="M54 2 L50 44" stroke="#D8181E" stroke-width="4" stroke-linecap="round"/>' +
     '<path d="M31 36 C 28 26 38 22 42 25 C 44 18 56 18 58 24 C 64 20 72 27 69 36z" fill="#FFFDF7" stroke="' + INK + '" stroke-width="2.2"/>' + (cream || '') +
     '<path d="M27 36 A23 20 0 0 1 73 36z" fill="#ffffff55" stroke="' + INK + '" stroke-width="2.5"/>' +
     '<path d="M30 38 L70 38 L65 92 L35 92z" fill="' + liquid + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>' +
@@ -280,7 +280,7 @@ const chaiGlass = (tea) => steam(50) + '<path d="M34 34 L66 34 L62 86 L38 86z" f
 
 const LEMON = (x, y, r) => '<g transform="translate(' + x + ' ' + y + ')"><circle r="' + r + '" fill="#FFE34D" stroke="#C99A00" stroke-width="2"/><circle r="' + f(r * .72) + '" fill="#FFF3A6"/>' +
   [0, 60, 120].map((a) => '<path transform="rotate(' + a + ')" d="M0 ' + f(-r * .7) + ' V' + f(r * .7) + '" stroke="#F2D23A" stroke-width="1.6"/>').join('') + '</g>';
-const TEA_TAG = '<path d="M58 30 Q 70 34 74 48" stroke="#8A7A66" stroke-width="1.5" fill="none"/><rect x="69" y="47" width="11" height="13" rx="1.5" fill="#fff" stroke="' + INK + '" stroke-width="2"/><rect x="71.5" y="50" width="6" height="7" fill="#E50914"/>';
+const TEA_TAG = '<path d="M58 30 Q 70 34 74 48" stroke="#8A7A66" stroke-width="1.5" fill="none"/><rect x="69" y="47" width="11" height="13" rx="1.5" fill="#fff" stroke="' + INK + '" stroke-width="2"/><rect x="71.5" y="50" width="6" height="7" fill="#D8181E"/>';
 const HONEY_DIPPER = '<path d="M78 8 L62 34" stroke="#8A5A2B" stroke-width="3.5" stroke-linecap="round"/><g transform="translate(80 6) rotate(-58)"><rect x="-6" y="-4" width="14" height="9" rx="3" fill="#F2B233" stroke="' + INK + '" stroke-width="1.8"/><path d="M-2 -4 V5 M3 -4 V5" stroke="#C98612" stroke-width="1.6"/></g><path d="M64 31 C 64 36 61 37 61 41" stroke="#F2B233" stroke-width="3" stroke-linecap="round" fill="none"/>';
 const GINGER = '<path d="M74 80 C 72 72 80 70 82 74 C 86 70 94 74 90 80 C 94 84 88 90 84 86 C 80 90 72 88 74 80z" fill="#E7C27D" stroke="#8A6A3A" stroke-width="2"/><path d="M80 78 l3 3M86 80 l2 -2" stroke="#B48A4A" stroke-width="1.6" stroke-linecap="round"/>';
 const APPLE = '<path d="M82 66 C 92 62 98 72 94 82 C 91 90 86 90 82 88 C 78 90 73 90 70 82 C 66 72 72 62 82 66z" fill="#D7262E" stroke="' + INK + '" stroke-width="2"/><path d="M82 66 Q 83 60 86 58" stroke="#6A3A1A" stroke-width="2" fill="none"/><path d="M84 61 C 89 57 93 60 92 62 C 89 64 86 63 84 61z" fill="#3E9B3A"/><path d="M74 72 q2 -3 5 -3" stroke="#ffffff88" stroke-width="2" fill="none" stroke-linecap="round"/>';
@@ -294,7 +294,7 @@ function cans() {
 const BOTTLE = '<path d="M44 6 h12 v8 h-12z" fill="#1E6FD9" stroke="' + INK + '" stroke-width="2.5"/><path d="M45 14 h10 v6 c0 4 10 8 10 18 v48 c0 4-3 6-7 6 h-16 c-4 0-7-2-7-6 v-48 c0-10 10-14 10-18z" fill="#CBEBF7" stroke="' + INK + '" stroke-width="2.8" stroke-linejoin="round"/>' +
   '<path d="M36 46 h28 M36 74 h28" stroke="#9CCBE0" stroke-width="2"/><rect x="35" y="52" width="30" height="16" fill="#fff" stroke="' + INK + '" stroke-width="2"/><path d="M50 55 C 47 59 46 61 46 62.5 a4 4 0 0 0 8 0 C 54 61 53 59 50 55z" fill="#1E6FD9"/><path d="M41 24 C 38 30 38 36 38 40" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
 const OREO = '<g transform="translate(60 22) rotate(-18)"><rect x="-9" y="-6" width="18" height="12" rx="4" fill="#2B2B2B" stroke="' + INK + '" stroke-width="1.5"/><rect x="-8.5" y="-1.4" width="17" height="2.8" fill="#FFF8EC"/></g>';
-const SODA_CUP = '<path d="M58 6 L 54 30" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/><path d="M26 28 L 74 28 L 66 94 L 34 94 Z" fill="#E50914" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><rect x="22" y="22" width="56" height="10" rx="4" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M32 52 L 68 52 L 66 70 L 34 70 Z" fill="#fff"/><text x="50" y="66" font-family="Archivo Black, sans-serif" font-size="12" text-anchor="middle" fill="#E50914">OMC</text>';
+const SODA_CUP = '<path d="M58 6 L 54 30" stroke="' + INK + '" stroke-width="5" stroke-linecap="round"/><path d="M26 28 L 74 28 L 66 94 L 34 94 Z" fill="#D8181E" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><rect x="22" y="22" width="56" height="10" rx="4" fill="#fff" stroke="' + INK + '" stroke-width="3"/><path d="M32 52 L 68 52 L 66 70 L 34 70 Z" fill="#fff"/><text x="50" y="66" font-family="Archivo Black, sans-serif" font-size="12" text-anchor="middle" fill="#D8181E">OMC</text>';
 
 const COFFEE = '#3B2314', MILK_COFFEE = '#B98458';
 
@@ -325,8 +325,8 @@ const GROUPS = [
   ]],
   ['Coffee', [
     ['espresso', 'Espresso', () => svg(demitasse())],
-    ['americano', 'Americano', () => svg(mug('#E50914', COFFEE))],
-    ['double-americano', 'Double americano', () => svg(mug('#E50914', COFFEE, badge('two')))],
+    ['americano', 'Americano', () => svg(mug('#D8181E', COFFEE))],
+    ['double-americano', 'Double americano', () => svg(mug('#D8181E', COFFEE, badge('two')))],
     ['cappuccino', 'Cappuccino', () => svg(steam(50) + cup('#F3E3CB', FOAM_HEART + COCOA))],
     ['double-cappuccino', 'Double cappuccino', () => svg(steam(50) + cup('#F3E3CB', FOAM_HEART + COCOA) + badge('two'))],
     ['latte', 'Latte', () => svg(glass([[52, 90, MILK_COFFEE], [26, 52, '#E9D2B4'], [18, 26, '#FFF8EC']], { steam: true }))],
@@ -336,7 +336,7 @@ const GROUPS = [
     ['mocha-madness', 'Mocha madness', () => svg(glass([[60, 90, '#4A2410'], [40, 60, '#8A5230'], [18, 40, '#5A2E14']], { cream: true, drizzle: '#4A2410' }))],
     ['shakerato', 'Iced shakerato', () => svg('<path d="M18 26 L82 26 L50 60z" fill="#EEF7FA" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M24.5 32 L75.5 32 L50 58z" fill="#3B2314"/><path d="M21 28 L79 28 L75.5 32 L24.5 32z" fill="#D9B48A"/><path d="M18 26 L82 26 L50 60z" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/><path d="M50 60 V84" stroke="' + INK + '" stroke-width="4"/><ellipse cx="50" cy="86" rx="16" ry="4" fill="#EEF7FA" stroke="' + INK + '" stroke-width="3"/>' + '<circle cx="66" cy="16" r="5" fill="#ffffff99" stroke="#8FC1D4" stroke-width="2"/>')],
     ['iced-americano', 'Iced americano', () => svg(glass([[24, 90, '#4A2A16']], { ice: true, straw: '#ffffff' }))],
-    ['iced-cappuccino', 'Iced cappuccino', () => svg(glass([[50, 90, '#6B3E1E'], [26, 50, '#D8B48C'], [18, 26, '#FFF8EC']], { ice: true, straw: '#E50914' }))],
+    ['iced-cappuccino', 'Iced cappuccino', () => svg(glass([[50, 90, '#6B3E1E'], [26, 50, '#D8B48C'], [18, 26, '#FFF8EC']], { ice: true, straw: '#D8181E' }))],
     ['blended-mocha', 'Blended mocha', () => svg(frappe('#7A4A2A', '<path d="M38 28 L44 25 L50 29 L56 24 L62 28" stroke="#3B1E0C" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'))],
     ['frappe', 'Café frappe', () => svg(frappe('#C9A27A', '<path d="M38 28 L44 25 L50 29 L56 24 L62 28" stroke="#D98B1E" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'))],
     ['oreo-frappe', 'Oreo frappe', () => svg(frappe('#D9D4CC', OREO, [[40, 52], [52, 60], [58, 48], [44, 72], [56, 78], [48, 84], [38, 64]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="2" fill="#2B2B2B"/>').join('')))],
@@ -350,7 +350,7 @@ const GROUPS = [
     ['ginger-lemon', 'Ginger lemon honey', () => svg(mug('#FFF6E5', '#F2CE5A', LEMON(28, 30, 9)) + GINGER)],
     ['apple-tea', 'Apple tea', () => svg(steam(44) + cup('#D9862E', '', '#D7262E') + APPLE)],
     ['peach-tea', 'Peach tea', () => svg(steam(44) + cup('#F09A4A', '', '#F7A25E') + PEACH)],
-    ['hot-milk', 'Hot milk', () => svg(mug('#FFC72C', '#FFFDF7'))]
+    ['hot-milk', 'Hot milk', () => svg(mug('#F6C12A', '#FFFDF7'))]
   ]],
   ['Cold drinks', [
     ['soft-drinks', 'Soft drink cans', () => svg(cans())],
