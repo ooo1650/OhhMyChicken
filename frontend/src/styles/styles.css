@@ -219,24 +219,21 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .hero-stats span { font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 4px; opacity: .9; }
 
 /* Pizza stage */
-.hero-stage { position: relative; align-self: end; margin-inline: calc(var(--gutter) * -.6); }
-/* Mirrored, so the tall slice stands away from the text. */
-.hero-slice { display: block; width: 100%; height: auto; max-width: none; transform: scaleX(-1); filter: drop-shadow(0 12px 14px rgba(70,0,0,.4)); }
+.hero-stage { position: relative; justify-self: center; width: min(72vw, 320px); aspect-ratio: 1; margin-block: 8px 34px; }
+.hero-pizza { position: absolute; inset: 6%; filter: drop-shadow(0 18px 24px rgba(0,0,0,.4)); }
+.hero-pizza .pizza-svg { width: 100%; height: 100%; }
+.pizza-rings .ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(255,199,44,.45); }
+.r-xl { inset: -4%; } .r-l { inset: 6%; border-color: rgba(255,255,255,.18) !important; } .r-m { inset: 18%; }
 .hero-h1 .i { display: inline-block; margin-right: 6px; }
 @media (min-width: 1000px) {
-  .hero-grid { grid-template-columns: minmax(430px, 500px) minmax(0, 1fr); gap: clamp(8px, 2vw, 28px); align-items: center; padding-bottom: 0; }
-  .hero-copy { position: relative; z-index: 3; padding-block: clamp(20px, 3vw, 40px) clamp(40px, 4vw, 60px); }
-  /* The pizza uses the free space to the right of the page column on wide screens. */
-  .hero-stage { margin: 0 calc(max(0px, (100vw - 1200px) / 2) * -.75) 0 0; padding-bottom: clamp(18px, 2vw, 30px); }
+  .hero-grid { grid-template-columns: minmax(430px, 520px) minmax(0, 1fr); gap: clamp(16px, 3vw, 44px); align-items: center; padding-bottom: 0; }
+  .hero-copy { padding-block: clamp(20px, 3vw, 36px) clamp(44px, 4vw, 64px); }
+  .hero-stage { width: min(36vw, 480px); margin-block: 0 26px; }
   .hero-h1 { white-space: nowrap; }
 }
-@media (min-width: 1000px) and (max-width: 1180px) {
-  .hero-grid { grid-template-columns: 400px minmax(0, 1fr); }
-  .hero-stage .size-sticker { top: -6%; left: 18%; }
-}
 .size-sticker {
-  position: absolute; top: 9%; left: 40%;
-  width: clamp(76px, 9.5vw, 124px); aspect-ratio: 1;
+  position: absolute; top: 0; right: -2%;
+  width: 30%; aspect-ratio: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: var(--yellow); color: var(--ink);
   clip-path: polygon(50% 0%, 61% 12%, 77% 5%, 80% 21%, 96% 24%, 90% 39%, 100% 50%, 90% 61%, 96% 76%, 80% 79%, 77% 95%, 61% 88%, 50% 100%, 39% 88%, 23% 95%, 20% 79%, 4% 76%, 10% 61%, 0% 50%, 10% 39%, 4% 24%, 20% 21%, 23% 5%, 39% 12%);

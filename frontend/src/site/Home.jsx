@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Home — wavy title, the cut-out pizza photo, size guide and popular picks.
+   Home — wavy title, the giant drawn pizza, size guide and popular picks.
    Nothing here moves.
    ========================================================================== */
 import { Fragment, useMemo, useRef, useState } from 'react';
@@ -11,17 +11,13 @@ import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
-import slice760 from '../assets/hero-slice-760.webp';
-import slice1400 from '../assets/hero-slice-1400.webp';
 import { faqs, meals, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 
 /* ---------- Hero ---------- */
-function Hero({ active }) {
+function Hero() {
   const { settings, menu } = useSite();
-  // The home view stays mounted behind other pages: only fetch the photo once it has been opened.
-  const opened = useRef(active);
-  if (active) opened.current = true;
+  const heroPizza = useMemo(() => pizza({ seed: 22, id: 'hero' }), []);
 
   return (
     <div className="hero" id="hero">
@@ -63,10 +59,10 @@ function Hero({ active }) {
         </div>
 
         <div className="hero-stage">
-          {opened.current && (
-            <img className="hero-slice" src={slice1400} srcSet={slice760 + ' 760w, ' + slice1400 + ' 1400w'} sizes="(max-width: 859px) 100vw, 60vw"
-              width="1400" height="636" decoding="async" fetchPriority="high" alt="A whole pizza with one slice lifted, melted cheese stretching from it" />
-          )}
+          <div className="pizza-rings" aria-hidden="true">
+            <span className="ring r-xl" /><span className="ring r-l" /><span className="ring r-m" />
+          </div>
+          <Art className="hero-pizza" role="img" aria-label="A giant 22 inch pizza" html={heroPizza} />
           <div className="size-sticker">
             <span className="ss-num">22"</span>
             <span className="ss-txt">XL<br />GIANT</span>
@@ -190,7 +186,7 @@ export function HomeView({ active }) {
 
   return (
     <section className="view" id="view-home" hidden={!active}>
-      <Hero active={active} />
+      <Hero />
 
       <div className="marquee" aria-hidden="true">
         <div className="marquee-track">
