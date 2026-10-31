@@ -968,60 +968,17 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
    The customer site doesn't move: no animation or transitions anywhere.
    (The dashboard keeps its new-order highlight.)
    ========================================================================== */
-/* Home: the crowd favourites. A pizza-first showcase, so it doesn't read as a second menu. */
-.picks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 62px 16px; padding-top: 44px; }
-.picks-even { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-.dish.pick { grid-template-columns: minmax(0, 1fr); grid-template-areas: "art" "body" "opts" "foot"; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 0 16px 16px; border: 2px solid #3A3733; border-radius: 22px; background: #1F1D1B; color: var(--white); box-shadow: none; text-align: center; }
-.dish.pick:hover { box-shadow: none; border-color: var(--yellow); }
-.pick .dish-art { justify-self: center; width: min(150px, 88%); margin-top: -44px; padding: 0; border-radius: 50%; background: none; filter: drop-shadow(0 10px 12px rgba(0,0,0,.55)); }
-.pick .dish-art.has-photo { border: 3px solid var(--yellow); }
-.pick .dish-meta { justify-content: center; color: #B9B3AB; }
-.pick .tag-pop { display: none; }
-.pick .dish-name { font-size: 1.3rem; }
-.pick .dish-desc { color: #B9B3AB; }
-.pick .seg { justify-content: center; }
-.pick .seg button { background: transparent; border-color: #55504A; color: #E9E5DE; }
-.pick .seg button:hover { border-color: var(--yellow); }
-.pick .seg button[aria-checked="true"] { background: var(--yellow); border-color: var(--yellow); color: var(--ink); }
-.pick .seg button.is-xl { border-color: var(--yellow); color: var(--yellow); }
-.pick .seg button.is-xl[aria-checked="true"] { color: var(--ink); }
-.pick .dish-variant { color: #E9E5DE; }
-.pick .dish-foot { border-top-color: #3A3733; }
-.pick .dish-price { color: var(--yellow); }
-.pick .add-btn { background: var(--white); color: var(--ink); box-shadow: none; }
-.pick .stepper { box-shadow: none; background: var(--yellow); color: var(--ink); }
-
-/* The big one. */
-.dish.pick-lead { grid-column: span 2; grid-row: span 2; padding: 0 clamp(18px, 3vw, 36px) clamp(18px, 3vw, 30px); border-color: var(--ink); background: var(--yellow); color: var(--ink); }
-.dish.pick-lead:hover { border-color: var(--ink); }
-.pick-lead .dish-art { width: min(410px, 86%); margin-top: -44px; }
-.pick-lead .dish-meta, .pick-lead .dish-desc { color: var(--ink-2); }
-.pick-lead .dish-name { font-size: clamp(1.8rem, 1.3rem + 1.6vw, 2.7rem); }
-.pick-lead .seg button { padding: 7px 14px; font-size: 14px; border-color: var(--ink); color: var(--ink); }
-.pick-lead .seg button:hover { border-color: var(--ink); background: rgba(0,0,0,.08); }
-.pick-lead .seg button.is-xl { border-color: var(--red); color: var(--red); }
-.pick-lead .seg button[aria-checked="true"], .pick-lead .seg button.is-xl[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
-.pick-lead .dish-foot { border-top-color: rgba(0,0,0,.25); }
-.pick-lead .dish-price { font-size: clamp(1.7rem, 1.2rem + 1.4vw, 2.4rem); color: var(--red); }
-.pick-lead .add-btn { background: var(--red); color: var(--white); }
-.pick-lead .stepper { background: var(--ink); color: var(--white); }
-
-@media (max-width: 1000px) {
-  .picks { grid-template-columns: repeat(2, 1fr); gap: 56px 12px; }
-  .dish.pick-lead { grid-row: auto; }
-}
-@media (max-width: 520px) {
-  .dish.pick { padding: 0 10px 12px; border-radius: 18px; }
-  .pick .dish-art { width: min(116px, 84%); }
-  .pick .dish-name { font-size: 1.08rem; }
-  .pick .dish-foot { flex-direction: column; gap: 8px; }
-  .pick .dish-action, .pick .add-btn { width: 100%; justify-content: center; }
-  .pick .seg button { padding: 4px 7px; font-size: 11px; }
-  .dish.pick-lead { padding: 0 16px 16px; }
-  .pick-lead .dish-art { width: min(250px, 76%); }
-  .pick-lead .dish-foot { flex-direction: row; }
-  .pick-lead .dish-action, .pick-lead .add-btn { width: auto; }
-  .pick-lead .seg button { padding: 6px 11px; font-size: 13px; }
+/* Home: the crowd favourites. Just the pizzas; sizes and ordering are on the menu. */
+.picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(18px, 3vw, 36px); }
+.pick { display: block; text-align: center; color: var(--white); text-decoration: none; }
+.pick-art { display: block; aspect-ratio: 1; width: min(100%, 220px); margin: 0 auto 12px; border-radius: 50%; overflow: hidden; }
+.pick-art svg, .pick-art .photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pick-name { display: block; font-family: var(--font-display); font-size: 1.25rem; line-height: 1.15; }
+.pick:hover .pick-name { color: var(--yellow); }
+.pick-price { display: block; margin-top: 4px; font-size: var(--fs-sm); color: #B9B3AB; }
+@media (max-width: 700px) {
+  .picks { grid-template-columns: repeat(2, 1fr); }
+  .pick-name { font-size: 1.08rem; }
 }
 
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }

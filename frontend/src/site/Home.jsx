@@ -5,13 +5,13 @@
 import { Fragment, useMemo, useRef, useState } from 'react';
 import { useSite } from './store.jsx';
 import { Link } from './router.jsx';
-import { Art, pizza } from './art.jsx';
-import { DishCard } from './Menu.jsx';
+import { Art, iconFor, pizza } from './art.jsx';
+import { Photo } from '../shared/Photo.jsx';
 import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
-import { deliveryRange, faqs, meals, servicesText, hoursText } from '../shared/seo.js';
+import { categoryPath, deliveryRange, faqs, meals, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 
 /* ---------- Hero ---------- */
@@ -179,13 +179,26 @@ function Faq() {
   );
 }
 
+/* ---------- A crowd favourite: the pizza, its name and starting price; opens its menu section ---------- */
+function Pick({ item }) {
+  const site = useSite();
+  const art = useMemo(() => (item.image ? '' : iconFor(item)), [item]);
+  const cat = site.categories.find((c) => c.id === item.category);
+  return (
+    <Link to={cat ? categoryPath(cat) : '/menu'} className="pick">
+      {item.image
+        ? <span className="pick-art"><Photo media={item.image} alt={item.image.alt || item.name} sizes="220px" /></span>
+        : <Art as="span" className="pick-art" html={art} />}
+      <span className="pick-name">{item.name}</span>
+      <span className="pick-price">From {site.money(Math.min(...item.prices.map((p) => p.price)))}</span>
+    </Link>
+  );
+}
+
 /* ---------- Home view ---------- */
 export function HomeView({ active }) {
   const site = useSite(), s = site.settings;
-  const popular = site.menu.filter((m) => m.popular && m.available);
-  // One big pick and four around it; with fewer than five, an even row.
-  const lead = popular.length >= 5;
-  const picks = popular.slice(0, 5);
+  const picks = site.menu.filter((m) => m.popular && m.available).slice(0, 4);
 
   return (
     <section className="view" id="view-home" hidden={!active}>
@@ -207,9 +220,7 @@ export function HomeView({ active }) {
             <p className="eyebrow">Crowd favourites</p>
             <h2 className="tilt-title" id="specialsTitle"><span>OHH!!!</span> <span className="hl">My Picks</span></h2>
           </div>
-          <div className={'picks' + (lead ? '' : ' picks-even')}>
-            {picks.map((i, n) => <DishCard key={i.id} item={i} q="" className={'pick' + (lead && n === 0 ? ' pick-lead' : '')} />)}
-          </div>
+          <ul className="picks">{picks.map((i) => <li key={i.id}><Pick item={i} /></li>)}</ul>
           <div className="center mt"><Link to="/menu" className="btn btn-red">See the full menu</Link></div>
         </div>
       </section>

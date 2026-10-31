@@ -49,7 +49,7 @@ function dietMatch(item, diet) {
 }
 
 /* ---------- Card ---------- */
-export function DishCard({ item, q, className }) {
+export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   const actionRef = useRef(null), focusStep = useRef(false);
@@ -90,7 +90,7 @@ export function DishCard({ item, q, className }) {
   );
 
   return (
-    <article className={'dish' + (item.available ? '' : ' is-sold') + (className ? ' ' + className : '')}>
+    <article className={'dish' + (item.available ? '' : ' is-sold')}>
       {photo
         ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 600px) 90px, 120px" onFail={() => setBroken(true)} /></div>
         : <Art className="dish-art" html={art} />}
