@@ -194,21 +194,20 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
    fading to black, with the pizza sitting in the heat and the name above it.
    A photo chosen in the dashboard replaces the pizza and the fire.
    ========================================================================== */
-.hero-shell { padding: clamp(8px, 1.4vw, 18px); }
+.hero-shell { padding: clamp(46px, 6vw, 84px) clamp(8px, 1.4vw, 18px) clamp(8px, 1.4vw, 18px); }
 .hero {
-  --px: 0; --py: 0;
-  position: relative; overflow: hidden; isolation: isolate;
-  max-width: 1500px; margin-inline: auto; border-radius: clamp(18px, 2.4vw, 32px);
-  display: flex; flex-direction: column; justify-content: flex-start;
-  min-height: clamp(580px, 48vw, 720px); padding: clamp(20px, 3.4vw, 48px);
+  --r: clamp(18px, 2.4vw, 30px);
+  position: relative; isolation: isolate;
+  max-width: 1240px; margin-inline: auto; border-radius: var(--r);
+  min-height: clamp(388px, 32vw, 410px); padding: clamp(24px, 3vw, 40px) clamp(20px, 3.4vw, 44px) 118px;
   background: linear-gradient(180deg, #0F0A09 0%, #1A0D09 42%, #3A1208 70%, #6E1B08 100%);
   color: var(--white);
 }
-.hero.has-photo { justify-content: flex-end; background: #1A1412; }
-.hero-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; max-width: none; object-fit: cover; }
-.hero.has-photo::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(25deg, rgba(150,12,18,.86) 0%, rgba(20,15,13,.45) 55%, rgba(20,15,13,.15) 100%); }
+.hero.has-photo { background: #1A1412; }
+.hero-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; max-width: none; object-fit: cover; border-radius: inherit; }
+.hero.has-photo::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: linear-gradient(25deg, rgba(150,12,18,.86) 0%, rgba(20,15,13,.45) 55%, rgba(20,15,13,.15) 100%); }
 /* The fire: a hot core at the bottom, flickering, with embers floating up. */
-.hero-fire { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.hero-fire { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; }
 .fire-glow { position: absolute; left: -10%; right: -10%; bottom: -22%; height: 92%; transform-origin: 50% 100%;
   background:
     radial-gradient(38% 34% at 58% 92%, #FFF3C4 0%, #FFD35C 34%, rgba(255,160,40,0) 100%),
@@ -218,47 +217,37 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .hero-fire i { position: absolute; bottom: 8%; border-radius: 50%; background: #FFC15A; box-shadow: 0 0 6px 1px rgba(255,140,30,.9); opacity: 0; animation: ember 8s linear infinite; }
 @keyframes flicker { 0%, 100% { opacity: .92; transform: scale(1, 1); } 22% { opacity: 1; transform: scale(1.015, 1.05); } 41% { opacity: .84; transform: scale(.99, .97); } 63% { opacity: .98; transform: scale(1.01, 1.03); } 80% { opacity: .88; transform: scale(1, .99); } }
 @keyframes ember { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: .95; } 55% { transform: translate(22px, -46vh); } 80% { opacity: .35; } 100% { opacity: 0; transform: translate(-14px, -78vh); } }
-.hero-copy { position: relative; z-index: 2; max-width: 520px; }
-.hero-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.05rem, 1.35rem + 2.5vw, 3.3rem); line-height: 1.04; letter-spacing: -.015em; }
+.hero-copy { position: relative; z-index: 3; max-width: 430px; }
+.hero-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2rem, 1.45rem + 1.9vw, 2.9rem); line-height: 1.04; letter-spacing: -.015em; }
 .hero-title > span:not(.sr-only) { display: block; color: var(--yellow); }
-.hero-tag { margin-top: 12px; font-size: var(--fs-base); max-width: 42ch; color: rgba(255,255,255,.86); }
-.hero-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: clamp(16px, 2vw, 22px); }
+.hero-tag { margin-top: 10px; font-size: var(--fs-sm); max-width: 33ch; color: rgba(255,255,255,.84); }
+.hero-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .hero-ctas.center { justify-content: center; }
 .hero .btn { border-radius: 999px; }
+.hero .btn-lg { padding: .68em 1.3em; font-size: var(--fs-sm); }
 .hero-ctas .btn-red { --bg: var(--white); --fg: var(--ink); }
 .hero-ctas .btn-red:hover { --bg: var(--yellow-soft); }
-.hero-ctas .btn-red .i { transition: transform .15s; }
-.hero-ctas .btn-red:hover .i { transform: translateX(3px); }
-/* Glass card, bottom right */
-.hero-stat { position: absolute; z-index: 3; right: clamp(14px, 2.4vw, 32px); top: clamp(14px, 2.4vw, 32px); width: 214px; padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(14px); }
-.hero-stat b { font-family: var(--font-display); font-weight: 400; font-size: 1.9rem; line-height: 1; }
-.hero-stat p { margin-top: 4px; font-size: var(--fs-xs); line-height: 1.35; color: rgba(255,255,255,.88); }
-.hero-stat small { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.16); font-size: 11px; color: rgba(255,255,255,.7); }
-.hero-stat small.is-open { color: #9BE8B4; }
-
-/* 3D pizza: stage (leans with the pointer) > float (bobs) > canvas, over the still photo. Mirrored, so the tall slice stands clear of the text. */
-.hero-stage { position: absolute; z-index: 1; right: 1%; bottom: -5%; width: 74%; transform: perspective(1400px) rotateY(calc(var(--px) * 6deg)) rotateX(calc(var(--py) * -4deg)); transform-origin: 50% 100%; transition: transform .6s ease-out; }
-.hero-float { position: relative; aspect-ratio: 2 / 1; animation: float 7s ease-in-out infinite; }
-.hero-slice, .hero-slice-3d { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; transform: scaleX(-1); transition: opacity .4s; }
-.hero-slice-3d { opacity: 0; }
-.is-3d .hero-slice-3d { opacity: 1; }
-.is-3d .hero-slice { opacity: 0; }
-.hero-in { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
-.hero-copy .hero-in:nth-child(2) { animation-delay: .06s; } .hero-copy .hero-in:nth-child(3) { animation-delay: .12s; }
-.hero.is-resting :is(.hero-float, .fire-glow, .hero-fire i) { animation-play-state: paused; }
-@keyframes float { 50% { transform: translateY(-12px); } }
-@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+/* The pizza: bottom-aligned, breaking out through the top of the card. */
+.hero-slice { position: absolute; z-index: 2; right: -3%; bottom: 0; width: 83%; height: auto; max-width: none; transform: scaleX(-1); filter: drop-shadow(0 8px 7px rgba(30,5,0,.32)); pointer-events: none; }
+/* Notch: a white block in the corner, with curved inner corners where it meets the card. */
+.hero-stats { position: absolute; z-index: 3; left: 0; bottom: 0; display: flex; gap: clamp(16px, 2.2vw, 30px); list-style: none; margin: 0; padding: 18px 28px 6px clamp(20px, 3.4vw, 44px); background: var(--white); color: var(--ink); border-radius: 0 var(--r) 0 0; }
+.hero-stats::before, .hero-stats::after { content: ''; position: absolute; width: var(--r); height: var(--r); background: radial-gradient(circle at 100% 0, transparent calc(var(--r) - .5px), var(--white) var(--r)); }
+.hero-stats::before { left: 0; top: calc(var(--r) * -1); }
+.hero-stats::after { right: calc(var(--r) * -1); bottom: 0; }
+.hero-stats li { display: grid; gap: 1px; white-space: nowrap; }
+.hero-stats b { font-family: var(--font-display); font-weight: 400; font-size: clamp(1rem, .9rem + .5vw, 1.3rem); line-height: 1.1; }
+.hero-stats span { font-size: var(--fs-xs); color: var(--muted); }
+.hero.is-resting :is(.fire-glow, .hero-fire i) { animation-play-state: paused; }
+@media (max-width: 1100px) { .hero-slice { width: 86%; } .hero-copy { max-width: 400px; } }
 @media (max-width: 859px) {
-  /* Text on top, then the stats, with the pizza in the fire below. */
-  .hero { min-height: 0; padding-bottom: calc(52vw + 8px); }
-  .hero-stage { right: -3%; width: 104%; bottom: -3%; transform: none; transition: none; }
-  .hero-stat { position: static; width: auto; margin-top: 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; }
-  .hero-stat b { grid-row: span 2; }
-  .hero-stat p { margin: 0; }
-  .hero-stat small { margin: 0; padding: 0; border: 0; }
+  /* Text on top, the pizza in the fire, breaking out of the bottom of the card; stats below. */
+  .hero-shell { padding-top: clamp(8px, 1.4vw, 18px); padding-bottom: 0; }
+  .hero { min-height: 0; padding-bottom: calc(44vw + 8px); margin-bottom: 92px; }
+  .hero-slice { right: -3%; bottom: -8vw; width: 106%; }
+  .hero-stats { top: 100%; bottom: auto; right: 0; margin-top: 8vw; padding: 14px 4px 0; justify-content: space-between; gap: 8px; background: none; border-radius: 0; }
+  .hero-stats::before, .hero-stats::after { display: none; }
   .fire-glow { height: 62%; bottom: -8%; }
 }
-.hero.has-photo .hero-stat { top: auto; bottom: clamp(14px, 2.4vw, 32px); }
 
 /* Category shortcuts below the hero */
 .cat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding-block: clamp(18px, 3vw, 32px) 0; }

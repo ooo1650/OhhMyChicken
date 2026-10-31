@@ -17,7 +17,6 @@ import { outletList } from '../shared/outlets.js';
 import { track } from '../shared/track.js';
 import slice760 from '../assets/hero-slice-760.webp';
 import slice1400 from '../assets/hero-slice-1400.webp';
-import sliceDepth from '../assets/hero-slice-depth.webp';
 import pizza480 from '../assets/hero-pizza-480.webp';
 import pizza900 from '../assets/hero-pizza-900.webp';
 
@@ -36,38 +35,6 @@ function Furnace() {
   );
 }
 
-function FloatingPizza() {
-  const canvasRef = useRef(null), imgRef = useRef(null);
-  const [is3d, setIs3d] = useState(false);
-
-  // The 3D view loads after the page, as an extra; until then (or if the device
-  // can't run it) the still photo is what people see.
-  useEffect(() => {
-    const conn = navigator.connection;
-    if (reducedMotion || (conn && conn.saveData) || !window.WebGLRenderingContext) return undefined;
-    let stop = null, gone = false;
-    const hero = canvasRef.current.closest('.hero');
-    // (negative x: the picture is mirrored)
-    const pointer = () => ({ x: -(+hero.style.getPropertyValue('--px')) || 0, y: +hero.style.getPropertyValue('--py') || 0 });
-    const run = () => import('./slice3d.js')
-      .then((m) => m.startSlice3D(canvasRef.current, imgRef.current.currentSrc || imgRef.current.src, sliceDepth, pointer, () => setIs3d(false)))
-      .then((end) => { if (gone) end(); else { stop = end; setIs3d(true); } }, () => {});
-    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 300));
-    const handle = idle(run);
-    return () => { gone = true; if (window.cancelIdleCallback) window.cancelIdleCallback(handle); if (stop) stop(); };
-  }, []);
-
-  return (
-    <div className={'hero-stage' + (is3d ? ' is-3d' : '')} aria-hidden="true">
-      <div className="hero-float">
-        <canvas className="hero-slice-3d" ref={canvasRef} />
-        <img className="hero-slice" ref={imgRef} src={slice1400} srcSet={slice760 + ' 760w, ' + slice1400 + ' 1400w'}
-          sizes="(max-width: 859px) 100vw, 60vw" width="1400" height="700" alt="" decoding="async" fetchPriority="high" />
-      </div>
-    </div>
-  );
-}
-
 function Hero({ active }) {
   const site = useSite(), s = site.settings;
   const [broken, setBroken] = useState(false);
@@ -78,24 +45,13 @@ function Hero({ active }) {
   const opened = useRef(active);
   if (active) opened.current = true;
 
-  // Follow the pointer a little, and rest while the hero is off screen.
+  // The fire rests while the hero is off screen.
   useEffect(() => {
     const el = rootRef.current;
-    if (!el || reducedMotion) return undefined;
-    let raf = 0;
-    const move = (e) => {
-      if (e.pointerType === 'touch' || raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const r = el.getBoundingClientRect();
-        el.style.setProperty('--px', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
-        el.style.setProperty('--py', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
-      });
-    };
-    el.addEventListener('pointermove', move, { passive: true });
-    const io = 'IntersectionObserver' in window ? new IntersectionObserver((en) => el.classList.toggle('is-resting', !en[0].isIntersecting)) : null;
-    if (io) io.observe(el);
-    return () => { el.removeEventListener('pointermove', move); cancelAnimationFrame(raf); if (io) io.disconnect(); };
+    if (!el || reducedMotion || !('IntersectionObserver' in window)) return undefined;
+    const io = new IntersectionObserver((en) => el.classList.toggle('is-resting', !en[0].isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   const pizzas = site.menu.filter((m) => m.isPizza && m.available).flatMap((m) => m.prices.map((p) => +p.price));
@@ -104,21 +60,27 @@ function Hero({ active }) {
       <div className={'hero' + (photo ? ' has-photo' : '')} id="hero" ref={rootRef}>
         {photo && opened.current && <Photo media={photo} alt="" sizes="100vw" eager fetchPriority="high" className="hero-photo" onFail={() => setBroken(true)} />}
         {!photo && <Furnace />}
-        {!photo && opened.current && <FloatingPizza />}
+        {/* The pizza is mirrored in CSS, and breaks out of the card. */}
+        {!photo && opened.current && (
+          <img className="hero-slice" src={slice1400} srcSet={slice760 + ' 760w, ' + slice1400 + ' 1400w'}
+            sizes="(max-width: 859px) 110vw, 1000px" width="1400" height="700" alt="" decoding="async" fetchPriority="high" />
+        )}
         <div className="hero-copy">
           {/* The visible H1 is the name; the rest carries the search keywords. */}
-          <h1 className="hero-title hero-in">Ohh! My Chicken <span>Pizza Hub</span><span className="sr-only">: pizza restaurant in {s.city}</span></h1>
-          <p className="hero-tag hero-in">Giant pizzas, crispy fried chicken and MoMo, made fresh to order. Dine in, or get it delivered.</p>
-          <div className="hero-ctas hero-in">
+          <h1 className="hero-title">Ohh! My Chicken <span>Pizza Hub</span><span className="sr-only">: pizza restaurant in {s.city}</span></h1>
+          <p className="hero-tag">Giant pizzas, crispy fried chicken and MoMo, made fresh to order. Dine in, or get it delivered.</p>
+          <div className="hero-ctas">
             <Link to="/menu" className="btn btn-red btn-lg">Order online <Icon name="arrow-right" /></Link>
             <Link to="/menu" className="btn btn-ghost btn-lg">View menu</Link>
           </div>
         </div>
-        <aside className="hero-stat hero-in">
-          <b>{site.menu.length}</b>
-          <p>dishes on the menu{pizzas.length > 0 && <><br />Pizzas from {site.money(Math.min(...pizzas))}</>}</p>
-          <small className={site.isOpen ? 'is-open' : ''}>{(site.isOpen ? 'Open until ' + fmt12(s.hoursClose) : 'Opens at ' + fmt12(s.hoursOpen)) + (outlets > 1 ? ' · ' + outlets + ' outlets' : '')}</small>
-        </aside>
+        {/* Stats sit in a notch cut out of the card's bottom-left corner. */}
+        <ul className="hero-stats">
+          <li><b>{site.menu.length}</b><span>Dishes</span></li>
+          {pizzas.length > 0 && <li><b>{site.money(Math.min(...pizzas))}</b><span>Pizzas from</span></li>}
+          {outlets > 1 && <li><b>{outlets}</b><span>Outlets</span></li>}
+          <li><b>{fmt12(site.isOpen ? s.hoursClose : s.hoursOpen)}</b><span>{site.isOpen ? 'Open until' : 'Opens at'}</span></li>
+        </ul>
       </div>
     </div>
   );
