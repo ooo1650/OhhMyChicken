@@ -13,6 +13,49 @@ const MAP_KEY = 'omc.findMap.v1';
 // From this width the map always sits beside the list; below it, a button shows and hides it.
 const WIDE = '(min-width: 1024px)';
 const isWide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
+const CEILING = 104; // just under the site header
+// Beside the list, the map travels with the page and only stops at the edges of the screen:
+// scrolling down the header holds it, scrolling up the bottom of the screen does. The browser's
+// own sticky positioning does the holding, so it stays smooth; this only re-anchors the map to
+// where it already is when the direction changes, or when the list changes height.
+function useMapTravel(on, copyRef, mapRef, listRef) {
+  useEffect(() => {
+    const map = mapRef.current, list = listRef.current, copy = copyRef.current;
+    if (!on || !map || !list || !copy) return undefined;
+    let lastY = window.scrollY;
+    const anchor = (dir) => {
+      const area = copy.getBoundingClientRect().top, room = list.getBoundingClientRect().bottom - area;
+      const box = map.getBoundingClientRect();
+      const y = Math.max(0, Math.min(box.top - area, room - box.height));
+      const floorGap = document.body.classList.contains('has-cart-bar') ? 86 : 16;
+      // A map too tall to fit between the two edges just stays under the header.
+      const up = dir === 'up' && box.height + CEILING + floorGap <= window.innerHeight;
+      Object.assign(map.style, up
+        ? { alignSelf: 'end', marginTop: '0', marginBottom: room - y - box.height + 'px', top: 'auto', bottom: floorGap + 'px' }
+        : { alignSelf: 'start', marginTop: y + 'px', marginBottom: '0', top: CEILING + 'px', bottom: 'auto' });
+      map.dataset.travel = up ? 'up' : 'down';
+    };
+    const onScroll = () => {
+      const y = window.scrollY, dir = y < lastY ? 'up' : y > lastY ? 'down' : null;
+      lastY = y;
+      if (dir && dir !== map.dataset.travel) anchor(dir);
+    };
+    anchor('down');
+    const resized = new ResizeObserver(() => anchor('down')); // a branch opening, or the map arriving
+    resized.observe(list);
+    resized.observe(map);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      resized.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      map.removeAttribute('style');
+      delete map.dataset.travel;
+    };
+  }, [on, copyRef, mapRef, listRef]);
+}
+
 const readOpen = () => { try { return localStorage.getItem(MAP_KEY) === '1'; } catch (e) { return false; } };
 
 function Branch({ o, n, open: expanded, onPick }) {
@@ -89,11 +132,13 @@ export function FindUs() {
     return () => q.removeEventListener('change', on);
   }, []);
   const withMap = mapped && (wide || showMap);
+  const copyRef = useRef(null), mapRef = useRef(null);
+  useMapTravel(wide && withMap, copyRef, mapRef, listRef);
   const offMap = outlets.find((o) => o.id === current && !onMap(o));
   return (
     <section className="section section-light find" id="find" aria-labelledby="findTitle">
       <div className={'wrap find-layout' + (withMap ? '' : ' no-map')}>
-        <div className="find-copy">
+        <div className="find-copy" ref={copyRef}>
           <h2 className="section-title" id="findTitle">Find us</h2>
           <p className="find-intro">
             {outlets.length > 1 ? outlets.length + ' kitchens' + (outlets.every(onMap) ? ' across the valley' : '') + ', ' : ''}open daily {fmt12(s.hoursOpen)} – {fmt12(s.hoursClose)}.
@@ -108,7 +153,7 @@ export function FindUs() {
           {outlets.map((o, i) => <Branch key={o.id || 'main'} o={o} n={i + 1} open={expanded && o.id === current} onPick={pick} />)}
         </ol>
         {withMap && (
-          <div className="find-map" id="findMap">
+          <div className="find-map" id="findMap" ref={mapRef}>
             <Suspense fallback={<div className="valley valley-loading" aria-label="Loading map" />}>
               <ValleyMap outlets={outlets} sel={current} onPick={show} />
             </Suspense>

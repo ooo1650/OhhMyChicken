@@ -981,7 +981,7 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 
 /* Beside the list, the map stays put while branches open and close. */
 @media (min-width: 1024px) {
-  .find-layout:not(.no-map) .find-map { align-self: start; position: sticky; top: 104px; }
+  .find-layout:not(.no-map) .find-map { align-self: start; position: sticky; top: 104px; overflow-anchor: none; }
 }
 .map-note { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); width: min(86%, 400px); margin: 0; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--white); font-size: var(--fs-sm); font-weight: 600; text-align: center; }
 /* Phones: the screen is only ever the hero, so dark edges keep it from being a wall of red. */
