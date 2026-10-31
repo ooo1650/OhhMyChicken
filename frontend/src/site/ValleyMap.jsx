@@ -92,8 +92,7 @@ export default function ValleyMap({ outlets, sel, onPick }) {
   return (
     <svg className="valley" viewBox={'0 0 ' + W + ' ' + H} role="img" aria-label="Map of our outlets in the Kathmandu valley">
       <g dangerouslySetInnerHTML={{ __html: BASE }} />
-      {/* the chosen pin is drawn last so it sits on top */}
-      {[...pins].sort((a, b) => (a.o.id === sel) - (b.o.id === sel)).map(({ o, i, x, y, label }) => {
+      {pins.map(({ o, i, x, y, label }) => {
         const on = o.id === sel;
         return (
           <g key={o.id || i} className={'v-pin' + (on ? ' on' : '')} role="button" tabIndex={0} aria-label={'Show ' + o.name} aria-pressed={on}

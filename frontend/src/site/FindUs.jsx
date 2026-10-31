@@ -53,11 +53,15 @@ export function FindUs() {
   const [expanded, setExpanded] = useState(true);
   const listRef = useRef(null);
   const show = (id) => { setSel(id); setExpanded(true); };
-  // Tapping the open branch closes it. When another one opens, the page is held so the
-  // tapped row stays under the finger while the one above closes. Scrolling lets go.
+  // Tapping the open branch closes it. Otherwise only the list moves; the page is held still
+  // just when closing a branch above would slide the tapped row under the header. Scrolling lets go.
   const pick = (id) => {
     if (id === current && expanded) { setExpanded(false); return; }
     const row = listRef.current.querySelector('[aria-controls="branch-' + (id || 'main') + '"]');
+    const closing = listRef.current.querySelector('.branch.on .branch-panel');
+    const above = closing && (closing.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING) ? closing.offsetHeight : 0;
+    const header = document.getElementById('siteHeader').offsetHeight;
+    if (row.getBoundingClientRect().top - above >= header + 8) { show(id); return; }
     const from = row.getBoundingClientRect().top, started = performance.now();
     let held = true;
     const letGo = () => { held = false; };

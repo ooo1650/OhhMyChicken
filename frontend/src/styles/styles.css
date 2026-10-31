@@ -981,6 +981,18 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .pick-name { font-size: 1.08rem; }
 }
 
+/* Beside the list, the map stays put while branches open and close. */
+@media (min-width: 900px) {
+  .find-layout:not(.no-map) .find-map { align-self: start; position: sticky; top: 104px; }
+}
+/* Phones: the screen is only ever the hero, so dark edges keep it from being a wall of red. */
+@media (max-width: 700px) {
+  .site-header, .main-nav { background: var(--ink); }
+  .hero { background: linear-gradient(180deg, #C80A12 0%, #A50810 100%); }
+  .hero-dots { opacity: .08; }
+  .cart-bar, .cart-bar:hover { background: var(--ink); border-color: var(--yellow); }
+}
+
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }
 /* The one thing that moves: opening a branch in Find us, so the page doesn't jump. */
 @media (prefers-reduced-motion: no-preference) {
@@ -989,6 +1001,8 @@ body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) 
   body:not(.admin-page) .branch.on .branch-panel { transition: grid-template-rows .34s cubic-bezier(.4, 0, .2, 1), opacity .24s linear .1s !important; }
   body:not(.admin-page) .branch .branch-chev { transition: transform .34s cubic-bezier(.4, 0, .2, 1), color .2s linear !important; }
   body:not(.admin-page) .branch .branch-name { transition: color .2s linear !important; }
+  body:not(.admin-page) .v-pin-body { transition: transform .34s cubic-bezier(.4, 0, .2, 1) !important; }
+  body:not(.admin-page) .v-pin-body path, body:not(.admin-page) .v-pin-body text, body:not(.admin-page) .v-pin-label rect, body:not(.admin-page) .v-pin-label text { transition: fill .2s linear !important; }
 }
 
 /* Small touches of the logo's green. Red stays the colour for actions and prices. */
