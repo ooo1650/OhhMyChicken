@@ -14,7 +14,9 @@
   --muted: #6B6B6B;
   --cream: #FFF8E6;
   --line: #E8E2D4;
-  --green: #1F9D46;
+  /* From the logo's ribbon. */
+  --green: #129450;
+  --green-deep: #0D7440;
 
   --font-display: 'Lilita One', 'Impact', system-ui, sans-serif;
   --font-body: 'Rubik Variable', 'Rubik', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -168,7 +170,7 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 
 /* ---------- Eyebrows & titles ---------- */
 .eyebrow { display: inline-block; font-weight: 800; font-size: var(--fs-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px; }
-.eyebrow-red { color: var(--red); }
+.eyebrow-red { color: var(--green-deep); }
 .section-head { margin-bottom: clamp(18px, 3vw, 32px); }
 .tilt-title { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-h2); letter-spacing: .01em; line-height: 1.05; }
 .tilt-title span { display: inline-block; }
@@ -957,3 +959,8 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
    (The dashboard keeps its new-order highlight.)
    ========================================================================== */
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }
+
+/* Small touches of the logo's green. Red stays the colour for actions and prices. */
+.mq-dot { background: var(--green); }
+.faq-list summary::after { color: var(--green-deep); }
+.chat-ping { background: var(--green); }
