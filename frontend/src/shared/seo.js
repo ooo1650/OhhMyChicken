@@ -21,6 +21,8 @@ function fmt12(t) {
 }
 const toMin = (t) => { const p = String(t).split(':'); return (+p[0]) * 60 + (+p[1] || 0); };
 const city = (s) => s.city || 'Kathmandu';
+/** Where the restaurant is, as customers read it. Titles and descriptions keep the city, for search. */
+export const serviceArea = (s) => s.serviceArea || city(s);
 const sub = (text, s) => String(text || '').replace(/\{city\}/g, city(s));
 
 // Cut at a word boundary so descriptions fit search result snippets (~160 chars).
@@ -95,7 +97,7 @@ export function pageMeta(route, boot) {
     const range = priceRange(items);
     return {
       title: sub(c.seo || c.name, s) + ' | ' + name,
-      heading: sub(c.seo || c.name, s),
+      heading: String(c.seo || c.name).replace(/\{city\}/g, serviceArea(s)),
       description: fit([c.blurb, items.length ? items.length + ' options' + (range ? ' from ' + money(s, range[0]) : '') + '.' : '',
         'Order online for delivery in ' + city(s) + '.']),
       robots: 'index, follow, max-image-preview:large'
@@ -142,7 +144,7 @@ export function faqs(boot) {
     list.push({ q: 'What are your opening hours?', a: 'We are open every day from ' + hoursText(s) + '.' });
   }
   list.push({
-    q: 'Do you deliver pizza in ' + city(s) + '?',
+    q: 'Do you deliver pizza in ' + serviceArea(s) + '?',
     a: 'Yes. The delivery fee is ' + deliveryRange(s) + '.'
   });
   list.push({

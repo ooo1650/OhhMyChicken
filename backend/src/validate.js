@@ -136,6 +136,7 @@ function settings(raw, current) {
     currency: str(s.currency, 5, 'Currency'),
     street: str(s.street, 120, 'Street address'),
     city: str(s.city, 60, 'City', { required: true }),
+    serviceArea: str(s.serviceArea, 80, 'Area you serve'),
     region: str(s.region, 60, 'Region'),
     postalCode: str(s.postalCode, 12, 'Postal code'),
     country: countryCode(s.country),

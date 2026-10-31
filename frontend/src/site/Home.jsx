@@ -13,7 +13,7 @@ import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
-import { categoryPath, deliveryRange, faqs, meals, servicesText, hoursText } from '../shared/seo.js';
+import { categoryPath, deliveryRange, faqs, meals, serviceArea, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 import { outletList } from '../shared/outlets.js';
 
@@ -29,7 +29,7 @@ function Hero() {
 
       <div className="wrap hero-grid">
         <div className="hero-copy">
-          <p className="eyebrow hero-h1"><Icon name="flame" /> Pizza restaurant in {settings.city} · Home of the GIANT 22" pizza</p>
+          <p className="eyebrow hero-h1"><Icon name="flame" /> Pizza restaurant in {serviceArea(settings)} · Home of the GIANT 22" pizza</p>
 
           <h1 className="wavy-title">
             <span className="sr-only">Ohh My Chicken Pizza Hub</span>
@@ -160,9 +160,9 @@ function Meals() {
       <div className="wrap">
         <div className="section-head">
           <p className="eyebrow eyebrow-red">{['Lunch', 'Dinner', 'Delivery'].filter((w) => w === 'Delivery' || m.includes(w.toLowerCase())).join(' · ')}</p>
-          <h2 className="section-title" id="mealsTitle">Pizza restaurant in {s.city}</h2>
+          <h2 className="section-title" id="mealsTitle">Pizza restaurant in {serviceArea(s)}</h2>
           <p className="meals-lead">
-            {s.name} is a pizza and fried chicken restaurant in {s.city}. {services.charAt(0).toUpperCase() + services.slice(1)}
+            {s.name} is a pizza and fried chicken restaurant in {serviceArea(s)}. {services.charAt(0).toUpperCase() + services.slice(1)}
             {m.length ? ' for ' + m.join(' or ') : ''}: giant 22" pizzas for the whole table, crispy fried chicken, hot wings and MoMo,
             cooked fresh to order. Open every day, {hoursText(s)}.
           </p>
@@ -177,7 +177,7 @@ function Meals() {
               <p>Family dinner or a night with friends: an 18" Large feeds 4–5, the 22" XL feeds 6–8.</p></li>
           )}
           <li><span className="step-ico"><Icon name="bike" /></span><h3>Delivery</h3>
-            <p>Pizza delivery across {s.city}, hot from the oven. Delivery fee {deliveryRange(s)}.</p></li>
+            <p>Pizza delivery across {serviceArea(s)}, hot from the oven. Delivery fee {deliveryRange(s)}.</p></li>
         </ul>
         <div className="center mt"><Link to="/menu" className="btn btn-red">See the menu &amp; prices</Link></div>
       </div>

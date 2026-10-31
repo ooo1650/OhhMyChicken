@@ -177,7 +177,8 @@ const SETTINGS = {
   currency: 'Rs.',
   // Search engines & Google Business: structured address, map pin, services.
   street: '',
-  city: 'Kathmandu',
+  city: 'Kathmandu', // page titles and search descriptions
+  serviceArea: 'Kathmandu Valley & Pokhara', // what customers read on the pages
   region: 'Bagmati',
   postalCode: '',
   country: 'NP',
@@ -221,7 +222,8 @@ const SETTINGS = {
       instagram: 'https://www.instagram.com/ohhmychickenpizzahub_bhaktapur/', facebook: ''
     },
     {
-      id: 'pokhara', name: 'Pokhara', area: 'Pokhara', main: false, active: true,
+      // TODO(pokhara): the street address, landmark and neighbourhood (`area` is only the district for now).
+      id: 'pokhara', name: 'Pokhara', area: 'Kaski', main: false, active: true,
       address: 'Pokhara',
       landmark: '',
       phones: ['+977 976-8046482', '+977 971-5073316'], whatsapp: '9779841103351',

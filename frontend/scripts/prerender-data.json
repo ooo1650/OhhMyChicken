@@ -2062,6 +2062,7 @@
   "currency": "Rs.",
   "street": "",
   "city": "Kathmandu",
+  "serviceArea": "Kathmandu Valley & Pokhara",
   "region": "Bagmati",
   "postalCode": "",
   "country": "NP",
@@ -2141,7 +2142,7 @@
    {
     "id": "pokhara",
     "name": "Pokhara",
-    "area": "Pokhara",
+    "area": "Kaski",
     "main": false,
     "active": true,
     "address": "Pokhara",

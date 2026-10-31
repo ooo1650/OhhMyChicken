@@ -7,6 +7,7 @@ import { Photo } from '../shared/Photo.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useLayer } from '../shared/layer.js';
 import { track } from '../shared/track.js';
+import { serviceArea } from '../shared/seo.js';
 
 function Lightbox({ photos, index, onIndex, onClose }) {
   const ref = useRef(null);
@@ -47,7 +48,7 @@ export function Gallery() {
     <section className="section gallery" aria-labelledby="galleryTitle">
       <div className="wrap">
         <div className="section-head">
-          <p className="eyebrow">Fresh from our kitchen in {settings.city}</p>
+          <p className="eyebrow">Fresh from our kitchens in {serviceArea(settings)}</p>
           <h2 className="section-title" id="galleryTitle">Hot off the oven</h2>
         </div>
         <ul className={'gallery-grid' + (gallery.length === 2 ? ' two' : '')}>

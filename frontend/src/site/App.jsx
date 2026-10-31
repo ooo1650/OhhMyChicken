@@ -11,7 +11,7 @@ import { Chat } from './Chat.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
-import { resolveRoute, applyHead, categoryPath, hoursText } from '../shared/seo.js';
+import { resolveRoute, applyHead, categoryPath, hoursText, serviceArea } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 import { outletList, outletTitle, telHref } from '../shared/outlets.js';
 import logo192 from '../assets/logo-192.webp';
@@ -127,7 +127,7 @@ function Footer() {
       <div className="wrap footer-grid">
         <div className="footer-about">
           <Brand footer />
-          <p className="muted">Pizza restaurant in {s.city}: giant pizzas, crispy chicken &amp; MoMo for lunch, dinner and delivery.</p>
+          <p className="muted">Pizza restaurant in {serviceArea(s)}: giant pizzas, crispy chicken &amp; MoMo for lunch, dinner and delivery.</p>
           {/* Name, address, phone: the same as in the structured data, for local search. */}
           <address className="footer-nap">
             {outletList(s).map((o) => (

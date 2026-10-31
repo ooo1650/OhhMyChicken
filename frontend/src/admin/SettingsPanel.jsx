@@ -36,7 +36,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       phone: f.phone.trim(), whatsapp: String(f.whatsapp).trim(), address: f.address.trim(), hoursOpen: f.hoursOpen, hoursClose: f.hoursClose,
       deliveryFeeMin: num(f.deliveryFeeMin), deliveryFeeMax: num(f.deliveryFeeMax), currency: f.currency.trim(),
       name: admin.settings.name,
-      street: f.street.trim(), city: f.city.trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
+      street: f.street.trim(), city: f.city.trim(), serviceArea: String(f.serviceArea || '').trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
       country: f.country.trim(), currencyCode: f.currencyCode.trim(), lat: f.lat === '' ? null : f.lat, lng: f.lng === '' ? null : f.lng,
       mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway,
       promo: { enabled: !!f.promo.enabled, popup: !!f.promo.popup, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
@@ -84,6 +84,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
         <fieldset>
           <legend>Google &amp; local search</legend>
           <p className="tiny muted"><Icon name="info" /> Shown to Google as your restaurant's details. Keep them identical to your Google Business Profile.</p>
+          <label className="field"><span>Area you serve <em>(shown on the pages)</em></span><input maxLength="80" placeholder="e.g. Kathmandu Valley & Pokhara" {...field('serviceArea')} /></label>
           <label className="field"><span>Street address</span><input maxLength="120" placeholder="e.g. Jhamsikhel Road" {...field('street')} /></label>
           <div className="field-row">
             <label className="field"><span>City</span><input required maxLength="60" {...field('city')} /></label>
