@@ -353,8 +353,9 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
   transition: box-shadow .2s;
 }
 .dish:hover { box-shadow: var(--shadow-hover); }
-.dish-art { aspect-ratio: 4 / 3; display: grid; place-items: center; padding: 16%; background: linear-gradient(160deg, #FBF7F1, #F1EAE1); }
-.dish-art svg { width: 100%; height: 100%; }
+/* One fixed picture area: photos and drawings sit inside it and can never change its size. */
+.dish-art { position: relative; flex: none; aspect-ratio: 4 / 3; overflow: hidden; background: linear-gradient(160deg, #FBF7F1, #F1EAE1); }
+.dish-art svg { position: absolute; inset: 12%; width: 76%; height: 76%; max-width: none; }
 .dish-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 12px 14px 0; }
 .dish-opts { min-width: 0; padding: 8px 14px 0; }
 .dish-meta { display: flex; align-items: center; gap: 6px; min-height: 18px; font-size: 11px; font-weight: 600; color: var(--muted); }
@@ -812,8 +813,8 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 
 /* ---------- Photos ---------- */
 .photo { display: block; max-width: 100%; height: auto; background-color: var(--cream); }
-.dish-art.has-photo { padding: 0; overflow: hidden; background: var(--cream); }
-.dish-art.has-photo .photo { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
+.dish-art.has-photo { background: var(--cream); }
+.dish-art.has-photo .photo { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; transition: transform .35s ease; }
 .dish:hover .dish-art.has-photo .photo { transform: scale(1.03); }
 .cl-art.has-photo { overflow: hidden; padding: 0; }
 .cl-art.has-photo .photo { width: 100%; height: 100%; object-fit: cover; }
@@ -864,9 +865,7 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
   /* Menu list: picture beside the text, price + Add on one row. */
   .card-grid { grid-template-columns: 1fr; gap: 10px; }
   .card-grid .dish { display: grid; grid-template-columns: 104px 1fr; grid-template-areas: "art body" "art opts" "art foot"; grid-template-rows: auto auto 1fr; }
-  .card-grid .dish-art { grid-area: art; aspect-ratio: auto; height: 100%; min-height: 128px; padding: 12px; }
-  .card-grid .dish-art.has-photo { padding: 0; position: relative; }
-  .card-grid .dish-art.has-photo .photo { position: absolute; inset: 0; }
+  .card-grid .dish-art { grid-area: art; aspect-ratio: auto; min-height: 128px; }
   .card-grid .dish-body { grid-area: body; padding: 10px 12px 0; gap: 2px; }
   .card-grid .dish-opts { grid-area: opts; padding: 6px 12px 0; }
   .card-grid .dish-foot { grid-area: foot; padding: 6px 12px 10px; align-items: flex-end; }
