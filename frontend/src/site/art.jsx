@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Art — hand-built SVG illustrations (size-guide pizza, menu art).
+   Art — hand-built SVG illustrations (hero and size-guide pizza, menu art).
    Pure strings, so they are crisp at any size and cost zero image requests.
    Rendered with <Art html={...}/>; the strings never contain user input.
    ========================================================================== */
@@ -31,40 +31,63 @@ function wobble(r, amount, rand) {
 
 // Toppings, drawn around 0,0. `g` is the id prefix of the shared gradients.
 const TOPPINGS = {
+  // Cupped in the oven: crisp dark rim, a pool of oil in the middle.
   pepperoni: (g, rand) => {
-    let oil = '';
-    for (let i = 0; i < 5; i++) oil += '<circle cx="' + f((rand() - .5) * 26) + '" cy="' + f((rand() - .5) * 26) + '" r="' + f(1.2 + rand() * 1.4) + '" fill="#5E120C" opacity=".55"/>';
-    return '<circle cy="2.5" r="23" fill="#5A2A08" opacity=".32"/><circle r="22" fill="url(#' + g + 'pep)"/>' +
-      '<circle r="19.5" fill="none" stroke="#6B150E" stroke-width="3" opacity=".5"/>' + oil +
-      '<path d="M-13 -9A16 16 0 0 1 2 -15.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".26"/>';
+    let char = '';
+    for (let i = 0; i < 9; i++) {
+      const a = rand() * 6.3, r = 15 + rand() * 6;
+      char += '<circle cx="' + f(Math.cos(a) * r) + '" cy="' + f(Math.sin(a) * r) + '" r="' + f(1 + rand() * 1.8) + '" fill="#3A0D07" opacity=".6"/>';
+    }
+    let fat = '';
+    for (let i = 0; i < 7; i++) fat += '<circle cx="' + f((rand() - .5) * 24) + '" cy="' + f((rand() - .5) * 24) + '" r="' + f(.9 + rand() * 1.3) + '" fill="#F08A5C" opacity=".55"/>';
+    return '<circle r="23" fill="url(#' + g + 'pep)"/>' + char + fat +
+      '<circle r="14" cx="1" cy="1" fill="url(#' + g + 'oil)"/>' +
+      '<path d="M-15-11A19 19 0 0 1 4-18" fill="none" stroke="#FFD9C4" stroke-width="2.2" stroke-linecap="round" opacity=".42"/>';
   },
-  mushroom: () => '<path d="M0 3.5C-17 3.5-19-5-15-10-10-16 10-16 15-10 19-5 17 3.5 0 3.5z" transform="translate(0 3)" fill="#5A2A08" opacity=".25"/>' +
-    '<path d="M-5 2L-4 13C-4 16 4 16 4 13L5 2z" fill="#EFE3CF" stroke="#B59C7A" stroke-width="1"/>' +
-    '<path d="M0 4C-17 4-19-5-15-10-10-16 10-16 15-10 19-5 17 4 0 4z" fill="#F2E7D5" stroke="#B59C7A" stroke-width="1"/>' +
-    '<path d="M-13-1Q0-5 13-1M-9-6Q0-9 9-6" fill="none" stroke="#C7AF8C" stroke-width="1.2" stroke-linecap="round"/>',
-  olive: () => '<circle cy="1.5" r="10" fill="#5A2A08" opacity=".3"/><circle r="9.5" fill="#23201F"/><circle r="3.6" fill="#E9B85C"/>' +
-    '<path d="M-6-4.5A7.5 7.5 0 0 1 1-7" fill="none" stroke="#8C8784" stroke-width="1.6" stroke-linecap="round"/>',
-  basil: (g) => '<path d="M0-20C14-12 15 7 0 20-15 7-14-12 0-20z" transform="translate(1 2.5)" fill="#5A2A08" opacity=".22"/>' +
-    '<path d="M0-20C14-12 15 7 0 20-15 7-14-12 0-20z" fill="url(#' + g + 'leaf)"/>' +
-    '<path d="M0-16V15M0-7L7-12M0-7L-7-12M0 1L8-4M0 1L-8-4M0 8L6 4M0 8L-6 4" fill="none" stroke="#0B5E32" stroke-width="1.1" stroke-linecap="round"/>',
-  pepper: () => '<path d="M-15 5C-12-11 12-11 15 5" fill="none" stroke="#0D7440" stroke-width="7.5" stroke-linecap="round"/>' +
-    '<path d="M-14 3C-11-10 11-10 14 3" fill="none" stroke="#2BA868" stroke-width="3" stroke-linecap="round"/>',
+  mushroom: () => '<path d="M-5 2L-4.5 14C-4 17 4 17 4.5 14L5 2z" fill="#E2D2B6"/>' +
+    '<path d="M0 5C-17 5-20-5-15-11-10-17 10-17 15-11 20-5 17 5 0 5z" fill="url(#MUSH)"/>' +
+    '<path d="M-14 0Q0-3 14 0" fill="none" stroke="#8A6C48" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>' +
+    '<path d="M-10-10Q-2-14 7-12" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".55"/>',
+  olive: () => '<circle r="10" fill="#1C1917"/><circle r="4" fill="#4A2A1A"/><circle r="2.6" fill="#0E0B0A"/>' +
+    '<path d="M-6.5-4.5A8 8 0 0 1 1-7.6" fill="none" stroke="#B9B2AB" stroke-width="1.6" stroke-linecap="round" opacity=".8"/>',
+  basil: (g) => '<path d="M0-22C16-13 17 8 0 22-17 8-16-13 0-22z" fill="url(#' + g + 'leaf)"/>' +
+    '<path d="M0-18V17M0-9L8-14M0-9L-8-14M0-1L10-6M0-1L-10-6M0 7L7 2M0 7L-7 2" fill="none" stroke="#0A4D2A" stroke-width="1.1" stroke-linecap="round" opacity=".85"/>' +
+    '<path d="M-7-10C-9-4-8 2-5 7" fill="none" stroke="#9BE3B8" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>',
+  pepper: () => '<path d="M-16 6C-13-12 13-12 16 6" fill="none" stroke="#0B5E34" stroke-width="8" stroke-linecap="round"/>' +
+    '<path d="M-14 4C-11-9 11-9 14 4" fill="none" stroke="#2BA868" stroke-width="3.2" stroke-linecap="round"/>',
   sausage: (g, rand) => {
     let fleck = '';
-    for (let i = 0; i < 6; i++) fleck += '<circle cx="' + f((rand() - .5) * 20) + '" cy="' + f((rand() - .5) * 18) + '" r="1.5" fill="#4A2412"/>';
-    return '<path d="M-14-3C-13-13 9-15 14-5 18 5 9 14-2 13-12 12-15 5-14-3z" transform="translate(0 2.5)" fill="#5A2A08" opacity=".3"/>' +
-      '<path d="M-14-3C-13-13 9-15 14-5 18 5 9 14-2 13-12 12-15 5-14-3z" fill="#8A4F2A"/>' + fleck;
+    for (let i = 0; i < 9; i++) fleck += '<circle cx="' + f((rand() - .5) * 22) + '" cy="' + f((rand() - .5) * 20) + '" r="' + f(1 + rand() * 1.1) + '" fill="#3E1D0D"/>';
+    return '<path d="M-15-3C-14-14 9-16 15-5 19 5 9 15-2 14-13 13-16 5-15-3z" fill="#8E5229"/>' + fleck +
+      '<path d="M-9-8Q0-12 8-8" fill="none" stroke="#D8A077" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>';
   },
-  onion: () => '<path d="M-14 4C-10-11 10-11 14 4" fill="none" stroke="#9A4F8F" stroke-width="4" stroke-linecap="round"/>' +
-    '<path d="M-9 4C-6-5 6-5 9 4" fill="none" stroke="#E9CFE4" stroke-width="2.4" stroke-linecap="round"/>'
+  onion: () => '<path d="M-15 5C-11-12 11-12 15 5" fill="none" stroke="#8C3F82" stroke-width="4" stroke-linecap="round"/>' +
+    '<path d="M-10 5C-7-5 7-5 10 5" fill="none" stroke="#EBD3E6" stroke-width="2.4" stroke-linecap="round"/>'
 };
 const RECIPES = {
   hero: [['pepperoni', 13, 23], ['mushroom', 6, 18], ['olive', 8, 11], ['pepper', 4, 15], ['basil', 4, 18]],
   mix: [['pepperoni', 7, 23], ['sausage', 7, 16], ['mushroom', 4, 18], ['onion', 5, 14], ['olive', 5, 11], ['pepper', 3, 15], ['basil', 2, 18]]
 };
 
+// Noise used as a height map and lit from the top left, multiplied onto whatever is drawn.
+const litSurface = (id, freq, octaves, height, seed) =>
+  '<filter id="' + id + '" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="400" color-interpolation-filters="sRGB">' +
+    '<feTurbulence type="fractalNoise" baseFrequency="' + freq + '" numOctaves="' + octaves + '" seed="' + seed + '"/>' +
+    '<feDiffuseLighting surfaceScale="' + height + '" diffuseConstant="1.16" lighting-color="#fff" result="l"><feDistantLight azimuth="235" elevation="60"/></feDiffuseLighting>' +
+    '<feComposite in="l" in2="SourceGraphic" operator="arithmetic" k1="1" k2="0" k3="0" k4="0"/>' +
+    '<feComposite in2="SourceAlpha" operator="in"/>' +
+  '</filter>';
+// Roughens shapes so edges look melted rather than cut with a compass.
+const rough = (id, freq, amount, blur, seed) =>
+  '<filter id="' + id + '" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="400">' +
+    '<feTurbulence type="fractalNoise" baseFrequency="' + freq + '" numOctaves="2" seed="' + seed + '"/>' +
+    '<feDisplacementMap in="SourceGraphic" scale="' + amount + '" xChannelSelector="R" yChannelSelector="G"/>' +
+    (blur ? '<feGaussianBlur stdDeviation="' + blur + '"/>' : '') +
+  '</filter>';
+
 /**
- * Pizza SVG: baked crust, melted cheese and shaded toppings, seen from above.
+ * Pizza SVG, seen from above: a bumpy charred crust, blistered melted cheese
+ * with a greasy sheen, and toppings that sit down into the cheese.
  * @param {object} o  { diet: 'hero' | 'mix', seed, slices, id }
  */
 function pizza(o) {
@@ -73,75 +96,103 @@ function pizza(o) {
   const g = (o.id || 'p') + '_' + (++uidCounter);
   const rand = rng(o.seed || 7);
   const recipe = RECIPES[o.diet] || RECIPES.hero;
+  const around = (r) => { const a = rand() * Math.PI * 2; return [200 + Math.cos(a) * r, 200 + Math.sin(a) * r, a]; };
 
-  // Blistered, browned spots on the crust.
+  // Charred blisters on the crust.
   let baked = '';
-  for (let i = 0; i < 46; i++) {
-    const a = rand() * Math.PI * 2, r = 171 + rand() * 18;
-    const big = rand() > .72;
-    baked += '<ellipse cx="' + f(200 + Math.cos(a) * r) + '" cy="' + f(200 + Math.sin(a) * r) + '" rx="' + f(big ? 7 + rand() * 6 : 2 + rand() * 3) + '" ry="' + f(big ? 4 + rand() * 3 : 2 + rand() * 2) +
-      '" transform="rotate(' + f(a * 57.3 + 90) + ' ' + f(200 + Math.cos(a) * r) + ' ' + f(200 + Math.sin(a) * r) + ')" fill="url(#' + g + 'char)" opacity="' + f(.35 + rand() * .45) + '"/>';
+  for (let i = 0; i < 64; i++) {
+    const [x, y, a] = around(170 + rand() * 22), big = rand() > .68;
+    baked += '<ellipse cx="' + f(x) + '" cy="' + f(y) + '" rx="' + f(big ? 7 + rand() * 8 : 2 + rand() * 3) + '" ry="' + f(big ? 3.5 + rand() * 3.5 : 1.5 + rand() * 2) +
+      '" transform="rotate(' + f(a * 57.3 + 90) + ' ' + f(x) + ' ' + f(y) + ')" fill="' + (big ? '#7A4114' : '#3F1F09') + '" opacity="' + f(.3 + rand() * .4) + '"/>';
   }
-  // Browned and creamy patches in the cheese.
-  let cheese = '';
-  for (let i = 0; i < 22; i++) {
-    const a = rand() * Math.PI * 2, r = Math.sqrt(rand()) * 148;
-    const brown = i % 3 === 0;
-    cheese += '<circle cx="' + f(200 + Math.cos(a) * r) + '" cy="' + f(200 + Math.sin(a) * r) + '" r="' + f(brown ? 8 + rand() * 12 : 16 + rand() * 24) + '" fill="url(#' + g + (brown ? 'toast' : 'melt') + ')"/>';
+  // The cheese: creamy pools, then golden-brown blisters with darker hearts.
+  let melt = '', blisters = '';
+  for (let i = 0; i < 20; i++) {
+    const [x, y] = around(Math.sqrt(rand()) * 146);
+    melt += '<circle cx="' + f(x) + '" cy="' + f(y) + '" r="' + f(14 + rand() * 26) + '" fill="url(#' + g + 'melt)"/>';
+  }
+  for (let i = 0; i < 74; i++) {
+    const [x, y] = around(Math.sqrt(rand()) * 156), r = 2.5 + rand() * rand() * 16;
+    blisters += '<ellipse cx="' + f(x) + '" cy="' + f(y) + '" rx="' + f(r) + '" ry="' + f(r * (.65 + rand() * .35)) + '" fill="#B5601A" opacity="' + f(.45 + rand() * .4) + '"/>';
+    if (r > 6) blisters += '<ellipse cx="' + f(x) + '" cy="' + f(y) + '" rx="' + f(r * .45) + '" ry="' + f(r * .35) + '" fill="#6E3510" opacity=".7"/>';
   }
 
   // Scatter the toppings, keeping each as far from the others as we can.
   const placed = [];
-  let toppings = '';
+  let toppings = '', halos = '';
   recipe.forEach(([kind, count, size]) => {
     for (let i = 0; i < count; i++) {
       let best = null, gap = -Infinity;
       for (let t = 0; t < 40; t++) {
-        const a = rand() * Math.PI * 2, r = Math.sqrt(rand()) * (150 - size * .6);
-        const x = 200 + Math.cos(a) * r, y = 200 + Math.sin(a) * r;
+        const [x, y] = around(Math.sqrt(rand()) * (148 - size * .6));
         const room = placed.reduce((m, q) => Math.min(m, Math.hypot(q.x - x, q.y - y) - q.size - size), 999);
         if (room > gap) { gap = room; best = { x, y, size }; }
       }
       placed.push(best);
-      toppings += '<g transform="translate(' + f(best.x) + ' ' + f(best.y) + ') rotate(' + Math.round(rand() * 360) + ')">' + TOPPINGS[kind](g, rand) + '</g>';
+      // Cheese creeping up around each topping.
+      halos += '<circle cx="' + f(best.x) + '" cy="' + f(best.y) + '" r="' + f(best.size + 7) + '" fill="#FFE08A" opacity=".6"/>';
+      toppings += '<g transform="translate(' + f(best.x) + ' ' + f(best.y) + ') rotate(' + Math.round(rand() * 360) + ')">' + TOPPINGS[kind](g, rand).replace('url(#MUSH)', 'url(#' + g + 'mush)') + '</g>';
     }
   });
 
-  // Herbs on top.
+  // Dried oregano on top.
   let herbs = '';
-  for (let i = 0; i < 70; i++) {
-    const a = rand() * Math.PI * 2, r = Math.sqrt(rand()) * 155;
-    herbs += '<circle cx="' + f(200 + Math.cos(a) * r) + '" cy="' + f(200 + Math.sin(a) * r) + '" r="' + f(.8 + rand() * .9) + '" fill="#2E5A24" opacity=".75"/>';
+  for (let i = 0; i < 90; i++) {
+    const [x, y] = around(Math.sqrt(rand()) * 155);
+    herbs += '<rect x="' + f(x) + '" y="' + f(y) + '" width="' + f(1 + rand() * 2.2) + '" height="' + f(.8 + rand() * .8) + '" transform="rotate(' + Math.round(rand() * 180) + ' ' + f(x) + ' ' + f(y) + ')" fill="#2E4F20" opacity=".8"/>';
   }
 
-  // Slice cuts: a dark line with a light edge.
+  // Slice cuts: a dark groove with a lit edge beside it.
   const slices = o.slices || 8;
   let cuts = '', lights = '';
   for (let s = 0; s < slices; s++) {
-    const ang = (s / slices) * Math.PI * 2 + .2, x = f(200 + Math.cos(ang) * 186), y = f(200 + Math.sin(ang) * 186);
-    cuts += '<line x1="200" y1="200" x2="' + x + '" y2="' + y + '"/>';
-    lights += '<line x1="201" y1="201" x2="' + f(201 + Math.cos(ang) * 186) + '" y2="' + f(201 + Math.sin(ang) * 186) + '"/>';
+    const ang = (s / slices) * Math.PI * 2 + .2, c = Math.cos(ang), n = Math.sin(ang);
+    cuts += '<line x1="200" y1="200" x2="' + f(200 + c * 168) + '" y2="' + f(200 + n * 168) + '"/>';
+    lights += '<line x1="201.4" y1="201.4" x2="' + f(201.4 + c * 164) + '" y2="' + f(201.4 + n * 164) + '"/>';
   }
 
   const stops = (list) => list.map(([at, c, op]) => '<stop offset="' + at + '" stop-color="' + c + '"' + (op == null ? '' : ' stop-opacity="' + op + '"') + '/>').join('');
   return '<svg viewBox="0 0 400 400" class="pizza-svg" aria-hidden="true" focusable="false">' +
     '<defs>' +
-      '<radialGradient id="' + g + 'crust" cx="50%" cy="50%" r="50%">' + stops([['.8', '#B8742C'], ['.87', '#E0A04A'], ['.93', '#F0BD6C'], ['.975', '#C98434'], ['1', '#8A5219']]) + '</radialGradient>' +
-      '<radialGradient id="' + g + 'cheese" cx="44%" cy="40%" r="62%">' + stops([['0', '#FFE08A'], ['.65', '#FBC858'], ['1', '#E9A233']]) + '</radialGradient>' +
-      '<radialGradient id="' + g + 'melt">' + stops([['0', '#FFEFB5', '.75'], ['1', '#FFEFB5', '0']]) + '</radialGradient>' +
-      '<radialGradient id="' + g + 'toast">' + stops([['0', '#B9681C', '.5'], ['1', '#B9681C', '0']]) + '</radialGradient>' +
-      '<radialGradient id="' + g + 'char">' + stops([['0', '#5A2E0E', '1'], ['1', '#7A4516', '0']]) + '</radialGradient>' +
-      '<radialGradient id="' + g + 'pep" cx="40%" cy="38%" r="68%">' + stops([['0', '#D8432F'], ['.7', '#B42A1C'], ['1', '#7E170E']]) + '</radialGradient>' +
-      '<linearGradient id="' + g + 'leaf" x1="0" y1="0" x2="1" y2="1">' + stops([['0', '#2BA868'], ['1', '#0D7440']]) + '</linearGradient>' +
-      '<radialGradient id="' + g + 'light" cx="36%" cy="30%" r="78%">' + stops([['0', '#fff', '.16'], ['.5', '#fff', '0'], ['1', '#3A1604', '.3']]) + '</radialGradient>' +
+      '<radialGradient id="' + g + 'crust" cx="50%" cy="50%" r="50%">' + stops([['.8', '#9C5A1C'], ['.87', '#D18A36'], ['.925', '#F0BC6A'], ['.965', '#D08A34'], ['1', '#74400F']]) + '</radialGradient>' +
+      '<radialGradient id="' + g + 'cheese" cx="42%" cy="38%" r="66%">' + stops([['0', '#FFCF55'], ['.6', '#F6AE30'], ['1', '#D9851E']]) + '</radialGradient>' +
+      '<radialGradient id="' + g + 'melt">' + stops([['0', '#FFE58F', '.7'], ['1', '#FFE58F', '0']]) + '</radialGradient>' +
+      '<radialGradient id="' + g + 'pep" cx="42%" cy="40%" r="62%">' + stops([['0', '#D5412B'], ['.68', '#B92C1B'], ['.88', '#8C1C10'], ['1', '#561008']]) + '</radialGradient>' +
+      '<radialGradient id="' + g + 'oil">' + stops([['0', '#E9583A', '.75'], ['1', '#E9583A', '0']]) + '</radialGradient>' +
+      '<linearGradient id="' + g + 'mush" x1="0" y1="0" x2="0" y2="1">' + stops([['0', '#F6EBD8'], ['1', '#C7AB84']]) + '</linearGradient>' +
+      '<linearGradient id="' + g + 'leaf" x1="0" y1="0" x2="1" y2="1">' + stops([['0', '#2EAE6C'], ['1', '#0B6A39']]) + '</linearGradient>' +
+      '<radialGradient id="' + g + 'light" cx="34%" cy="28%" r="82%">' + stops([['0', '#FFF6DC', '.2'], ['.5', '#fff', '0'], ['1', '#2A0F02', '.38']]) + '</radialGradient>' +
+      '<clipPath id="' + g + 'onCheese"><circle cx="200" cy="200" r="164"/></clipPath>' +
+      litSurface(g + 'crustTex', '.07', 3, 2.2, 11) +
+      litSurface(g + 'cheeseTex', '.045', 3, 1.8, 4) +
+      rough(g + 'melted', '.035', 11, 0, 8) +
+      rough(g + 'spots', '.09', 9, .7, 5) +
+      rough(g + 'soft', '.03', 8, 5, 3) +
+      rough(g + 'char', '.06', 7, 1.6, 6) +
+      '<filter id="' + g + 'sit" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="400">' +
+        '<feTurbulence type="fractalNoise" baseFrequency=".07" numOctaves="2" seed="2"/>' +
+        '<feDisplacementMap in="SourceGraphic" scale="4" xChannelSelector="R" yChannelSelector="G"/>' +
+        '<feDropShadow dx="1.4" dy="2.4" stdDeviation="1.8" flood-color="#4A2206" flood-opacity=".6"/>' +
+      '</filter>' +
+      '<filter id="' + g + 'gloss" filterUnits="userSpaceOnUse" x="0" y="0" width="400" height="400" color-interpolation-filters="sRGB">' +
+        '<feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="3" seed="9"/>' +
+        '<feSpecularLighting surfaceScale="5" specularConstant=".5" specularExponent="30" lighting-color="#FFF6D8"><feDistantLight azimuth="235" elevation="52"/></feSpecularLighting>' +
+        '<feComposite in2="SourceAlpha" operator="in"/>' +
+      '</filter>' +
     '</defs>' +
-    '<path d="' + wobble(194, .012, rand) + '" fill="url(#' + g + 'crust)"/>' + baked +
-    '<path d="' + wobble(166, .014, rand) + '" fill="#B5301B"/>' +
-    '<path d="' + wobble(160, .022, rand) + '" fill="url(#' + g + 'cheese)"/>' + cheese +
-    '<g stroke="#8A5219" stroke-width="2.4" opacity=".4">' + cuts + '</g>' +
-    '<g stroke="#FFF3CF" stroke-width="1" opacity=".35">' + lights + '</g>' +
-    toppings + herbs +
-    '<circle cx="200" cy="200" r="194" fill="url(#' + g + 'light)"/>' +
+    '<g filter="url(#' + g + 'crustTex)"><path d="' + wobble(195, .016, rand) + '" fill="url(#' + g + 'crust)"/></g>' +
+    '<g filter="url(#' + g + 'char)">' + baked + '</g>' +
+    // The rim stands over the sauce, so it throws a soft shadow inwards.
+    '<circle cx="200" cy="202" r="172" fill="#5A2206" opacity=".7" filter="url(#' + g + 'soft)"/>' +
+    '<g filter="url(#' + g + 'melted)"><path d="' + wobble(170, .012, rand) + '" fill="#8E2412"/></g>' +
+    '<g filter="url(#' + g + 'melted)"><g filter="url(#' + g + 'cheeseTex)"><path d="' + wobble(167, .018, rand) + '" fill="url(#' + g + 'cheese)"/></g></g>' +
+    '<g clip-path="url(#' + g + 'onCheese)">' + melt + '<g filter="url(#' + g + 'spots)">' + blisters + '</g></g>' +
+    '<g stroke="#5E2F0B" stroke-width="2.2" stroke-linecap="round" opacity=".6">' + cuts + '</g>' +
+    '<g stroke="#FFF1C4" stroke-width="1.1" opacity=".4">' + lights + '</g>' +
+    '<g filter="url(#' + g + 'soft)">' + halos + '</g>' +
+    '<circle cx="200" cy="200" r="163" filter="url(#' + g + 'gloss)" opacity=".5"/>' +
+    '<g filter="url(#' + g + 'sit)">' + toppings + '</g>' + herbs +
+    '<circle cx="200" cy="200" r="195" fill="url(#' + g + 'light)"/>' +
   '</svg>';
 }
 
