@@ -1,7 +1,7 @@
 /* Find us — a numbered list of branches, and (when opened) a hand-drawn map
    of the Kathmandu valley (ValleyMap.jsx). Picking a pin or a row opens that
    branch: how to find it, phones, WhatsApp and directions. */
-import { lazy, Suspense, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useSite } from './store.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
@@ -10,6 +10,9 @@ import { onMap, outletList, outletHours, outletOpen, outletWhatsApp, telHref, ma
 // The map's drawing code is only downloaded when someone opens it (remembered per browser).
 const ValleyMap = lazy(() => import('./ValleyMap.jsx'));
 const MAP_KEY = 'omc.findMap.v1';
+// From this width the map always sits beside the list; below it, a button shows and hides it.
+const WIDE = '(min-width: 1024px)';
+const isWide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
 const readOpen = () => { try { return localStorage.getItem(MAP_KEY) === '1'; } catch (e) { return false; } };
 
 function Branch({ o, n, open: expanded, onPick }) {
@@ -78,7 +81,15 @@ export function FindUs() {
   const mapped = outlets.some(onMap);
   const [showMap, setShowMap] = useState(readOpen);
   const toggleMap = () => setShowMap((v) => { try { localStorage.setItem(MAP_KEY, v ? '0' : '1'); } catch (e) { /* private mode */ } return !v; });
-  const withMap = mapped && showMap;
+  const [wide, setWide] = useState(isWide);
+  useEffect(() => {
+    const q = matchMedia(WIDE), on = () => setWide(q.matches);
+    on();
+    q.addEventListener('change', on);
+    return () => q.removeEventListener('change', on);
+  }, []);
+  const withMap = mapped && (wide || showMap);
+  const offMap = outlets.find((o) => o.id === current && !onMap(o));
   return (
     <section className="section section-light find" id="find" aria-labelledby="findTitle">
       <div className={'wrap find-layout' + (withMap ? '' : ' no-map')}>
@@ -87,7 +98,7 @@ export function FindUs() {
           <p className="find-intro">
             {outlets.length > 1 ? outlets.length + ' kitchens' + (outlets.every(onMap) ? ' across the valley' : '') + ', ' : ''}open daily {fmt12(s.hoursOpen)} – {fmt12(s.hoursClose)}.
           </p>
-          {mapped && (
+          {mapped && !wide && (
             <button type="button" className="btn btn-outline btn-sm map-toggle" aria-expanded={showMap} aria-controls="findMap" onClick={toggleMap}>
               <Icon name={showMap ? 'x' : 'pin'} /> {showMap ? 'Hide map' : 'Show on map'}
             </button>
@@ -101,6 +112,7 @@ export function FindUs() {
             <Suspense fallback={<div className="valley valley-loading" aria-label="Loading map" />}>
               <ValleyMap outlets={outlets} sel={current} onPick={show} />
             </Suspense>
+            {offMap && <p className="map-note">{offMap.name} is outside the Kathmandu Valley. Use Directions to find it.</p>}
           </div>
         )}
       </div>

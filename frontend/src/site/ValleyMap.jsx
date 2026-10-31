@@ -87,10 +87,19 @@ function layout(outlets) {
   return pins;
 }
 
+// Moves the map in on the chosen outlet, just enough to keep the others in reach.
+const ZOOM = 1.2;
+function focusOn(pin) {
+  if (!pin) return 'none';
+  const hold = (v, size) => Math.min(0, Math.max(size - size * ZOOM, v));
+  return 'translate(' + hold(W / 2 - pin.x * ZOOM, W).toFixed(1) + 'px, ' + hold(H / 2 - pin.y * ZOOM, H).toFixed(1) + 'px) scale(' + ZOOM + ')';
+}
+
 export default function ValleyMap({ outlets, sel, onPick }) {
   const pins = layout(outlets);
   return (
     <svg className="valley" viewBox={'0 0 ' + W + ' ' + H} role="img" aria-label="Map of our outlets in the Kathmandu valley">
+      <g className="v-focus" style={{ transform: focusOn(pins.find((p) => p.o.id === sel)) }}>
       <g dangerouslySetInnerHTML={{ __html: BASE }} />
       {pins.map(({ o, i, x, y, label }) => {
         const on = o.id === sel;
@@ -111,6 +120,7 @@ export default function ValleyMap({ outlets, sel, onPick }) {
           </g>
         );
       })}
+      </g>
     </svg>
   );
 }

@@ -231,7 +231,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
   .hero-grid { grid-template-columns: minmax(430px, 520px) minmax(0, 1fr); gap: clamp(16px, 3vw, 44px); align-items: center; padding-bottom: 0; }
   .hero-copy { padding-block: clamp(20px, 3vw, 36px) clamp(44px, 4vw, 64px); }
   .hero-stage { width: min(36vw, 480px); margin-block: 0 26px; }
-  .hero-h1 { white-space: nowrap; }
 }
 .size-sticker {
   position: absolute; top: 0; right: -2%;
@@ -986,9 +985,10 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 }
 
 /* Beside the list, the map stays put while branches open and close. */
-@media (min-width: 900px) {
+@media (min-width: 1024px) {
   .find-layout:not(.no-map) .find-map { align-self: start; position: sticky; top: 104px; }
 }
+.map-note { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); width: min(86%, 400px); margin: 0; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--white); font-size: var(--fs-sm); font-weight: 600; text-align: center; }
 /* Phones: the screen is only ever the hero, so dark edges keep it from being a wall of red. */
 @media (max-width: 700px) {
   .site-header, .main-nav { background: var(--ink); }
@@ -1005,6 +1005,7 @@ body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) 
   body:not(.admin-page) .branch.on .branch-panel { transition: grid-template-rows .34s cubic-bezier(.4, 0, .2, 1), opacity .24s linear .1s !important; }
   body:not(.admin-page) .branch .branch-chev { transition: transform .34s cubic-bezier(.4, 0, .2, 1), color .2s linear !important; }
   body:not(.admin-page) .branch .branch-name { transition: color .2s linear !important; }
+  body:not(.admin-page) .v-focus { transition: transform .5s cubic-bezier(.4, 0, .2, 1) !important; }
   body:not(.admin-page) .v-pin-body { transition: transform .34s cubic-bezier(.4, 0, .2, 1) !important; }
   body:not(.admin-page) .v-pin-body path, body:not(.admin-page) .v-pin-body text, body:not(.admin-page) .v-pin-label rect, body:not(.admin-page) .v-pin-label text { transition: fill .2s linear !important; }
 }
