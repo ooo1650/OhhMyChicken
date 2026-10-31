@@ -1,7 +1,7 @@
 /* Find us — a numbered list of branches, and (when opened) a hand-drawn map
    of the Kathmandu valley (ValleyMap.jsx). Picking a pin or a row opens that
    branch: how to find it, phones, WhatsApp and directions. */
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useRef, useState } from 'react';
 import { useSite } from './store.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
@@ -25,8 +25,10 @@ function Branch({ o, n, open: expanded, onPick }) {
         <span className="branch-no">{String(n).padStart(2, '0')}</span>
         <span className="branch-name">{o.name}<small>{[o.area !== o.name && o.area, o.main && !o.single && 'main branch'].filter(Boolean).join(' · ')}</small></span>
         <span className={'branch-open' + (isOpen ? ' yes' : '')}>{isOpen ? 'Open' : 'Closed'}</span>
+        <Icon name="chevron-down" className="branch-chev" />
       </button>
-      <div className="branch-body" id={id} hidden={!expanded}>
+      {/* Stays in the page so it can slide; inert keeps a closed branch's links out of reach. */}
+      <div className="branch-panel" id={id} inert={!expanded}><div className="branch-clip"><div className="branch-body">
         {address && <p className="branch-addr">{address}</p>}
         {o.landmark && <p className="branch-look"><b>Look for:</b> {o.landmark}</p>}
         <p className="branch-meta">{fmt12(h.hoursOpen)} – {fmt12(h.hoursClose)}{o.delivery && <> · {o.delivery}</>}</p>
@@ -37,7 +39,7 @@ function Branch({ o, n, open: expanded, onPick }) {
           {o.instagram && <a className="branch-social" href={o.instagram} target="_blank" rel="noopener" aria-label={o.name + ' on Instagram'}><Icon name="instagram" /></a>}
           {o.facebook && <a className="branch-social" href={o.facebook} target="_blank" rel="noopener" aria-label={o.name + ' on Facebook'}><Icon name="external" /></a>}
         </div>
-      </div>
+      </div></div></div>
     </li>
   );
 }
@@ -48,6 +50,22 @@ export function FindUs() {
   const first = (outlets.find((o) => o.main) || outlets[0]).id;
   const [sel, setSel] = useState(first);
   const current = outlets.some((o) => o.id === sel) ? sel : first;
+  const [expanded, setExpanded] = useState(true);
+  const listRef = useRef(null);
+  // Tapping the open branch closes it. When one above closes, the tapped row slides up,
+  // so bring it back into view if it ends up under the header.
+  const show = (id) => { setSel(id); setExpanded(true); };
+  const pick = (id) => {
+    if (id === current && expanded) { setExpanded(false); return; }
+    show(id);
+    setTimeout(() => {
+      const row = listRef.current && listRef.current.querySelector('.branch.on');
+      const header = document.getElementById('siteHeader');
+      if (!row || !header) return;
+      const top = row.getBoundingClientRect().top - header.offsetHeight - 8;
+      if (top < 0) window.scrollBy({ top, behavior: 'smooth' });
+    }, 300);
+  };
   const mapped = outlets.some(onMap);
   const [showMap, setShowMap] = useState(readOpen);
   const toggleMap = () => setShowMap((v) => { try { localStorage.setItem(MAP_KEY, v ? '0' : '1'); } catch (e) { /* private mode */ } return !v; });
@@ -66,13 +84,13 @@ export function FindUs() {
             </button>
           )}
         </div>
-        <ol className="branch-list">
-          {outlets.map((o, i) => <Branch key={o.id || 'main'} o={o} n={i + 1} open={o.id === current} onPick={setSel} />)}
+        <ol className="branch-list" ref={listRef}>
+          {outlets.map((o, i) => <Branch key={o.id || 'main'} o={o} n={i + 1} open={expanded && o.id === current} onPick={pick} />)}
         </ol>
         {withMap && (
           <div className="find-map" id="findMap">
             <Suspense fallback={<div className="valley valley-loading" aria-label="Loading map" />}>
-              <ValleyMap outlets={outlets} sel={current} onPick={setSel} />
+              <ValleyMap outlets={outlets} sel={current} onPick={show} />
             </Suspense>
           </div>
         )}

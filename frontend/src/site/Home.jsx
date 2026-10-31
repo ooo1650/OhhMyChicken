@@ -54,7 +54,6 @@ function Hero() {
 
           <ul className="hero-stats">
             <li><b>22"</b><span>XL pizza</span></li>
-            <li><b>{settings.deliveryMins}</b><span>min delivery</span></li>
             <li><b>{menu.length}</b><span>menu items</span></li>
           </ul>
         </div>
@@ -149,7 +148,7 @@ function Meals() {
               <p>Family dinner or a night with friends: an 18" Large feeds 4–5, the 22" XL feeds 6–8.</p></li>
           )}
           <li><span className="step-ico"><Icon name="bike" /></span><h3>Delivery</h3>
-            <p>Pizza delivery across {s.city} in about {s.deliveryMins} minutes, delivery fee {deliveryRange(s)}.</p></li>
+            <p>Pizza delivery across {s.city}, hot from the oven. Delivery fee {deliveryRange(s)}.</p></li>
         </ul>
         <div className="center mt"><Link to="/menu" className="btn btn-red">See the menu &amp; prices</Link></div>
       </div>
@@ -218,7 +217,7 @@ export function HomeView({ active }) {
           <ol className="steps">
             <li><span className="step-ico"><Icon name="phone-app" /></span><b>Pick</b><p>Browse the menu &amp; choose your size.</p></li>
             <li><span className="step-ico"><Icon name="flame" /></span><b>We bake</b><p>Stone-baked &amp; fried fresh to order.</p></li>
-            <li><span className="step-ico"><Icon name="bike" /></span><b>We zoom</b><p>Delivered hot in about {s.deliveryMins} minutes.</p></li>
+            <li><span className="step-ico"><Icon name="bike" /></span><b>We zoom</b><p>Delivered hot to your door.</p></li>
           </ol>
         </div>
       </section>

@@ -115,6 +115,11 @@ async function moveDeliveryAndHours(c) {
   await c.query("UPDATE settings SET data = (data - 'deliveryFee' - 'freeDeliveryOver') || $1::jsonb WHERE id = 1", [JSON.stringify(next)]);
 }
 
+// The site no longer promises a delivery time.
+async function dropDeliveryTime(c) {
+  await c.query("UPDATE settings SET data = data - 'deliveryMins' WHERE id = 1");
+}
+
 // Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
 async function once(c, id, change) {
   const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
@@ -135,6 +140,7 @@ async function seed() {
     await once(c, 'pokhara-outlet', addPokhara);
     await once(c, 'counter-drinks-no-delivery', markNoDelivery);
     await once(c, 'delivery-range-and-hours', moveDeliveryAndHours);
+    await once(c, 'no-delivery-time', dropDeliveryTime);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');

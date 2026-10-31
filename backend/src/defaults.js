@@ -171,7 +171,6 @@ const SETTINGS = {
   address: 'Jhamsikhel, Lalitpur',
   hoursOpen: '09:00',
   hoursClose: '21:00',
-  deliveryMins: 35,
   // The outlet confirms the actual fee, so it isn't part of the order total.
   deliveryFeeMin: 0,
   deliveryFeeMax: 150,

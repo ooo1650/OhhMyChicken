@@ -233,8 +233,7 @@ export function MenuView({ active, table, cat }) {
           </div>
           <ul className="menu-facts" aria-label="Ordering info">
             <li className={site.isOpen ? undefined : 'is-closed'}><Icon name="clock" /><span>{site.isOpen ? 'Open now · until ' + fmt12(s.hoursClose) : 'Closed · opens ' + fmt12(s.hoursOpen)}</span></li>
-            <li><Icon name="bike" /><span><b>{s.deliveryMins}</b> min delivery</span></li>
-            <li><Icon name="tag" /><span>Delivery <b>{deliveryRange(s)}</b></span></li>
+            <li><Icon name="bike" /><span>Delivery <b>{deliveryRange(s)}</b></span></li>
           </ul>
         </div>
       </div>

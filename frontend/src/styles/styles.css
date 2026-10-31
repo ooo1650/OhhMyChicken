@@ -142,8 +142,8 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
   background: var(--yellow); color: var(--ink);
   font-size: 11px; font-weight: 800; line-height: 16px; text-align: center;
 }
-.open-pill { font-size: var(--fs-xs); font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.2); white-space: nowrap; }
-.open-pill::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: currentColor; vertical-align: 1px; }
+.open-pill { display: inline-flex; align-items: center; font-size: var(--fs-xs); font-weight: 700; line-height: 1.2; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,.2); white-space: nowrap; }
+.open-pill::before { content: ''; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: currentColor; }
 .open-pill.is-open::before { background: #5BFF8A; box-shadow: 0 0 0 3px rgba(91,255,138,.25); }
 .open-pill.is-closed::before { background: #bbb; }
 .nav-toggle { display: none; }
@@ -314,11 +314,16 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .branch-name small { display: block; margin-top: 4px; font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
 .branch-row:hover .branch-name { }
 .branch.on .branch-name { color: var(--red); }
-.branch-open { font-size: var(--fs-xs); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
-.branch-open::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #bbb; vertical-align: 1px; }
+.branch-open { display: inline-flex; align-items: center; font-size: var(--fs-xs); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
+.branch-open::before { content: ''; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #bbb; }
 .branch-open.yes { color: var(--green); }
 .branch-open.yes::before { background: var(--green); }
-.branch-body { padding: 0 4px 20px calc(2ch + 18px); display: grid; gap: 8px; }
+.branch-chev { width: 20px; height: 20px; flex-shrink: 0; color: var(--muted); }
+.branch.on .branch-chev { transform: rotate(180deg); color: var(--red); }
+.branch-panel { display: grid; grid-template-rows: 0fr; opacity: 0; }
+.branch.on .branch-panel { grid-template-rows: 1fr; opacity: 1; }
+.branch-clip { min-height: 0; overflow: hidden; }
+.branch-body { padding: 4px 4px 20px calc(2ch + 18px); display: grid; gap: 8px; }
 .branch-addr { font-weight: 700; }
 .branch-look { font-size: var(--fs-sm); color: var(--ink-2); background: var(--yellow-soft); padding: 8px 12px; border-radius: 10px; transform: rotate(-.6deg); max-width: 52ch; }
 .branch-meta { font-size: var(--fs-sm); color: var(--muted); }
@@ -967,6 +972,11 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
    (The dashboard keeps its new-order highlight.)
    ========================================================================== */
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }
+/* The one thing that moves: opening a branch in Find us, so the page doesn't jump. */
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.admin-page) .branch .branch-panel { transition: grid-template-rows .28s ease, opacity .2s ease !important; }
+  body:not(.admin-page) .branch .branch-chev { transition: transform .28s ease !important; }
+}
 
 /* Small touches of the logo's green. Red stays the colour for actions and prices. */
 .mq-dot { background: var(--green); }

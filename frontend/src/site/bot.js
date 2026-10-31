@@ -97,7 +97,7 @@ export function makeBot(site) {
     { id: 'delivery', words: ['deliver', 'delivery', 'how long', 'fee', 'charge', 'area', 'shipping', 'rider', 'eta', 'fast'],
       reply: function () {
         let s = S();
-        return { html: 'We deliver hot in about <b>' + s.deliveryMins + ' minutes</b>.<br>Delivery fee: <b>' + esc(deliveryRange(s)) + '</b>, the outlet confirms it.<br>Call <a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a> to check if we reach your area.' };
+        return { html: 'Yes, we deliver.<br>Delivery fee: <b>' + esc(deliveryRange(s)) + '</b>, the outlet confirms it.<br>Call <a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a> to check if we reach your area.' };
       } },
     { id: 'order', words: ['order', 'buy', 'checkout', 'cart', 'purchase', 'book', 'place'],
       reply: function () {

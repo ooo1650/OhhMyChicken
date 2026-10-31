@@ -34,7 +34,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
     const num = (v) => +v;
     const s = {
       phone: f.phone.trim(), whatsapp: String(f.whatsapp).trim(), address: f.address.trim(), hoursOpen: f.hoursOpen, hoursClose: f.hoursClose,
-      deliveryMins: num(f.deliveryMins), deliveryFeeMin: num(f.deliveryFeeMin), deliveryFeeMax: num(f.deliveryFeeMax), currency: f.currency.trim(),
+      deliveryFeeMin: num(f.deliveryFeeMin), deliveryFeeMax: num(f.deliveryFeeMax), currency: f.currency.trim(),
       name: admin.settings.name,
       street: f.street.trim(), city: f.city.trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
       country: f.country.trim(), currencyCode: f.currencyCode.trim(), lat: f.lat === '' ? null : f.lat, lng: f.lng === '' ? null : f.lng,
@@ -74,11 +74,10 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
             <label className="field"><span>Closes</span><input type="time" {...field('hoursClose')} /></label>
           </div>
           <div className="field-row">
-            <label className="field"><span>Delivery time (min)</span><input type="number" min="5" max="180" {...field('deliveryMins')} /></label>
             <label className="field"><span>Delivery fee from</span><input type="number" min="0" {...field('deliveryFeeMin')} /></label>
+            <label className="field"><span>Delivery fee up to</span><input type="number" min="0" {...field('deliveryFeeMax')} /></label>
           </div>
           <div className="field-row">
-            <label className="field"><span>Delivery fee up to</span><input type="number" min="0" {...field('deliveryFeeMax')} /></label>
             <label className="field"><span>Currency</span><input maxLength="5" {...field('currency')} /></label>
           </div>
         </fieldset>

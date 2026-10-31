@@ -521,6 +521,10 @@ it('settings: saved delivery fee becomes a range, default hours become 9 to 9, c
   await db.end();
 });
 
+it('settings: no delivery time is promised any more', async () => {
+  assert.ok(!('deliveryMins' in (await req('GET', '/api/settings')).json));
+});
+
 it('logout ends the session', async () => {
   assert.equal((await req('POST', '/api/admin/logout', { body: {} })).status, 200);
   assert.equal((await req('GET', '/api/orders')).status, 401);

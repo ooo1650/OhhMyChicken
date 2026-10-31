@@ -131,7 +131,6 @@ function settings(raw, current) {
     address: str(s.address, 160, 'Address'),
     hoursOpen: s.hoursOpen,
     hoursClose: s.hoursClose,
-    deliveryMins: int(s.deliveryMins, 5, 180, 'Delivery time'),
     deliveryFeeMin: int(s.deliveryFeeMin, 0, 1000000, 'Lowest delivery fee'),
     deliveryFeeMax: int(s.deliveryFeeMax, 0, 1000000, 'Highest delivery fee'),
     currency: str(s.currency, 5, 'Currency'),

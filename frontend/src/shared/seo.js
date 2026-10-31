@@ -115,7 +115,7 @@ export function pageMeta(route, boot) {
     heading: 'Pizza restaurant in ' + city(s),
     description: fit(['Giant 22" pizzas, crispy fried chicken & MoMo in ' + city(s) + '.',
       servicesText(s).replace(/^./, (ch) => ch.toUpperCase()) + mealPhrase + '.',
-      'Delivery in about ' + s.deliveryMins + ' min.', 'Open daily ' + hoursText(s) + '.']),
+      'Open daily ' + hoursText(s) + '.']),
     robots: 'index, follow, max-image-preview:large'
   };
 }
@@ -139,7 +139,7 @@ export function faqs(boot) {
   }
   list.push({
     q: 'Do you deliver pizza in ' + city(s) + '?',
-    a: 'Yes. Delivery takes about ' + s.deliveryMins + ' minutes. The delivery fee is ' + deliveryRange(s) + '.'
+    a: 'Yes. The delivery fee is ' + deliveryRange(s) + '.'
   });
   list.push({
     q: 'What pizza sizes do you have?',
