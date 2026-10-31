@@ -211,6 +211,7 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .wt-2 { fill: var(--white); }
 .wt-shadow { fill: var(--ink); transform: translate(6px, 7px); }
 
+.hero-claim { display: inline-block; margin-bottom: 10px; padding: 5px 14px; border-radius: 10px; background: var(--ink); color: var(--yellow); font-family: var(--font-display); font-size: clamp(1.1rem, .95rem + .8vw, 1.5rem); line-height: 1.2; }
 .hero-tag { font-size: var(--fs-lg); max-width: 40ch; margin-bottom: clamp(16px, 2.5vw, 24px); color: #FFE9E9; }
 .hero-tag strong { color: var(--yellow); }
 .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; }

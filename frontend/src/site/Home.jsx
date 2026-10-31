@@ -41,6 +41,7 @@ function Hero() {
             </svg>
           </div>
 
+          <p className="hero-claim">The largest pizza in town</p>
           <p className="hero-tag">Pizzas so big they need their own seat. <strong>Crispy chicken</strong> so good you'll say it out loud.</p>
 
           <div className="hero-ctas">
@@ -190,7 +191,7 @@ export function HomeView({ active }) {
 
       <div className="marquee" aria-hidden="true">
         <div className="marquee-track">
-          {[0, 1].map((k) => ['GIANT 22" PIZZA', 'CRISPY FRIED CHICKEN', 'HOT WINGS', 'STEAM & FRIED MOMO', 'CHEESE FRIES'].map((t) => (
+          {[0, 1].map((k) => ['LARGEST PIZZA IN TOWN', 'GIANT 22" PIZZA', 'CRISPY FRIED CHICKEN', 'HOT WINGS', 'STEAM & FRIED MOMO', 'CHEESE FRIES'].map((t) => (
             <Fragment key={k + t}><span>{t}</span><span className="mq-dot" /></Fragment>
           )))}
         </div>

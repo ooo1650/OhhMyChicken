@@ -82,7 +82,12 @@ router.delete('/media/:id', admin, async (req, res) => {
 /* ---------- Analytics (anonymous; see analytics.js) ---------- */
 // Beacons from the site. 204 either way: a visitor's browser never needs to know.
 router.post('/t', limit(60, 60 * 1000), async (req, res) => { await analytics.collect(req); res.status(204).end(); });
-router.get('/insights', admin, async (req, res) => res.json(await analytics.insights(req.query.days)));
+// Insights is a paid extra: only whoever runs the server can switch it on (INSIGHTS_ENABLED=true).
+const INSIGHTS_ENABLED = process.env.INSIGHTS_ENABLED === 'true';
+router.get('/insights', admin, async (req, res) => {
+  if (!INSIGHTS_ENABLED) return res.status(402).json({ error: 'Insights is not included in this plan.' });
+  res.json(await analytics.insights(req.query.days));
+});
 
 /* ---------- Settings ---------- */
 router.get('/settings', async (req, res) => res.json(await cached('settings', () => models.getSettings())));

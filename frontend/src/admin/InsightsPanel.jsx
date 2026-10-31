@@ -109,22 +109,39 @@ function Table({ head, rows, empty }) {
   );
 }
 
+// Shown until PaperKite switches Insights on for this restaurant.
+function InsightsLocked() {
+  return (
+    <div className="panel-card insights-locked">
+      <span className="il-ico" aria-hidden="true"><Icon name="lock" /></span>
+      <h2>Insights is a premium feature</h2>
+      <p>See how many people visit, what they search for, which dishes they add but don't order, and your busiest hours.</p>
+      <p className="il-cta">To use this feature, upgrade your plan. Contact PaperKite:</p>
+      <a className="btn btn-red" href="mailto:paperkite.contact@gmail.com?subject=Upgrade%3A%20Insights%20for%20Ohh%20My%20Chicken%20Pizza%20Hub">Contact PaperKite</a>
+      <a className="il-mail" href="mailto:paperkite.contact@gmail.com?subject=Upgrade%3A%20Insights%20for%20Ohh%20My%20Chicken%20Pizza%20Hub">paperkite.contact@gmail.com</a>
+    </div>
+  );
+}
+
 export function InsightsPanel({ hidden }) {
   const admin = useAdmin();
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     if (hidden) return;
     setLoading(true);
-    admin.loadInsights(days).then((d) => { setData(d); setError(''); }, (e) => setError(e.message)).finally(() => setLoading(false));
+    admin.loadInsights(days).then((d) => { setData(d); setError(''); }, (e) => { if (e.status === 402) setLocked(true); else setError(e.message); }).finally(() => setLoading(false));
   }, [hidden, days]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nameOf = (id) => (admin.menu.find((m) => m.id === id) || {}).name || id + ' (removed)';
   const catName = (slug) => (admin.categories.find((c) => c.slug === slug) || {}).short || slug;
   const d = data;
+
+  if (locked) return <div className="admin-panel insights" hidden={hidden}><InsightsLocked /></div>;
 
   return (
     <div className="admin-panel insights" hidden={hidden}>

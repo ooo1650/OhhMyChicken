@@ -36,7 +36,7 @@ test.before(async () => {
   B = 'http://127.0.0.1:' + port;
   uploads = fs.mkdtempSync(path.join(os.tmpdir(), 'omc-uploads-'));
   server = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'index.js')], {
-    env: { ...process.env, PORT: String(port), ADMIN_PASSCODE: PASS, UPLOAD_DIR: uploads, NODE_ENV: 'test', ORDER_LIMIT: '200' },
+    env: { ...process.env, PORT: String(port), ADMIN_PASSCODE: PASS, UPLOAD_DIR: uploads, NODE_ENV: 'test', ORDER_LIMIT: '200', INSIGHTS_ENABLED: 'true' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   let log = '';
@@ -378,6 +378,25 @@ it('forgotten passcode: set-passcode on the server replaces it and signs everyon
   const again = await req('POST', '/api/admin/login', { body: { passcode: PASS } });
   cookie = again.headers.get('set-cookie').split(';')[0];
   assert.equal((await req('GET', '/api/orders')).status, 200);
+});
+
+it('insights: locked unless the server switches it on, even for a signed-in admin', async () => {
+  const port = await freePort(), base = 'http://127.0.0.1:' + port;
+  const { INSIGHTS_ENABLED, ...env } = process.env; // eslint-disable-line no-unused-vars
+  const locked = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'index.js')],
+    { env: { ...env, PORT: String(port), ADMIN_PASSCODE: PASS, UPLOAD_DIR: uploads, NODE_ENV: 'test' }, stdio: 'ignore' });
+  try {
+    for (let i = 0; i < 100; i++) {
+      try { if ((await fetch(base + '/healthz')).ok) break; } catch (e) { /* not up yet */ }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    assert.equal((await fetch(base + '/api/insights')).status, 401);
+    const login = await fetch(base + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: PASS }) });
+    const Cookie = login.headers.get('set-cookie').split(';')[0];
+    const r = await fetch(base + '/api/insights', { headers: { Cookie } });
+    assert.equal(r.status, 402);
+    assert.ok(!('totals' in await r.json()));
+  } finally { locked.kill(); }
 });
 
 it('logout ends the session', async () => {

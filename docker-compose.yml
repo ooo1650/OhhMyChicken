@@ -54,6 +54,8 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       UPLOAD_DIR: /app/uploads
       # Anonymous analytics: timezone for "busy hours" and how long raw events are kept.
+      # The Insights tab is a paid extra; true unlocks it.
+      INSIGHTS_ENABLED: ${INSIGHTS_ENABLED:-false}
       ANALYTICS_TZ: ${ANALYTICS_TZ:-Asia/Kathmandu}
       ANALYTICS_RETENTION_DAYS: ${ANALYTICS_RETENTION_DAYS:-180}
       # Customers' names, phones and addresses are blanked on orders older than this.
