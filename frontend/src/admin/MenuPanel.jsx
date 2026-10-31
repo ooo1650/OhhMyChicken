@@ -10,6 +10,7 @@ import { ItemEditor } from './ItemEditor.jsx';
 import { Kpi } from './Kpi.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
+import { Art, iconFor } from '../site/art.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { dietLabel, PIZZA_CATEGORIES } from '../shared/format.js';
 
@@ -149,10 +150,10 @@ export function MenuPanel({ hidden, searchRef }) {
               const c = categories.find((x) => x.id === i.category) || { short: i.category, icon: '' };
               return (
                 <tr key={i.id} className={i.available ? '' : 'row-off'}>
-                  <td data-label="Item"><div className="cell-item">{i.image
+                  <td data-label="Item"><div className="cell-item">{admin.settings.dishPhotos && (i.image
                     ? <button type="button" className="thumb-btn" title="Change photo" aria-label={'Change the photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Photo media={i.image} alt="" sizes="44px" className="cell-thumb" /></button>
-                    : <button type="button" className="thumb-btn thumb-add" title="Add a photo" aria-label={'Add a photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Icon name="plus" /><span>Photo</span></button>}
-                    <span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
+                    : <button type="button" className="thumb-btn thumb-add" title="Add a photo" aria-label={'Add a photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Icon name="plus" /><span>Photo</span></button>)}
+                    {!admin.settings.dishPhotos && <button type="button" className="thumb-btn" title="Change picture" aria-label={'Change the picture of ' + i.name} onClick={() => openEditor(i, false, 'art')}><Art html={iconFor(i)} className="cell-art" /></button>}<span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
                   <td data-label="Category"><span className="cat-pill">{c.icon && <Icon name={c.icon} />}{c.short}</span></td>
                   <td data-label="Prices"><div className="price-chips">{i.prices.map((p) => <span key={p.label}><em>{p.label}</em> {admin.money(p.price)}</span>)}</div></td>
                   <td data-label="Status">

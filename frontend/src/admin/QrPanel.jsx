@@ -54,22 +54,22 @@ function stickerCanvas(current) {
   const W = 900, H = 1200, cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#D8181E'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#F6C12A';
+  ctx.fillStyle = '#E50914'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#FFC72C';
   for (let i = 0; i < 40; i++) { ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.arc((i * 137) % W, (i * 263) % H, 18, 0, 7); ctx.fill(); }
   ctx.globalAlpha = 1;
   ctx.textAlign = 'center';
-  ctx.font = '96px "Archivo Black", Impact, sans-serif';
+  ctx.font = '96px "Lilita One", Impact, sans-serif';
   ctx.save(); ctx.translate(W / 2, 150); ctx.rotate(-0.05);
   ctx.fillStyle = '#121212'; ctx.fillText('OHH MY CHICKEN!', 6, 6);
-  ctx.fillStyle = '#F6C12A'; ctx.fillText('OHH MY CHICKEN!', 0, 0); ctx.restore();
+  ctx.fillStyle = '#FFC72C'; ctx.fillText('OHH MY CHICKEN!', 0, 0); ctx.restore();
   ctx.fillStyle = '#fff';
   roundRect(ctx, 130, 230, 640, 640, 40); ctx.fill();
   drawModules(ctx, current.qr, 170, 270, 560);
-  ctx.fillStyle = '#fff'; ctx.font = '72px "Archivo Black", Impact, sans-serif';
+  ctx.fillStyle = '#fff'; ctx.font = '72px "Lilita One", Impact, sans-serif';
   ctx.fillText('SCAN FOR MENU', W / 2, 990);
-  ctx.font = '600 40px "DM Sans Variable", Arial, sans-serif';
-  ctx.fillStyle = '#F6C12A';
+  ctx.font = '600 40px "Rubik Variable", Rubik, Arial, sans-serif';
+  ctx.fillStyle = '#FFC72C';
   ctx.fillText(stickerLabel(current), W / 2, 1070, W - 80);
   return cv;
 }
@@ -80,7 +80,7 @@ function fontFaces() {
   for (const sheet of document.styleSheets) {
     let rules;
     try { rules = sheet.cssRules; } catch (e) { continue; }
-    for (const r of rules) if (r.type === CSSRule.FONT_FACE_RULE && /Archivo Black|DM Sans/.test(r.cssText)) out.push(r.cssText);
+    for (const r of rules) if (r.type === CSSRule.FONT_FACE_RULE && /Lilita|Rubik/.test(r.cssText)) out.push(r.cssText);
   }
   return out.join('');
 }
@@ -89,11 +89,11 @@ function printStickers(current) {
   const label = esc(stickerLabel(current));
   let html = '<!doctype html><html><head><meta charset="utf-8"><title>Menu QR sticker</title>' +
     '<style>' + fontFaces() + '</style>' +
-    '<style>@page{margin:12mm}body{margin:0;font-family:"DM Sans Variable",Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8mm;justify-content:center}' +
-    '.s{width:80mm;padding:6mm;border-radius:6mm;background:#D8181E;color:#fff;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px dashed #999}' +
-    '.t{font-family:"Archivo Black",Impact,sans-serif;font-size:9mm;color:#F6C12A;transform:rotate(-3deg);text-shadow:.6mm .6mm 0 #121212;margin:0 0 3mm}' +
+    '<style>@page{margin:12mm}body{margin:0;font-family:"Rubik Variable",Rubik,Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8mm;justify-content:center}' +
+    '.s{width:80mm;padding:6mm;border-radius:6mm;background:#E50914;color:#fff;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px dashed #999}' +
+    '.t{font-family:"Lilita One",Impact,sans-serif;font-size:9mm;color:#FFC72C;transform:rotate(-3deg);text-shadow:.6mm .6mm 0 #121212;margin:0 0 3mm}' +
     '.q{background:#fff;border-radius:3mm;padding:2mm;display:inline-block}.q svg{width:58mm;height:58mm;display:block}' +
-    '.c{font-family:"Archivo Black",Impact,sans-serif;font-size:7mm;margin:3mm 0 1mm}.l{font-size:3.6mm;color:#F6C12A}</style></head><body>';
+    '.c{font-family:"Lilita One",Impact,sans-serif;font-size:7mm;margin:3mm 0 1mm}.l{font-size:3.6mm;color:#FFC72C}</style></head><body>';
   const one = '<div class="s"><p class="t">OHH MY CHICKEN!</p><div class="q">' + svgFor(current.qr, 220) + '</div><p class="c">SCAN FOR MENU</p><p class="l">' + label + '</p></div>';
   html += one + one + one + one + '</body></html>';
 

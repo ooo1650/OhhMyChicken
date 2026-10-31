@@ -4,6 +4,7 @@
    used by the home "popular" row.
    ========================================================================== */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import gsap from 'gsap';
 import { useSite } from './store.jsx';
 import { Art, iconFor } from './art.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
@@ -48,13 +49,30 @@ function dietMatch(item, diet) {
   return item.diet === 'mix' && diet !== 'veg'; // mixed meat counts for every meat filter
 }
 
+function flyToCart(from) {
+  if (reducedMotion) return;
+  const bar = document.getElementById('cartBar');
+  const target = bar && !bar.hidden ? bar : document.getElementById('cartBtn');
+  const to = target.getBoundingClientRect(), src = from.getBoundingClientRect();
+  const dot = document.createElement('span');
+  dot.className = 'fly-dot';
+  dot.style.left = src.left + src.width / 2 + 'px';
+  dot.style.top = src.top + 'px';
+  document.body.appendChild(dot);
+  gsap.to(dot, {
+    x: to.left + to.width / 2 - (src.left + src.width / 2), y: to.top + to.height / 2 - src.top,
+    scale: 0.4, duration: 0.6, ease: 'power2.in',
+    onComplete: () => { dot.remove(); gsap.fromTo(target, { scale: 1.08 }, { scale: 1, duration: 0.35, ease: 'back.out(3)' }); }
+  });
+}
+
 /* ---------- Card ---------- */
 export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   const actionRef = useRef(null), focusStep = useRef(false);
-  const [broken, setBroken] = useState(false);
-  const photo = broken ? null : item.image; // a library photo when the dish has one, otherwise its drawing
+  // Dish photos only when the restaurant has switched them on (Store settings).
+  const photo = site.settings.dishPhotos ? item.image : null;
   const art = useMemo(() => (photo ? '' : iconFor(item)), [item, photo]);
   const price = (item.prices.find((p) => p.label === label) || item.prices[0]).price;
   const n = site.cartQty(item.id, label), what = item.name + ' (' + label + ')';
@@ -68,11 +86,12 @@ export function DishCard({ item, q }) {
     }
   }, [n]);
 
-  function add() {
+  function add(e) {
     focusStep.current = true;
     site.addToCart(item.id, label, 1);
     track('add_to_cart', { item_id: item.id, value: label, num: 1 });
     toast('Added ' + item.name + ' (' + label + ')');
+    flyToCart(e.currentTarget);
   }
 
   let action;
@@ -89,7 +108,7 @@ export function DishCard({ item, q }) {
   return (
     <article className={'dish' + (item.available ? '' : ' is-sold')}>
       {photo
-        ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 600px) 110px, (max-width: 900px) 50vw, 300px" onFail={() => setBroken(true)} /></div>
+        ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 420px) 34vw, 150px" /></div>
         : <Art className="dish-art" html={art} />}
       <div className="dish-body">
         <div className="dish-meta">
@@ -220,11 +239,11 @@ export function MenuView({ active, table, cat }) {
           <div>
             {cat
               ? <>
-                  <h1 className="sec-title light">{pageMeta({ view: 'menu', cat }, boot).heading}</h1>
+                  <h1 className="tilt-title light"><span className="hl">{pageMeta({ view: 'menu', cat }, boot).heading}</span></h1>
                   <p className="menu-sub menu-blurb">{cat.blurb}</p>
                 </>
               : <>
-                  <h1 className="sec-title light">Our <span className="hl">menu</span></h1>
+                  <h1 className="tilt-title light"><span>The</span> <span className="hl">Menu</span></h1>
                   <p className="menu-sub">Pizza, fried chicken &amp; MoMo in {s.city}: giant pizzas in 12" · 15" · 18" · <b>22" XL</b>, with prices.</p>
                 </>}
           </div>

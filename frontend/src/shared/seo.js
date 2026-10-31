@@ -255,7 +255,7 @@ export function jsonLd(route, boot, origin) {
             }))
           };
           if (m.desc) item.description = m.desc;
-          if (m.image) item.image = origin + m.image.url;
+          if (m.image && s.dishPhotos) item.image = origin + m.image.url;
           if (m.diet === 'veg') item.suitableForDiet = 'https://schema.org/VegetarianDiet';
           return item;
         })

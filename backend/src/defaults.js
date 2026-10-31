@@ -185,8 +185,8 @@ const SETTINGS = {
   socialLinks: [],
   dineIn: true,
   takeaway: false,
-  // Library photo behind the home-page hero (Store settings); none = plain dark hero with the logo.
-  heroImageId: null,
+  // Photos on dish cards (off: every dish shows its drawing). Photos stay linked either way.
+  dishPhotos: false,
   // Branches: shown in Find us; customers pick one when they order on WhatsApp.
   outlets: [
     {

@@ -216,7 +216,7 @@ docker compose exec backend node src/db.js reset-menu   # replace only the menu 
 docker compose exec backend node src/db.js set-passcode # staff forgot the passcode: set a new one (signs everyone out)
 docker compose exec -T backend node src/db.js customers > customers.csv   # opt-in customer list (keep the file private)
 docker compose exec backend node src/db.js forget-customer 98XXXXXXXX     # remove someone on request
-docker compose logs backup && ls -lh backups/          # automatic database backups (start-up + nightly 3 AM)
+docker compose logs backup && ls -lh backups/          # automatic backups (start-up + nightly 3 AM)
 ```
 
 Rollback: `git log --oneline -5`, then `git reset --hard <commit> && docker compose up -d --build`. The next push to `main` moves it forward again.

@@ -53,17 +53,11 @@ app.use('/api',
   (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); },
   routes);
 
-// Photos: file names are random and never reused, so browsers and CDNs can keep them
-// for a year. Served straight from disk; a file that isn't there comes back from the database.
-const MEDIA_CACHE = 'public, max-age=31536000, s-maxage=31536000, immutable';
-const mediaHeaders = (res) => res.set({ 'Content-Type': 'image/webp', 'Cache-Control': MEDIA_CACHE });
-app.use('/media', express.static(media.UPLOAD_DIR, { index: false, redirect: false, dotfiles: 'deny', setHeaders: mediaHeaders }));
-app.get('/media/:file', limit(300, 60 * 1000), async (req, res) => {
-  const data = await media.restoreFile(req.params.file);
-  if (!data) return res.status(404).json({ error: 'Not found.' });
-  mediaHeaders(res);
-  res.send(data);
-});
+// Photos: file names are random and never reused, so they can be cached forever.
+app.use('/media', express.static(media.UPLOAD_DIR, {
+  index: false, redirect: false, dotfiles: 'deny', immutable: true, maxAge: '365d',
+  setHeaders: (res) => res.set('Content-Type', 'image/webp')
+}));
 
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 
@@ -80,7 +74,6 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   await media.ensureDir();
   await db.migrate();
   await db.seed();
-  media.backfillFiles().catch((e) => console.warn('media backfill:', e.message));
   require('./analytics').startCleanup();
   // Blank customers' personal details on old orders, now and every 6 hours.
   const forget = () => require('./models').forgetOldCustomerDetails()

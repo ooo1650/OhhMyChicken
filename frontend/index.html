@@ -5,51 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!--seo:start--><title>Ohh My Chicken! | Pizza Restaurant in Kathmandu</title>
   <meta name="description" content="Giant 22&quot; pizzas, crispy fried chicken &amp; MoMo in Kathmandu. Dine in for lunch or dinner, or order delivery."><!--seo:end-->
-  <meta name="theme-color" content="#FFFFFF">
+  <meta name="theme-color" content="#E50914">
   <meta name="format-detection" content="telephone=no">
   <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
   <link rel="icon" href="/assets/icon-192.png" type="image/png" sizes="192x192">
-  <link rel="preload" href="/src/assets/logo-128.webp" as="image" type="image/webp" fetchpriority="high">
+  <link rel="preload" href="/src/assets/logo-192.webp" as="image" type="image/webp" fetchpriority="high">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <!-- Fonts come from this site; preloaded so headings don't flash in a fallback font. -->
-  <link rel="preload" href="./node_modules/@fontsource/archivo-black/files/archivo-black-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="./node_modules/@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./node_modules/@fontsource/lilita-one/files/lilita-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./node_modules/@fontsource-variable/rubik/files/rubik-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <!-- Loading skeleton: painted with the HTML, before any script runs; React replaces it.
        Self-contained so it does not wait for the main stylesheet. -->
   <style>
-    body{margin:0;background:#fff;font-family:'DM Sans Variable',system-ui,sans-serif}
-    .shell{--sk:#EFEAE4;min-height:100vh}
+    body{margin:0;background:#fff;font-family:Rubik,system-ui,sans-serif}
+    .shell{--sk:#ECE6DA;min-height:100vh}
     .sk{background:var(--sk);border-radius:10px;position:relative;overflow:hidden}
     .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:sk 1.3s infinite}
     @keyframes sk{to{transform:translateX(100%)}}
     @media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
-    .sh-head{height:68px;background:#fff;border-bottom:1px solid #E8E3DD}
+    .sh-head{height:78px;background:#E50914;border-bottom:3px solid #121212}
     .sh-wrap{max-width:1140px;margin:0 auto;padding:0 clamp(16px,4vw,32px)}
     .sh-head .sh-wrap{height:100%;display:flex;align-items:center;gap:10px}
-    .sh-head img{height:48px;width:auto;display:block}
-    .sh-head .sk{height:32px;width:74px;border-radius:9px}
+    .sh-head img{height:68px;width:auto;display:block}
+    .sh-head .sk{--sk:rgba(255,255,255,.22);height:34px;width:74px;border-radius:999px}
     .sh-head .sk:first-of-type{margin-left:auto}
-    .sh-hero{background:linear-gradient(180deg,#0F0A09 0%,#1A0D09 42%,#3A1208 70%,#6E1B08 100%);color:#fff;margin:clamp(8px,1.4vw,18px);border-radius:clamp(18px,2.4vw,32px);padding:56px 0 64px;min-height:440px}
+    .sh-hero{background:#E50914;color:#fff;padding:56px 0 64px;min-height:440px}
     .sh-hero .sh-wrap{display:flex;gap:40px;align-items:center}
     .sh-hero .sk{--sk:rgba(255,255,255,.18)}
     .sh-copy{flex:1;display:grid;gap:14px;max-width:520px}
-    .sh-pizza{width:min(50vw,640px);aspect-ratio:2/1;border-radius:24px!important;flex-shrink:0;--sk:rgba(255,255,255,.07)!important}
+    .sh-pizza{width:min(38vw,420px);aspect-ratio:1;border-radius:50%!important;flex-shrink:0;--sk:rgba(255,199,44,.35)!important}
     .sh-menu{display:none;padding:28px 0}
     .sh-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));margin-top:20px}
-    .sh-card{border:1px solid #E8E3DD;border-radius:14px;padding:14px;display:grid;grid-template-columns:96px 1fr;gap:12px}
+    .sh-card{border:2px solid #ECE6DA;border-radius:18px;padding:14px;display:grid;grid-template-columns:96px 1fr;gap:12px}
     .sh-card .sh-th{width:96px;height:96px;border-radius:14px}
     .shell-menu .sh-hero{display:none}.shell-menu .sh-menu{display:block}
     .sh-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-    @media (max-width:859px){.sh-head .sk{display:none}.sh-head .sk:last-of-type{display:block;width:40px;margin-left:auto}.sh-hero .sh-wrap{flex-direction:column;align-items:stretch}.sh-pizza{width:100%;max-width:none;order:-1}}
-    @media (max-width:520px){.sh-head{height:60px}.sh-head img{height:42px}}
+    @media (max-width:859px){.sh-head .sk{display:none}.sh-head .sk:last-of-type{display:block;width:40px;margin-left:auto}.sh-hero .sh-wrap{flex-direction:column;align-items:stretch}.sh-pizza{width:70vw;align-self:center}}
+    @media (max-width:520px){.sh-head{height:64px}.sh-head img{height:56px}}
   </style>
   <!--boot-->
 </head>
 <body>
   <div id="root"><div class="shell shell-home" aria-busy="true">
     <p class="sh-sr">Loading…</p>
-    <div class="sh-head"><div class="sh-wrap"><img src="/src/assets/logo-128.webp" width="139" height="128" alt=""><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
+    <div class="sh-head"><div class="sh-wrap"><img src="/src/assets/logo-192.webp" width="208" height="192" alt=""><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
     <div class="sh-hero"><div class="sh-wrap">
       <div class="sh-copy"><div class="sk" style="height:14px;width:60%"></div><div class="sk" style="height:64px;width:80%"></div><div class="sk" style="height:64px;width:95%"></div><div class="sk" style="height:16px;width:90%;margin-top:10px"></div><div class="sk" style="height:16px;width:70%"></div><div style="display:flex;gap:12px;margin-top:10px"><div class="sk" style="height:52px;width:170px;border-radius:999px"></div><div class="sk" style="height:52px;width:140px;border-radius:999px"></div></div></div>
       <div class="sk sh-pizza"></div>

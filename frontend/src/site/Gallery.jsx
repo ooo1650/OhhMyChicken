@@ -37,23 +37,21 @@ function Lightbox({ photos, index, onIndex, onClose }) {
 }
 
 export function Gallery() {
-  const { gallery: all, settings } = useSite();
+  const { gallery, settings } = useSite();
   const [index, setIndex] = useState(null);
-  const [lost, setLost] = useState([]); // photos whose files can't be loaded drop out
-  const gallery = all.filter((p) => !lost.includes(p.id));
   if (!gallery.length) return null;
   return (
     <section className="section gallery" aria-labelledby="galleryTitle">
       <div className="wrap">
         <div className="section-head">
           <p className="eyebrow">Fresh from our kitchen in {settings.city}</p>
-          <h2 className="sec-title" id="galleryTitle"><span>Hot</span> <span className="hl">off the oven</span></h2>
+          <h2 className="tilt-title" id="galleryTitle"><span>Hot</span> <span className="hl">off the oven</span></h2>
         </div>
         <ul className="gallery-grid">
           {gallery.map((p, i) => (
             <li key={p.id}>
               <button type="button" onClick={() => { setIndex(i); track('gallery_open'); }} aria-label={'View photo: ' + (p.alt || 'photo ' + (i + 1))}>
-                <Photo media={p} sizes="(max-width: 520px) 100vw, (max-width: 1000px) 50vw, 33vw" onFail={() => setLost((l) => [...l, p.id])} />
+                <Photo media={p} sizes="(max-width: 520px) 100vw, (max-width: 1000px) 50vw, 33vw" />
               </button>
             </li>
           ))}

@@ -145,7 +145,7 @@ function settings(raw, current) {
     socialLinks: socialLinks(s.socialLinks),
     dineIn: s.dineIn !== false,
     takeaway: !!s.takeaway,
-    heroImageId: imageId(s.heroImageId),
+    dishPhotos: !!s.dishPhotos,
     outlets: outlets(s.outlets),
     promo: {
       enabled: !!p.enabled,

@@ -2,6 +2,7 @@
    App — routes, page <head>, header/nav, offer pop-up and footer.
    ========================================================================== */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import gsap from 'gsap';
 import { useSite, promoSeen, markPromoSeen } from './store.jsx';
 import { useRoute, Link } from './router.jsx';
 import { HomeView } from './Home.jsx';
@@ -15,7 +16,7 @@ import { reducedMotion } from '../shared/format.js';
 import { resolveRoute, applyHead, categoryPath, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 import { outletList, outletTitle, telHref } from '../shared/outlets.js';
-import logo128 from '../assets/logo-128.webp';
+import logo192 from '../assets/logo-192.webp';
 import logo240 from '../assets/logo-240.webp';
 
 // The restaurant's logo. Imported so Vite gives it a content-hashed URL that browsers cache for a year;
@@ -25,9 +26,8 @@ function Brand({ footer }) {
   return (
     <Link to="/" className={'brand' + (footer ? ' brand-footer' : '')} aria-label={site.settings.name + ' home'}>
       {footer
-        ? <img className="brand-logo" src={logo240} width="260" height="240" alt="" loading="lazy" decoding="async" />
-        : <img className="brand-logo" src={logo128} width="139" height="128" alt="" fetchPriority="high" />}
-      <span className="brand-name">Ohh! My Chicken<b>Pizza Hub</b></span>
+        ? <img className="brand-logo" src={logo240} width="260" height="240" alt={site.settings.name} loading="lazy" decoding="async" />
+        : <img className="brand-logo" src={logo192} width="208" height="192" alt={site.settings.name} fetchPriority="high" />}
     </Link>
   );
 }
@@ -58,11 +58,11 @@ function Header({ navKey, n }) {
         </nav>
         <div className="header-actions">
           <span className={'open-pill ' + (site.isOpen ? 'is-open' : 'is-closed')} aria-live="polite">{site.isOpen ? 'Open now' : 'Closed'}</span>
-          <Link to="/menu" className="btn btn-outline btn-sm hide-sm">Order online</Link>
-          <button className="btn btn-red btn-sm cart-btn" id="cartBtn" aria-label={'Open cart, ' + count + ' item' + (count === 1 ? '' : 's')} onClick={() => site.setCartOpen(true)}>
-            <Icon name="bag" /><span className="hide-xs">Cart</span>
+          <button className="icon-btn cart-btn" id="cartBtn" aria-label={'Open cart, ' + count + ' item' + (count === 1 ? '' : 's')} onClick={() => site.setCartOpen(true)}>
+            <Icon name="bag" />
             <span className="badge" hidden={!count}>{count}</span>
           </button>
+          <Link to="/menu" className="btn btn-yellow btn-sm hide-sm">Order Online</Link>
           <button className="icon-btn nav-toggle" aria-label="Toggle navigation" aria-expanded={open} aria-controls="mainNav" onClick={() => setOpen(!open)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" /></svg>
           </button>
@@ -78,7 +78,12 @@ function PromoModal() {
   const close = () => site.setPromoOpen(false);
   const { hidden, isOpen } = useLayer(site.promoOpen, ref, { onClose: close, focus: '.code-pill' });
 
-  useEffect(() => { if (site.promoOpen) track('promo_shown'); }, [site.promoOpen]);
+  useEffect(() => {
+    if (site.promoOpen) track('promo_shown');
+    if (!site.promoOpen || reducedMotion) return;
+    gsap.fromTo(ref.current.querySelector('.promo-card'), { scale: 0.6, rotation: -6, opacity: 0 }, { scale: 1, rotation: 0, opacity: 1, duration: 0.6, ease: 'back.out(2)' });
+    gsap.fromTo(ref.current.querySelector('.promo-burst'), { rotation: -180, scale: 0 }, { rotation: -12, scale: 1, duration: 0.8, delay: 0.15, ease: 'back.out(2.5)' });
+  }, [site.promoOpen]);
 
   const copy = () => {
     track('promo_copied');
@@ -92,12 +97,12 @@ function PromoModal() {
       <div className="modal-backdrop" onClick={close} />
       <div className="modal-card promo-card">
         <button className="icon-btn close-btn" onClick={close} aria-label="Close offer"><Icon name="x" /></button>
-        <p className="promo-burst"><span>{p.percent}%</span> off</p>
+        <div className="promo-burst" aria-hidden="true"><span>{p.percent}%</span><small>OFF</small></div>
         <h2 id="promoTitle">{p.headline}</h2>
         <p>Use this code at checkout:</p>
         <button className="code-pill" title="Copy code" onClick={copy}><span>{p.code}</span> <small>tap to copy</small></button>
         <div className="hero-ctas center">
-          <Link to="/menu" className="btn btn-red" onClick={close}>Order a 22" pizza</Link>
+          <Link to="/menu" className="btn btn-red" onClick={close}>Grab a 22" now</Link>
           <button className="btn btn-link" onClick={close}>No thanks</button>
         </div>
       </div>
@@ -110,8 +115,8 @@ function NotFoundView({ active }) {
     <section className="view section section-light not-found" id="view-notfound" hidden={!active}>
       <div className="wrap center">
         <p className="eyebrow eyebrow-red">Error 404</p>
-        <h1 className="sec-title">Page not found</h1>
-        <p className="nf-text">We couldn't find that page. Try the menu instead.</p>
+        <h1 className="tilt-title"><span>Ohh no!</span> <span className="hl">Page not found</span></h1>
+        <p className="nf-text">This page went out for delivery and never came back. Try the menu instead.</p>
         <div className="hero-ctas center">
           <Link to="/menu" className="btn btn-red">See the menu</Link>
           <Link to="/" className="btn btn-outline">Home</Link>
@@ -217,6 +222,15 @@ export function App() {
     else window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
     return undefined;
   }, [route.n]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fade the newly shown view in.
+  const firstView = useRef(true);
+  useEffect(() => {
+    // The first view replaces the loading skeleton directly; fading it in from blank would flash.
+    if (firstView.current) { firstView.current = false; return; }
+    if (reducedMotion) return;
+    gsap.fromTo('#view-' + view, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out', clearProps: 'transform' });
+  }, [view]);
 
   // Offer pop-up once per session, after the configured delay (not on error pages).
   useEffect(() => {

@@ -35,7 +35,7 @@ export function AdminProvider({ boot, children }) {
   const applied = (setter) => (data) => { setter(data); return true; };
 
   const value = useMemo(() => ({
-    defaults, menu, settings, orders, hero: boot.hero || null,
+    defaults, menu, settings, orders,
     categories: defaults.CATEGORIES,
     categoryName: (id) => { const c = defaults.CATEGORIES.find((x) => x.id === id); return c ? c.name : id; },
     getItem: (id) => menu.find((m) => m.id === id),
