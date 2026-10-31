@@ -173,7 +173,20 @@ export function App() {
   const [view, setView] = useState(page.view);
   const [table, setTable] = useState('');
   const prevView = useRef(null);
-  const navKey = page.view === 'menu' ? 'menu' : page.section || (page.view === 'home' ? 'home' : '');
+  const [spy, setSpy] = useState(null); // the home page section in the middle of the screen
+  const navKey = page.view === 'menu' ? 'menu' : spy || page.section || (page.view === 'home' ? 'home' : '');
+
+  // On the home page, the nav follows the section being read.
+  useEffect(() => {
+    if (view !== 'home') { setSpy(null); return undefined; }
+    const ids = ['sizes', 'find'], seen = new Set();
+    const watcher = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) seen.add(e.target.id); else seen.delete(e.target.id); });
+      setSpy(ids.find((id) => seen.has(id)) || 'home');
+    }, { rootMargin: '-40% 0px -55% 0px' }); // a thin band across the middle of the screen
+    ids.forEach((id) => { const el = document.getElementById(id); if (el) watcher.observe(el); });
+    return () => watcher.disconnect();
+  }, [view]);
 
   // Route changes: view, scroll, <head>, table orders, offer preview.
   useEffect(() => {
