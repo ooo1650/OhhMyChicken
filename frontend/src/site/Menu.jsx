@@ -52,6 +52,10 @@ function dietMatch(item, diet) {
 export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
+  // Arriving from a size card on the home page: that size is already chosen.
+  useEffect(() => {
+    if (site.menuSize && item.prices.some((p) => p.label === site.menuSize)) setLabel(site.menuSize);
+  }, [site.menuSize, item]);
   const actionRef = useRef(null), focusStep = useRef(false);
   const [broken, setBroken] = useState(false);
   const photo = broken ? null : item.image; // a library photo when the dish has one, otherwise its drawing

@@ -194,6 +194,8 @@ export function App() {
     if (page.view === 'menu') {
       const t = String(route.params.table || '').replace(/[^\w-]/g, '').slice(0, 6);
       const o = String(route.params.outlet || '').replace(/[^a-z0-9-]/g, '').slice(0, 40);
+      const size = site.defaults.SIZES.find((x) => x.key === route.params.size);
+      site.setMenuSize(size ? size.label : null);
       if (o && (site.settings.outlets || []).some((x) => x.id === o && x.active !== false)) site.setTableOutlet(o);
       if (t) {
         setTable(t);

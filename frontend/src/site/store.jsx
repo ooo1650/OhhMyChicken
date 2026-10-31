@@ -49,6 +49,7 @@ export function SiteProvider({ boot, at, children }) {
   const [checkout, setCheckout] = useState({ mode: 'delivery', table: '', name: '', phone: '', address: '', saveDetails: false });
   const [menuQuery, setMenuQuery] = useState('');
   const [menuDiet, setMenuDiet] = useState('all');
+  const [menuSize, setMenuSize] = useState(null); // a size label chosen on the home page
   const [menuJump, setMenuJump] = useState(null); // { cat, n } — scroll to a category
 
   // Keep the open/closed pill honest.
@@ -122,11 +123,11 @@ export function SiteProvider({ boot, at, children }) {
       promoInput, setPromoInput, promoCode, setPromoCode,
       applyCode: (code) => { setPromoCode(code); setPromoInput(code); },
       checkout, setCheckout,
-      menuQuery, setMenuQuery, menuDiet, setMenuDiet, menuJump,
+      menuQuery, setMenuQuery, menuDiet, setMenuDiet, menuSize, setMenuSize, menuJump,
       jumpToCategory: (cat) => setMenuJump((j) => ({ cat, n: (j ? j.n : 0) + 1 })),
       clearMenuFilters: () => { setMenuQuery(''); setMenuDiet('all'); }
     };
-  }, [defaults, menu, settings, gallery, cart, now, outletId, setOutletId, tableOutlet, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuJump]);
+  }, [defaults, menu, settings, gallery, cart, now, outletId, setOutletId, tableOutlet, getItem, setCart, cartOpen, chatOpen, promoOpen, promoInput, promoCode, checkout, menuQuery, menuDiet, menuSize, menuJump]);
 
   return <SiteCtx.Provider value={value}>{children}</SiteCtx.Provider>;
 }

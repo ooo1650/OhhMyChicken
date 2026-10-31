@@ -81,7 +81,24 @@ const SIZES = [
   { key: 'XL', inch: 22, scale: 1, name: 'Extra Large', who: '6–8 people · parties!', note: 'The ultimate party pie. Bring the whole squad!' }
 ];
 
+// From the menu: each size's lowest pizza price, its price per square inch, and which size
+// is really the best value (so the badge can't claim something the prices don't back up).
+function sizePrices(site) {
+  const pizzas = site.menu.filter((m) => m.isPizza && m.available);
+  const rows = SIZES.map((s) => {
+    const def = site.defaults.SIZES.find((x) => x.key === s.key);
+    const prices = pizzas.flatMap((p) => p.prices.filter((x) => x.label === (def && def.label)).map((x) => x.price));
+    const from = prices.length ? Math.min(...prices) : 0;
+    return { from, perSq: from / (Math.PI * (s.inch / 2) ** 2) };
+  });
+  const priced = rows.filter((r) => r.from);
+  const best = priced.length ? rows.indexOf(priced.reduce((a, b) => (b.perSq < a.perSq ? b : a))) : -1;
+  return { rows, best };
+}
+
 function SizeGuide() {
+  const site = useSite();
+  const { rows, best } = useMemo(() => sizePrices(site), [site.menu, site.defaults]); // eslint-disable-line react-hooks/exhaustive-deps
   const [sel, setSel] = useState(3);
   const btns = useRef([]);
   const art = useMemo(() => pizza({ seed: 9, id: 'size', diet: 'mix' }), []);
@@ -110,13 +127,19 @@ function SizeGuide() {
           <div className="size-options" role="radiogroup" aria-label="Pizza size">
             {SIZES.map((s, i) => (
               <button key={s.key} ref={(el) => { btns.current[i] = el; }} className={'size-opt' + (s.key === 'XL' ? ' is-xl' : '')}
+                data-badge={i === best ? 'BEST VALUE' : s.key === 'XL' ? 'BIGGEST' : undefined}
                 role="radio" aria-checked={i === sel} onClick={() => { setSel(i); track('size_select', { value: s.key }); }} onKeyDown={(e) => onKey(e, i)}>
                 <b>{s.inch}"</b><span>{s.name}</span><em>{s.who}</em>
+                {rows[i].from > 0 && <>
+                  <strong className="size-from">from {site.money(rows[i].from)}</strong>
+                  <small className="size-sq">{site.settings.currency} {rows[i].perSq.toFixed(2)} per sq in</small>
+                </>}
               </button>
             ))}
           </div>
         </div>
         <p className="size-note">A {info.inch}" pizza = <b>{ratio.toFixed(1)}×</b> a 12". {info.note}</p>
+        <div className="center mt"><Link to={'/menu?size=' + info.key} className="btn btn-red">See {info.inch}" pizzas</Link></div>
       </div>
     </section>
   );

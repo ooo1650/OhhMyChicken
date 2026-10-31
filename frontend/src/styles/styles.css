@@ -280,8 +280,10 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .size-opt em { font-style: normal; font-size: var(--fs-xs); color: var(--muted); }
 .size-opt:hover { }
 .size-opt[aria-checked="true"] { background: var(--yellow); }
-.size-opt.is-xl { position: relative; }
-.size-opt.is-xl::after { content: 'BEST VALUE'; position: absolute; top: -10px; right: 10px; background: var(--red); color: var(--white); font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; border: 2px solid var(--ink); }
+.size-opt { position: relative; }
+.size-from { font-size: var(--fs-sm); font-weight: 800; color: var(--ink); }
+.size-sq { font-size: 11px; color: var(--muted); }
+.size-opt[data-badge]::after { content: attr(data-badge); position: absolute; top: -10px; right: 10px; background: var(--red); color: var(--white); font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; border: 2px solid var(--ink); }
 .size-note { margin-top: 16px; text-align: center; font-size: var(--fs-sm); color: var(--ink-2); }
 
 /* Steps */
