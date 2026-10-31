@@ -34,14 +34,14 @@
     .sh-hero .sh-wrap{display:flex;gap:40px;align-items:center}
     .sh-hero .sk{--sk:rgba(255,255,255,.18)}
     .sh-copy{flex:1;display:grid;gap:14px;max-width:520px}
-    .sh-pizza{display:none}
+    .sh-pizza{width:min(34vw,440px);aspect-ratio:1;border-radius:50%!important;flex-shrink:0;--sk:rgba(255,255,255,.07)!important}
     .sh-menu{display:none;padding:28px 0}
     .sh-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));margin-top:20px}
     .sh-card{border:1px solid #E8E3DD;border-radius:14px;padding:14px;display:grid;grid-template-columns:96px 1fr;gap:12px}
     .sh-card .sh-th{width:96px;height:96px;border-radius:14px}
     .shell-menu .sh-hero{display:none}.shell-menu .sh-menu{display:block}
     .sh-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-    @media (max-width:859px){.sh-head .sk{display:none}.sh-head .sk:last-of-type{display:block;width:40px;margin-left:auto}.sh-hero .sh-wrap{flex-direction:column;align-items:stretch}.sh-pizza{width:70vw;align-self:center}}
+    @media (max-width:859px){.sh-head .sk{display:none}.sh-head .sk:last-of-type{display:block;width:40px;margin-left:auto}.sh-hero .sh-wrap{flex-direction:column;align-items:stretch}.sh-pizza{width:70vw;max-width:300px;align-self:center}}
     @media (max-width:520px){.sh-head{height:60px}.sh-head img{height:42px}}
   </style>
   <!--boot-->

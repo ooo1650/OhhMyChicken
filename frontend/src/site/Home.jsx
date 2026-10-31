@@ -15,37 +15,93 @@ import { fmt12, reducedMotion } from '../shared/format.js';
 import { faqs, meals, servicesText, hoursText, categoryPath } from '../shared/seo.js';
 import { outletList } from '../shared/outlets.js';
 import { track } from '../shared/track.js';
-import logo240 from '../assets/logo-240.webp';
+import pizza480 from '../assets/hero-pizza-480.webp';
+import pizza900 from '../assets/hero-pizza-900.webp';
 
 /* ---------- Hero ---------- */
+// Loose toppings drifting around the pizza (depth: how far they move with the pointer).
+const DRIFT = [
+  { cls: 'leaf', style: { top: '4%', left: '6%', '--d': '7s', '--r': '-24deg', '--depth': 1.5 } },
+  { cls: 'pep', style: { top: '74%', left: '-3%', '--d': '9s', '--r': '14deg', '--depth': 2 } },
+  { cls: 'leaf', style: { top: '82%', right: '10%', '--d': '8s', '--r': '112deg', '--depth': 1.2 } },
+  { cls: 'pep small', style: { top: '10%', right: '2%', '--d': '6.5s', '--r': '40deg', '--depth': 2.4 } }
+];
+const DRIFT_ART = {
+  leaf: <svg viewBox="0 0 40 60"><path d="M20 2C36 16 36 42 20 58 4 42 4 16 20 2z" fill="#3F8430" /><path d="M20 6v48M20 22l9-7M20 22l-9-7M20 36l10-8M20 36l-10-8" stroke="#1F4D1B" strokeWidth="1.4" fill="none" /></svg>,
+  pep: <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="28" fill="#A5261B" /><circle cx="30" cy="30" r="24" fill="none" stroke="#5E120D" strokeWidth="4" opacity=".5" /><circle cx="22" cy="24" r="3" fill="#F2B98A" opacity=".3" /><circle cx="38" cy="36" r="2.5" fill="#F2B98A" opacity=".3" /></svg>
+};
+
+function FloatingPizza() {
+  const site = useSite(), { menu } = site;
+  const pizzas = menu.filter((m) => m.isPizza && m.available).flatMap((m) => m.prices.map((p) => +p.price));
+  const from = pizzas.length ? Math.min(...pizzas) : 0;
+  return (
+    <div className="hero-stage">
+      <span className="hero-glow" aria-hidden="true" />
+      <span className="hero-ground" aria-hidden="true" />
+      <div className="hero-float">
+        <img className="hero-pizza" src={pizza900} srcSet={pizza480 + ' 480w, ' + pizza900 + ' 900w'} sizes="(max-width: 859px) 300px, 480px"
+          width="900" height="900" alt="" decoding="async" fetchPriority="high" />
+      </div>
+      <div aria-hidden="true">
+        {DRIFT.map((d, i) => <span key={i} className={'hero-drift ' + d.cls} style={d.style}>{DRIFT_ART[d.cls.split(' ')[0]]}</span>)}
+      </div>
+      <p className="hero-chip chip-size"><b>22"</b> XL feeds 6–8</p>
+      {from > 0 && <p className="hero-chip chip-from"><small>Pizzas from</small> <b>{site.money(from)}</b></p>}
+    </div>
+  );
+}
+
 function Hero({ active }) {
   const site = useSite(), s = site.settings;
   const [broken, setBroken] = useState(false);
   const photo = broken ? null : site.hero;
-  // The home view stays mounted behind other pages: only fetch its photo once it has been opened.
+  const outlets = outletList(s).length;
+  const rootRef = useRef(null);
+  // The home view stays mounted behind other pages: only fetch its images once it has been opened.
   const opened = useRef(active);
   if (active) opened.current = true;
-  const outlets = outletList(s).length;
+
+  // Follow the pointer a little, and rest while the hero is off screen.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || reducedMotion) return undefined;
+    let raf = 0;
+    const move = (e) => {
+      if (e.pointerType === 'touch' || raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--px', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+        el.style.setProperty('--py', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+      });
+    };
+    el.addEventListener('pointermove', move, { passive: true });
+    const io = 'IntersectionObserver' in window ? new IntersectionObserver((en) => el.classList.toggle('is-resting', !en[0].isIntersecting)) : null;
+    if (io) io.observe(el);
+    return () => { el.removeEventListener('pointermove', move); cancelAnimationFrame(raf); if (io) io.disconnect(); };
+  }, []);
+
   return (
-    <div className={'hero' + (photo ? ' has-photo' : '')} id="hero">
+    <div className={'hero' + (photo ? ' has-photo' : '')} id="hero" ref={rootRef}>
       {photo && opened.current && <Photo media={photo} alt="" sizes="100vw" eager fetchPriority="high" className="hero-photo" onFail={() => setBroken(true)} />}
       <div className="wrap hero-inner">
         <div className="hero-copy">
-          <p className="hero-badge"><Icon name="flame" /> Home of the giant 22" pizza</p>
+          <p className="hero-badge hero-in"><Icon name="flame" /> Home of the giant 22" pizza</p>
           {/* The visible H1 is the name; the rest carries the search keywords. */}
-          <h1 className="hero-title">Ohh! My Chicken <span>Pizza Hub</span><span className="sr-only">: pizza restaurant in {s.city}</span></h1>
-          <p className="hero-tag">Giant pizzas, crispy fried chicken and MoMo, made fresh to order. Dine in, or get it delivered.</p>
-          <div className="hero-ctas">
-            <Link to="/menu" className="btn btn-red btn-lg">Order online</Link>
+          <h1 className="hero-title hero-in">Ohh! My Chicken <span>Pizza Hub</span><span className="sr-only">: pizza restaurant in {s.city}</span></h1>
+          <p className="hero-tag hero-in">Giant pizzas, crispy fried chicken and MoMo, made fresh to order. Dine in, or get it delivered.</p>
+          <div className="hero-ctas hero-in">
+            <Link to="/menu" className="btn btn-red btn-lg">Order online <Icon name="arrow-right" /></Link>
             <Link to="/menu" className="btn btn-ghost btn-lg">View menu</Link>
           </div>
-          <ul className="hero-facts">
-            <li><Icon name="clock" /> {site.isOpen ? 'Open until ' + fmt12(s.hoursClose) : 'Opens at ' + fmt12(s.hoursOpen)}</li>
-            <li><Icon name="bike" /> Delivery in about {s.deliveryMins} min</li>
-            {outlets > 1 && <li><Icon name="store" /> {outlets} outlets</li>}
+          <ul className="hero-facts hero-in">
+            <li><Icon name="clock" /><span><b>{site.isOpen ? 'Open now' : 'Closed now'}</b>{site.isOpen ? 'until ' + fmt12(s.hoursClose) : 'opens ' + fmt12(s.hoursOpen)}</span></li>
+            <li><Icon name="bike" /><span><b>{s.deliveryMins} min</b>delivery</span></li>
+            {outlets > 1 && <li><Icon name="store" /><span><b>{outlets} outlets</b>in the valley</span></li>}
           </ul>
         </div>
-        {!photo && <img className="hero-logo" src={logo240} width="260" height="240" alt="" />}
+        {!photo && opened.current && <FloatingPizza />}
       </div>
     </div>
   );
