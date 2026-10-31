@@ -190,24 +190,34 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .view { min-height: 50vh; overflow-x: clip; }
 
 /* ==========================================================================
-   HERO — a rounded card: the real pizza floats on the right, the name sits
-   bottom-left over a red glow. A photo chosen in the dashboard replaces it.
+   HERO — a rounded card like the mouth of a furnace: white-hot at the bottom,
+   fading to black, with the pizza sitting in the heat and the name above it.
+   A photo chosen in the dashboard replaces the pizza and the fire.
    ========================================================================== */
 .hero-shell { padding: clamp(8px, 1.4vw, 18px); }
 .hero {
   --px: 0; --py: 0;
   position: relative; overflow: hidden; isolation: isolate;
   max-width: 1500px; margin-inline: auto; border-radius: clamp(18px, 2.4vw, 32px);
-  display: flex; flex-direction: column; justify-content: flex-end;
-  min-height: clamp(520px, 44vw, 660px); padding: clamp(20px, 3.4vw, 48px);
-  background:
-    radial-gradient(70% 90% at 0% 100%, rgba(208,17,27,.92) 0%, rgba(208,17,27,.32) 48%, rgba(208,17,27,0) 74%),
-    radial-gradient(60% 70% at 72% 44%, rgba(242,176,30,.17) 0%, rgba(242,176,30,0) 70%),
-    #1A1412;
+  display: flex; flex-direction: column; justify-content: flex-start;
+  min-height: clamp(580px, 48vw, 720px); padding: clamp(20px, 3.4vw, 48px);
+  background: linear-gradient(180deg, #0F0A09 0%, #1A0D09 42%, #3A1208 70%, #6E1B08 100%);
   color: var(--white);
 }
+.hero.has-photo { justify-content: flex-end; background: #1A1412; }
 .hero-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; max-width: none; object-fit: cover; }
 .hero.has-photo::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(25deg, rgba(150,12,18,.86) 0%, rgba(20,15,13,.45) 55%, rgba(20,15,13,.15) 100%); }
+/* The fire: a hot core at the bottom, flickering, with embers floating up. */
+.hero-fire { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.fire-glow { position: absolute; left: -10%; right: -10%; bottom: -22%; height: 92%; transform-origin: 50% 100%;
+  background:
+    radial-gradient(38% 34% at 58% 92%, #FFF3C4 0%, #FFD35C 34%, rgba(255,160,40,0) 100%),
+    radial-gradient(62% 62% at 56% 100%, #FF9D24 0%, #F2591A 42%, rgba(190,35,12,.75) 68%, rgba(120,20,8,0) 100%),
+    radial-gradient(90% 100% at 50% 100%, rgba(170,28,10,.72) 0%, rgba(90,16,8,.3) 62%, rgba(60,10,6,0) 100%);
+  animation: flicker 3.4s ease-in-out infinite; }
+.hero-fire i { position: absolute; bottom: 8%; border-radius: 50%; background: #FFC15A; box-shadow: 0 0 6px 1px rgba(255,140,30,.9); opacity: 0; animation: ember 8s linear infinite; }
+@keyframes flicker { 0%, 100% { opacity: .92; transform: scale(1, 1); } 22% { opacity: 1; transform: scale(1.015, 1.05); } 41% { opacity: .84; transform: scale(.99, .97); } 63% { opacity: .98; transform: scale(1.01, 1.03); } 80% { opacity: .88; transform: scale(1, .99); } }
+@keyframes ember { 0% { opacity: 0; transform: translate(0, 0); } 8% { opacity: .95; } 55% { transform: translate(22px, -46vh); } 80% { opacity: .35; } 100% { opacity: 0; transform: translate(-14px, -78vh); } }
 .hero-copy { position: relative; z-index: 2; max-width: 520px; }
 .hero-title { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.05rem, 1.35rem + 2.5vw, 3.3rem); line-height: 1.04; letter-spacing: -.015em; }
 .hero-title > span:not(.sr-only) { display: block; color: var(--yellow); }
@@ -220,38 +230,35 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .hero-ctas .btn-red .i { transition: transform .15s; }
 .hero-ctas .btn-red:hover .i { transform: translateX(3px); }
 /* Glass card, bottom right */
-.hero-stat { position: absolute; z-index: 3; right: clamp(14px, 2.4vw, 32px); bottom: clamp(14px, 2.4vw, 32px); width: 214px; padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(14px); }
+.hero-stat { position: absolute; z-index: 3; right: clamp(14px, 2.4vw, 32px); top: clamp(14px, 2.4vw, 32px); width: 214px; padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(14px); }
 .hero-stat b { font-family: var(--font-display); font-weight: 400; font-size: 1.9rem; line-height: 1; }
 .hero-stat p { margin-top: 4px; font-size: var(--fs-xs); line-height: 1.35; color: rgba(255,255,255,.88); }
 .hero-stat small { display: block; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.16); font-size: 11px; color: rgba(255,255,255,.7); }
 .hero-stat small.is-open { color: #9BE8B4; }
 
-/* 3D pizza: stage (leans with the pointer) > float (bobs) > canvas, over the still photo. */
-.hero-stage { position: absolute; z-index: 1; top: 50%; right: 1%; width: 62%; margin-top: -7%; transform: translateY(-50%) perspective(1400px) rotateY(calc(var(--px) * 7deg)) rotateX(calc(var(--py) * -5deg)); transition: transform .6s ease-out; }
-.hero-glow { position: absolute; inset: 0 8% -6%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,190,90,.2), rgba(255,190,90,0)); }
+/* 3D pizza: stage (leans with the pointer) > float (bobs) > canvas, over the still photo. Mirrored, so the tall slice stands clear of the text. */
+.hero-stage { position: absolute; z-index: 1; right: 1%; bottom: -5%; width: 74%; transform: perspective(1400px) rotateY(calc(var(--px) * 6deg)) rotateX(calc(var(--py) * -4deg)); transform-origin: 50% 100%; transition: transform .6s ease-out; }
 .hero-float { position: relative; aspect-ratio: 2 / 1; animation: float 7s ease-in-out infinite; }
-.hero-ground { position: absolute; left: 12%; right: 2%; bottom: 2%; height: 12%; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.75), rgba(0,0,0,0)); filter: blur(6px); transform: translateY(26%); }
-.hero-slice, .hero-slice-3d { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; transition: opacity .4s; }
+.hero-slice, .hero-slice-3d { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; transform: scaleX(-1); transition: opacity .4s; }
 .hero-slice-3d { opacity: 0; }
 .is-3d .hero-slice-3d { opacity: 1; }
 .is-3d .hero-slice { opacity: 0; }
 .hero-in { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
 .hero-copy .hero-in:nth-child(2) { animation-delay: .06s; } .hero-copy .hero-in:nth-child(3) { animation-delay: .12s; }
-.hero.is-resting .hero-float { animation-play-state: paused; }
+.hero.is-resting :is(.hero-float, .fire-glow, .hero-fire i) { animation-play-state: paused; }
 @keyframes float { 50% { transform: translateY(-12px); } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
-@media (max-width: 1180px) { .hero-stage { width: 55%; margin-top: -9%; } }
 @media (max-width: 859px) {
-  /* The pizza sits above the text, nearly full width. */
-  .hero { min-height: 0; padding-top: min(58vw, 400px); background:
-    radial-gradient(120% 60% at 0% 100%, rgba(208,17,27,.95) 0%, rgba(208,17,27,.3) 60%, rgba(208,17,27,0) 86%),
-    radial-gradient(80% 40% at 55% 22%, rgba(242,176,30,.17) 0%, rgba(242,176,30,0) 70%), #1A1412; }
-  .hero-stage { top: 12px; right: auto; left: 2%; width: 96%; margin: 0; transform: none; }
-  .hero-stat { position: static; width: auto; margin-top: 16px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; }
+  /* Text on top, then the stats, with the pizza in the fire below. */
+  .hero { min-height: 0; padding-bottom: calc(52vw + 8px); }
+  .hero-stage { right: -3%; width: 104%; bottom: -3%; transform: none; transition: none; }
+  .hero-stat { position: static; width: auto; margin-top: 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; }
   .hero-stat b { grid-row: span 2; }
   .hero-stat p { margin: 0; }
   .hero-stat small { margin: 0; padding: 0; border: 0; }
+  .fire-glow { height: 62%; bottom: -8%; }
 }
+.hero.has-photo .hero-stat { top: auto; bottom: clamp(14px, 2.4vw, 32px); }
 
 /* Category shortcuts below the hero */
 .cat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding-block: clamp(18px, 3vw, 32px) 0; }

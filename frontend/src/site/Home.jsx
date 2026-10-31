@@ -22,6 +22,20 @@ import pizza480 from '../assets/hero-pizza-480.webp';
 import pizza900 from '../assets/hero-pizza-900.webp';
 
 /* ---------- Hero ---------- */
+// Embers rising from the furnace: [left %, size px, duration s, delay s].
+const EMBERS = [[6, 3, 7, 0], [14, 4, 9, 3], [23, 2, 6, 1.5], [31, 3, 8, 5], [39, 4, 10, 2], [47, 2, 6.5, 4], [55, 3, 8.5, .5], [63, 4, 7.5, 3.5], [71, 2, 9.5, 6], [79, 3, 7, 2.5], [87, 4, 8, 4.5], [94, 2, 6, 1]];
+
+function Furnace() {
+  return (
+    <div className="hero-fire" aria-hidden="true">
+      <span className="fire-glow" />
+      {EMBERS.map(([left, size, dur, delay]) => (
+        <i key={left} style={{ left: left + '%', width: size, height: size, animationDuration: dur + 's', animationDelay: -delay + 's' }} />
+      ))}
+    </div>
+  );
+}
+
 function FloatingPizza() {
   const canvasRef = useRef(null), imgRef = useRef(null);
   const [is3d, setIs3d] = useState(false);
@@ -33,7 +47,8 @@ function FloatingPizza() {
     if (reducedMotion || (conn && conn.saveData) || !window.WebGLRenderingContext) return undefined;
     let stop = null, gone = false;
     const hero = canvasRef.current.closest('.hero');
-    const pointer = () => ({ x: +hero.style.getPropertyValue('--px') || 0, y: +hero.style.getPropertyValue('--py') || 0 });
+    // (negative x: the picture is mirrored)
+    const pointer = () => ({ x: -(+hero.style.getPropertyValue('--px')) || 0, y: +hero.style.getPropertyValue('--py') || 0 });
     const run = () => import('./slice3d.js')
       .then((m) => m.startSlice3D(canvasRef.current, imgRef.current.currentSrc || imgRef.current.src, sliceDepth, pointer, () => setIs3d(false)))
       .then((end) => { if (gone) end(); else { stop = end; setIs3d(true); } }, () => {});
@@ -44,9 +59,7 @@ function FloatingPizza() {
 
   return (
     <div className={'hero-stage' + (is3d ? ' is-3d' : '')} aria-hidden="true">
-      <span className="hero-glow" />
       <div className="hero-float">
-        <span className="hero-ground" />
         <canvas className="hero-slice-3d" ref={canvasRef} />
         <img className="hero-slice" ref={imgRef} src={slice1400} srcSet={slice760 + ' 760w, ' + slice1400 + ' 1400w'}
           sizes="(max-width: 859px) 100vw, 60vw" width="1400" height="700" alt="" decoding="async" fetchPriority="high" />
@@ -90,6 +103,7 @@ function Hero({ active }) {
     <div className="hero-shell">
       <div className={'hero' + (photo ? ' has-photo' : '')} id="hero" ref={rootRef}>
         {photo && opened.current && <Photo media={photo} alt="" sizes="100vw" eager fetchPriority="high" className="hero-photo" onFail={() => setBroken(true)} />}
+        {!photo && <Furnace />}
         {!photo && opened.current && <FloatingPizza />}
         <div className="hero-copy">
           {/* The visible H1 is the name; the rest carries the search keywords. */}
