@@ -992,6 +992,19 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .cart-bar, .cart-bar:hover { background: var(--ink); border-color: var(--yellow); }
 }
 
+/* Chat: messages sit just above the suggestions, as in a messaging app. */
+.chat-log > :first-child { margin-top: auto; }
+.chat-quick.is-start { flex-wrap: wrap; overflow: visible; }
+/* Phones: the chat is the whole screen, not a card floating over the page. */
+@media (max-width: 640px) {
+  .chat-panel { inset: var(--chat-top, 0) 0 auto 0; width: 100%; max-width: none; height: var(--chat-h, 100dvh); max-height: none; border: 0; border-radius: 0; box-shadow: none; z-index: 90; }
+  .chat-head { padding: calc(10px + env(safe-area-inset-top)) 12px 10px; }
+  .chat-form { padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .chat-form input { font-size: 16px; min-height: 44px; } /* under 16px, iPhones zoom the page on focus */
+  .send-btn { width: 44px; height: 44px; }
+  .chat-quick button { padding: 8px 14px; font-size: 13px; }
+}
+
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }
 /* The one thing that moves: opening a branch in Find us, so the page doesn't jump. */
 @media (prefers-reduced-motion: no-preference) {

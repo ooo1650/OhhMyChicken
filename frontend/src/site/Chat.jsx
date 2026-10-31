@@ -11,6 +11,9 @@ import { categoryPath } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 
 const QUICK = ['Hours', 'Size for 8 people', 'Veg options', 'MoMo', 'Delivery', 'Deals'];
+const PHONE = '(max-width: 640px)';
+// On a touch screen, focusing the box would throw up the keyboard before anyone asks for it.
+const focusBox = (input) => { if (input && !matchMedia('(pointer: coarse)').matches) input.focus(); };
 
 export function Chat() {
   const site = useSite(), open = site.chatOpen;
@@ -20,7 +23,7 @@ export function Chat() {
   const [hidden, setHidden] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [pinged, setPinged] = useState(false);
-  const greeted = useRef(false), seq = useRef(0), logRef = useRef(null), inputRef = useRef(null), fabRef = useRef(null);
+  const greeted = useRef(false), seq = useRef(0), logRef = useRef(null), inputRef = useRef(null), fabRef = useRef(null), panelRef = useRef(null);
   const siteRef = useRef(site);
   siteRef.current = site;
 
@@ -39,12 +42,32 @@ export function Chat() {
       setPinged(true);
       requestAnimationFrame(() => setIsOpen(true));
       if (!greeted.current) { greeted.current = true; botSay(makeBot(siteRef.current).greet()); }
-      const t = setTimeout(() => inputRef.current && inputRef.current.focus(), 50);
+      const t = setTimeout(() => focusBox(inputRef.current), 50);
       return () => clearTimeout(t);
     }
     setIsOpen(false);
     const t = setTimeout(() => setHidden(true), 220);
     return () => clearTimeout(t);
+  }, [open]);
+
+  // On phones the chat is the whole screen: the page behind stays still, and the panel
+  // fits the part of the screen the keyboard leaves free, so its header stays in view.
+  useEffect(() => {
+    if (!open || !matchMedia(PHONE).matches) return undefined;
+    const root = document.documentElement, panel = panelRef.current, vv = window.visualViewport;
+    const fit = () => {
+      if (!vv || !panel) return;
+      panel.style.setProperty('--chat-h', vv.height + 'px');
+      panel.style.setProperty('--chat-top', vv.offsetTop + 'px');
+      if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+    };
+    root.classList.add('no-scroll');
+    fit();
+    if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+    return () => {
+      root.classList.remove('no-scroll');
+      if (vv) { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit); }
+    };
   }, [open]);
 
   useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log, typing]);
@@ -57,7 +80,7 @@ export function Chat() {
   const [pausedUntil, setPausedUntil] = useState(0);
   useEffect(() => {
     if (!pausedUntil) return undefined;
-    const t = setTimeout(() => { setPausedUntil(0); requestAnimationFrame(() => inputRef.current && inputRef.current.focus()); }, pausedUntil - Date.now());
+    const t = setTimeout(() => { setPausedUntil(0); requestAnimationFrame(() => focusBox(inputRef.current)); }, pausedUntil - Date.now());
     return () => clearTimeout(t);
   }, [pausedUntil]);
 
@@ -103,7 +126,7 @@ export function Chat() {
         <span className="chat-fab-ico" aria-hidden="true"><Icon name="chat" /></span>
         <span className="chat-ping" aria-hidden="true" hidden={pinged} />
       </button>
-      <section className={'chat-panel' + (isOpen ? ' is-open' : '')} id="chatPanel" role="dialog" aria-label="Chat with Chicky" hidden={hidden}
+      <section ref={panelRef} className={'chat-panel' + (isOpen ? ' is-open' : '')} id="chatPanel" role="dialog" aria-label="Chat with Chicky" hidden={hidden}
         onKeyDown={(e) => { if (e.key === 'Escape') close(true); }}>
         <header className="chat-head">
           <div className="chat-avatar" aria-hidden="true"><Icon name="cat-fried-chicken" /></div>
@@ -128,7 +151,8 @@ export function Chat() {
           ))}
           {typing && <div className="msg msg-bot typing"><div className="bubble"><i /><i /><i /></div></div>}
         </div>
-        <div className="chat-quick">
+        {/* Until the first question, all the suggestions show; after that they tuck into one scrolling row. */}
+        <div className={'chat-quick' + (log.some((m) => m.who === 'user') ? '' : ' is-start')}>
           {QUICK.map((q) => <button key={q} type="button" disabled={!!pausedUntil} onClick={() => send(q)}>{q}</button>)}
         </div>
         <form className="chat-form" onSubmit={(e) => { e.preventDefault(); send(text); setText(''); }}>
