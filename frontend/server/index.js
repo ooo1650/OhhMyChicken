@@ -174,7 +174,7 @@ if (process.env.NODE_ENV === 'production' && ADMIN_PATH === '/admin') {
 if (process.env.NODE_ENV === 'production' && !PUBLIC_URL) {
   console.warn('PUBLIC_URL is not set: canonical links and the sitemap will use whatever Host header visitors send. Set PUBLIC_URL=https://your-domain.');
 }
-const server = app.listen(PORT, () => console.log('Ohh My Chicken! frontend on http://localhost:' + PORT + ' (API: ' + BACKEND.origin + ')'));
+const server = app.listen(PORT, () => console.log('Ohh My Chicken Pizza Hub frontend on http://localhost:' + PORT + ' (API: ' + BACKEND.origin + ')'));
 // Drop clients that send their request very slowly (slowloris).
 server.headersTimeout = 20000;
 server.requestTimeout = 130000; // a large photo upload on a slow phone connection still fits

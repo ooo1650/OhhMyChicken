@@ -46,7 +46,7 @@ export function makeBot(site) {
   let INTENTS = [
     { id: 'greet', words: ['hi', 'hello', 'hey', 'namaste', 'yo', 'hola', 'good morning', 'good evening', 'sup'],
       reply: function () {
-        return { html: 'Namaste! I\'m <b>Chicky</b>, your Ohh My Chicken! helper. ' + openText() + '<br>Ask me about sizes, veg options, delivery or today\'s deal.' };
+        return { html: 'Namaste! I\'m <b>Chicky</b>, your Ohh My Chicken Pizza Hub helper. ' + openText() + '<br>Ask me about sizes, veg options, delivery or today\'s deal.' };
       } },
     { id: 'hours', words: ['hour', 'hours', 'open', 'close', 'closing', 'opening', 'timing', 'time', 'when'],
       reply: function () { return { html: 'We\'re open <b>every day, ' + hoursText() + '</b>.<br>' + openText() }; } },

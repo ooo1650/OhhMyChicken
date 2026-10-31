@@ -98,7 +98,7 @@ export function pageMeta(route, boot) {
   if (route.view === 'menu') {
     const pizzas = priceRange(menu.filter((m) => m.isPizza));
     return {
-      title: 'Menu & Prices: Pizza, Fried Chicken & MoMo | ' + name,
+      title: 'Pizza & Chicken Menu with Prices | ' + name,
       heading: 'The Menu',
       description: fit(['Full menu with prices: ' + menu.filter((m) => m.available).length + ' dishes, including pizzas in 12" to 22" XL' +
         (pizzas ? ' from ' + money(s, pizzas[0]) : '') + ', crispy fried chicken, wings and MoMo.', 'Order online in ' + city(s) + '.']),

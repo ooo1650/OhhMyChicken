@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ohh My Chicken! — styles
+   Ohh My Chicken Pizza Hub — styles
    Mobile-first. Fluid type via clamp(). Tight section rhythm on small screens.
    ========================================================================== */
 
@@ -201,15 +201,15 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
   .hero-ctas { gap: 10px; }
 }
 
-.wavy-title { margin: 0 0 6px; max-width: 560px; }
+.wavy-title { margin: 0 0 10px; max-width: 560px; }
 .wavy-svg { width: 100%; height: auto; overflow: visible; }
-.wavy-svg text { font-family: var(--font-display); font-size: 118px; letter-spacing: 1px; }
-.wt-main { stroke: var(--ink); stroke-width: 5px; paint-order: stroke fill; stroke-linejoin: round; }
+.wavy-svg text { font-family: var(--font-display); font-size: 100px; letter-spacing: .5px; }
+.wt-main { stroke: var(--ink); stroke-width: 4.5px; paint-order: stroke fill; stroke-linejoin: round; }
 .wt-1 { fill: var(--yellow); }
 .wt-2 { fill: var(--white); }
 .wt-shadow { fill: var(--ink); transform: translate(6px, 7px); }
 
-.hero-tag { font-size: var(--fs-lg); max-width: 34ch; margin-bottom: clamp(16px, 2.5vw, 24px); color: #FFE9E9; }
+.hero-tag { font-size: var(--fs-lg); max-width: 40ch; margin-bottom: clamp(16px, 2.5vw, 24px); color: #FFE9E9; }
 .hero-tag strong { color: var(--yellow); }
 .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
 .hero-ctas.center { justify-content: center; }
@@ -222,15 +222,21 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .hero-stage { position: relative; align-self: end; margin-inline: calc(var(--gutter) * -.6); }
 /* Mirrored, so the tall slice stands away from the text. */
 .hero-slice { display: block; width: 100%; height: auto; max-width: none; transform: scaleX(-1); filter: drop-shadow(0 12px 14px rgba(70,0,0,.4)); }
+.hero-h1 .i { display: inline-block; margin-right: 6px; }
 @media (min-width: 1000px) {
-  .hero-grid { grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr); padding-bottom: 0; }
-  .hero-copy { position: relative; z-index: 3; padding-bottom: clamp(24px, 3vw, 44px); }
-  .hero-stage { margin: 0 -2% 0 -18%; }
+  .hero-grid { grid-template-columns: minmax(430px, 500px) minmax(0, 1fr); gap: clamp(8px, 2vw, 28px); align-items: center; padding-bottom: 0; }
+  .hero-copy { position: relative; z-index: 3; padding-block: clamp(20px, 3vw, 40px) clamp(40px, 4vw, 60px); }
+  /* The pizza uses the free space to the right of the page column on wide screens. */
+  .hero-stage { margin: 0 calc(max(0px, (100vw - 1200px) / 2) * -.75) 0 0; padding-bottom: clamp(18px, 2vw, 30px); }
   .hero-h1 { white-space: nowrap; }
 }
+@media (min-width: 1000px) and (max-width: 1180px) {
+  .hero-grid { grid-template-columns: 400px minmax(0, 1fr); }
+  .hero-stage .size-sticker { top: -6%; left: 18%; }
+}
 .size-sticker {
-  position: absolute; top: 2%; left: 22%;
-  width: clamp(84px, 11vw, 132px); aspect-ratio: 1;
+  position: absolute; top: 9%; left: 40%;
+  width: clamp(76px, 9.5vw, 124px); aspect-ratio: 1;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: var(--yellow); color: var(--ink);
   clip-path: polygon(50% 0%, 61% 12%, 77% 5%, 80% 21%, 96% 24%, 90% 39%, 100% 50%, 90% 61%, 96% 76%, 80% 79%, 77% 95%, 61% 88%, 50% 100%, 39% 88%, 23% 95%, 20% 79%, 4% 76%, 10% 61%, 0% 50%, 10% 39%, 4% 24%, 20% 21%, 23% 5%, 39% 12%);

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ohh My Chicken! — Express JSON API. The React frontend is a separate
+   Ohh My Chicken Pizza Hub — Express JSON API. The React frontend is a separate
    service; its server proxies /api here, so browsers see one origin.
    ========================================================================== */
 'use strict';
@@ -82,7 +82,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   if (process.env.COOKIE_SECURE === 'false' && process.env.NODE_ENV === 'production') {
     console.warn('COOKIE_SECURE=false: the dashboard login cookie travels over plain HTTP. Fine on a private test network; on a public server use HTTPS and leave COOKIE_SECURE empty.');
   }
-  const server = app.listen(PORT, () => console.log('Ohh My Chicken! API on http://localhost:' + PORT));
+  const server = app.listen(PORT, () => console.log('Ohh My Chicken Pizza Hub API on http://localhost:' + PORT));
   server.headersTimeout = 20000;  // drop clients that send headers very slowly (slowloris)
   server.requestTimeout = 120000; // whole request, including a 10 MB photo on a slow line
   const stop = () => server.close(() => db.pool.end().then(() => process.exit(0)));

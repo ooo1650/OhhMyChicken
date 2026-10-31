@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Ohh My Chicken! — default menu + restaurant settings
+   Ohh My Chicken Pizza Hub — default menu + restaurant settings
    Factory defaults used to seed the database and by "Reset to defaults"
    in Admin. SIZES and CATEGORIES are also sent to the browser.
    The menu is the restaurant's printed menu (prices in NPR); edit it from Admin.
@@ -28,13 +28,13 @@ const CATEGORIES = [
     seo: 'Cheese & Veg Pizza in {city}',
     blurb: 'Cheese pizza and veg toppings: roasted garlic, mushroom, olive, pineapple, sweet corn, paneer, jalapeño and more, 12" to 22" XL.' },
   { id: 'special', name: 'OHH !!! MY CHICKEN',          short: 'Fried Chicken', icon: 'cat-fried-chicken', slug: 'fried-chicken',
-    seo: 'Fried Chicken & Wings in {city}',
+    seo: 'Fried Chicken in {city}',
     blurb: 'Crispy fried chicken (full or half), chicken wings and hot wings.' },
   { id: 'momo',    name: 'MoMo, Fries & Add-ons',       short: 'MoMo & Fries',  icon: 'cat-momo', slug: 'momo',
     seo: 'MoMo & Fries in {city}',
     blurb: 'Steam or fried MoMo in veg, buff, chicken and pork, French fries, the veggie combo, and extra cheese or toppings for your pizza.' },
   { id: 'drinks',  name: 'Coffee, Tea & Drinks',        short: 'Drinks',        icon: 'cat-coffee', slug: 'drinks',
-    seo: 'Coffee, Tea & Cold Drinks in {city}',
+    seo: 'Coffee & Drinks in {city}',
     blurb: 'Espresso coffees, milk and lemon teas, iced coffees and frappes, plus soft drinks and water.' }
 ];
 
@@ -161,7 +161,7 @@ const MENU = [
 ];
 
 const SETTINGS = {
-  name: 'Ohh My Chicken!',
+  name: 'Ohh My Chicken Pizza Hub',
   // Main branch contact; each outlet below has its own.
   phone: '+977 984-1336695',
   whatsapp: '9779841336695',

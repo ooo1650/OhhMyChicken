@@ -152,7 +152,7 @@ function Footer() {
           <button type="button" onClick={() => site.setChatOpen(true)}>Chat</button>
         </nav>
       </div>
-      <p className="wrap copyright">© {new Date().getFullYear()} {s.name} All rights reserved.
+      <p className="wrap copyright">© {new Date().getFullYear()} {s.name.replace(/[.!]+$/, '')}. All rights reserved.
         {' '}We count visits anonymously to improve the menu: no cookies, no ads, no tracking across sites, and your browser's "Do Not Track" is respected.</p>
       {/* Agency credit: who builds and runs the site, and how to reach them for one of your own. */}
       <div className="wrap made-by">

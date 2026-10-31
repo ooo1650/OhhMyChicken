@@ -32,16 +32,16 @@ function Hero({ active }) {
           {/* The visible H1 carries the search keywords; the wavy logo below is a picture. */}
           <h1 className="eyebrow hero-h1"><Icon name="flame" /> Pizza restaurant in {settings.city} · Home of the GIANT 22" pizza</h1>
 
-          <div className="wavy-title" role="img" aria-label={settings.name}>
-            <svg viewBox="0 0 600 250" className="wavy-svg" aria-hidden="true" focusable="false">
+          <div className="wavy-title" role="img" aria-label="Ohh My Chicken Pizza Hub">
+            <svg viewBox="0 0 760 232" className="wavy-svg" aria-hidden="true" focusable="false">
               <defs>
-                <path id="wave1" d="M10 100 Q 160 82 300 100 T 590 100" />
-                <path id="wave2" d="M10 210 Q 160 192 300 210 T 590 210" />
+                <path id="wave1" d="M8 104 Q 190 88 380 104 T 752 104" />
+                <path id="wave2" d="M8 212 Q 190 196 380 212 T 752 212" />
               </defs>
-              <text className="wt-shadow"><textPath href="#wave1" startOffset="2%">Ohh My</textPath></text>
-              <text className="wt-main wt-1"><textPath href="#wave1" startOffset="2%">Ohh My</textPath></text>
-              <text className="wt-shadow"><textPath href="#wave2" startOffset="1%">Chicken!</textPath></text>
-              <text className="wt-main wt-2"><textPath href="#wave2" startOffset="1%">Chicken!</textPath></text>
+              <text className="wt-shadow"><textPath href="#wave1">Ohh My Chicken</textPath></text>
+              <text className="wt-main wt-2"><textPath href="#wave1">Ohh My Chicken</textPath></text>
+              <text className="wt-shadow"><textPath href="#wave2">Pizza Hub</textPath></text>
+              <text className="wt-main wt-1"><textPath href="#wave2">Pizza Hub</textPath></text>
             </svg>
           </div>
 

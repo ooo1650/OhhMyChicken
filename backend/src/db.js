@@ -80,6 +80,8 @@ async function seed() {
     if (!rows[0].n) await insertMenu(c, defaults.MENU);
     await c.query('INSERT INTO settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO NOTHING', [JSON.stringify(defaults.SETTINGS)]);
     await backfillOutletPins(c);
+    // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
+    await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');
     if (envWeak && (!existing.rows.length || existing.rows[0].is_default)) throw new Error('ADMIN_PASSCODE is too weak: ' + envWeak);
     // No built-in passcode: a new database without ADMIN_PASSCODE gets a random one,

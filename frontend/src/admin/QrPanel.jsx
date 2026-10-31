@@ -61,8 +61,8 @@ function stickerCanvas(current) {
   ctx.textAlign = 'center';
   ctx.font = '96px "Lilita One", Impact, sans-serif';
   ctx.save(); ctx.translate(W / 2, 150); ctx.rotate(-0.05);
-  ctx.fillStyle = '#121212'; ctx.fillText('OHH MY CHICKEN!', 6, 6);
-  ctx.fillStyle = '#FFC72C'; ctx.fillText('OHH MY CHICKEN!', 0, 0); ctx.restore();
+  ctx.fillStyle = '#121212'; ctx.fillText('OHH MY CHICKEN PIZZA HUB', 6, 6, W - 110);
+  ctx.fillStyle = '#FFC72C'; ctx.fillText('OHH MY CHICKEN PIZZA HUB', 0, 0, W - 110); ctx.restore();
   ctx.fillStyle = '#fff';
   roundRect(ctx, 130, 230, 640, 640, 40); ctx.fill();
   drawModules(ctx, current.qr, 170, 270, 560);
@@ -91,10 +91,10 @@ function printStickers(current) {
     '<style>' + fontFaces() + '</style>' +
     '<style>@page{margin:12mm}body{margin:0;font-family:"Rubik Variable",Rubik,Arial,sans-serif;display:flex;flex-wrap:wrap;gap:8mm;justify-content:center}' +
     '.s{width:80mm;padding:6mm;border-radius:6mm;background:#E50914;color:#fff;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px dashed #999}' +
-    '.t{font-family:"Lilita One",Impact,sans-serif;font-size:9mm;color:#FFC72C;transform:rotate(-3deg);text-shadow:.6mm .6mm 0 #121212;margin:0 0 3mm}' +
+    '.t{font-family:"Lilita One",Impact,sans-serif;font-size:5.4mm;color:#FFC72C;transform:rotate(-3deg);text-shadow:.6mm .6mm 0 #121212;margin:0 0 3mm}' +
     '.q{background:#fff;border-radius:3mm;padding:2mm;display:inline-block}.q svg{width:58mm;height:58mm;display:block}' +
     '.c{font-family:"Lilita One",Impact,sans-serif;font-size:7mm;margin:3mm 0 1mm}.l{font-size:3.6mm;color:#FFC72C}</style></head><body>';
-  const one = '<div class="s"><p class="t">OHH MY CHICKEN!</p><div class="q">' + svgFor(current.qr, 220) + '</div><p class="c">SCAN FOR MENU</p><p class="l">' + label + '</p></div>';
+  const one = '<div class="s"><p class="t">OHH MY CHICKEN PIZZA HUB</p><div class="q">' + svgFor(current.qr, 220) + '</div><p class="c">SCAN FOR MENU</p><p class="l">' + label + '</p></div>';
   html += one + one + one + one + '</body></html>';
 
   const frame = document.createElement('iframe');

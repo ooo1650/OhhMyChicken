@@ -1,4 +1,4 @@
--- Ohh My Chicken! schema. Safe to run repeatedly (everything is IF NOT EXISTS).
+-- Ohh My Chicken Pizza Hub schema. Safe to run repeatedly (everything is IF NOT EXISTS).
 
 CREATE TABLE IF NOT EXISTS menu_items (
   id          TEXT PRIMARY KEY,
