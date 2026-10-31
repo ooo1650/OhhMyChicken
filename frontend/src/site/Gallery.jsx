@@ -48,7 +48,7 @@ export function Gallery() {
       <div className="wrap">
         <div className="section-head">
           <p className="eyebrow">Fresh from our kitchen in {settings.city}</p>
-          <h2 className="tilt-title" id="galleryTitle"><span>Hot</span> <span className="hl">off the oven</span></h2>
+          <h2 className="section-title" id="galleryTitle">Hot off the oven</h2>
         </div>
         <ul className={'gallery-grid' + (gallery.length === 2 ? ' two' : '')}>
           {gallery.map((p, i) => (

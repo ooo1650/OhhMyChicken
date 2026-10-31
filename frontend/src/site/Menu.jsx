@@ -227,11 +227,11 @@ export function MenuView({ active, table, cat }) {
           <div>
             {cat
               ? <>
-                  <h1 className="tilt-title light"><span className="hl">{pageMeta({ view: 'menu', cat }, boot).heading}</span></h1>
+                  <h1 className="section-title light">{pageMeta({ view: 'menu', cat }, boot).heading}</h1>
                   <p className="menu-sub menu-blurb">{cat.blurb}</p>
                 </>
               : <>
-                  <h1 className="tilt-title light"><span>The</span> <span className="hl">Menu</span></h1>
+                  <h1 className="section-title light">The Menu</h1>
                   <p className="menu-sub">Pizza, fried chicken &amp; MoMo in {s.city}: giant pizzas in 12" · 15" · 18" · <b>22" XL</b>, with prices.</p>
                 </>}
           </div>

@@ -108,7 +108,7 @@ function NotFoundView() {
     <section className="view section section-light not-found" id="view-notfound">
       <div className="wrap center">
         <p className="eyebrow eyebrow-red">Error 404</p>
-        <h1 className="tilt-title"><span>Ohh no!</span> <span className="hl">Page not found</span></h1>
+        <h1 className="section-title">Ohh no! Page not found</h1>
         <p className="nf-text">This page went out for delivery and never came back. Try the menu instead.</p>
         <div className="hero-ctas center">
           <Link to="/menu" className="btn btn-red">See the menu</Link>

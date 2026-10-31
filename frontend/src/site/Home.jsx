@@ -154,7 +154,7 @@ function Meals() {
       <div className="wrap">
         <div className="section-head">
           <p className="eyebrow eyebrow-red">{['Lunch', 'Dinner', 'Delivery'].filter((w) => w === 'Delivery' || m.includes(w.toLowerCase())).join(' · ')}</p>
-          <h2 className="tilt-title" id="mealsTitle"><span>Pizza restaurant</span> <span className="hl">in {s.city}</span></h2>
+          <h2 className="section-title" id="mealsTitle">Pizza restaurant in {s.city}</h2>
           <p className="meals-lead">
             {s.name} is a pizza and fried chicken restaurant in {s.city}. {services.charAt(0).toUpperCase() + services.slice(1)}
             {m.length ? ' for ' + m.join(' or ') : ''}: giant 22" pizzas for the whole table, crispy fried chicken, hot wings and MoMo,
@@ -187,7 +187,7 @@ function Faq() {
     <section className="section section-yellow" aria-labelledby="faqTitle">
       <div className="wrap faq-wrap">
         <div className="section-head">
-          <h2 className="tilt-title" id="faqTitle"><span>Questions?</span> <span className="hl-red">Answers.</span></h2>
+          <h2 className="section-title center" id="faqTitle">Questions? Answers.</h2>
         </div>
         <div className="faq-list">
           {list.map((f, i) => (
@@ -241,7 +241,7 @@ export function HomeView() {
         <div className="wrap">
           <div className="section-head">
             <p className="eyebrow">Crowd favourites</p>
-            <h2 className="tilt-title" id="specialsTitle"><span>OHH!!!</span> <span className="hl">My Picks</span></h2>
+            <h2 className="section-title" id="specialsTitle">OHH!!! My Picks</h2>
           </div>
           <ul className="picks">{picks.map((i) => <li key={i.id}><Pick item={i} /></li>)}</ul>
           <div className="center mt"><Link to="/menu" className="btn btn-red">See the full menu</Link></div>
@@ -252,7 +252,7 @@ export function HomeView() {
 
       <section className="section section-yellow" aria-labelledby="howTitle">
         <div className="wrap">
-          <h2 className="tilt-title center" id="howTitle"><span>Hot to your door</span> <span className="hl-red">in 3 steps</span></h2>
+          <h2 className="section-title" id="howTitle">Hot to your door in 3 steps</h2>
           <ol className="steps">
             <li><span className="step-ico"><Icon name="phone-app" /></span><b>Pick</b><p>Browse the menu &amp; choose your size.</p></li>
             <li><span className="step-ico"><Icon name="flame" /></span><b>We bake</b><p>Stone-baked &amp; fried fresh to order.</p></li>
