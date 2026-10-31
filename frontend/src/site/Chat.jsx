@@ -87,7 +87,7 @@ export function Chat() {
       case 'promo': site.applyCode(site.settings.promo.code); close(); site.setCartOpen(true); break;
       case 'add': {
         const label = p.slice(2).join(':'), it = site.getItem(p[1]);
-        site.addToCart(p[1], label, 1);
+        if (!site.addToCart(p[1], label, 1)) { push('bot', esc(it ? it.name : 'That item') + ' isn\'t available for delivery. You can order it at the restaurant.'); break; }
         track('add_to_cart', { item_id: p[1], value: label, num: 1 });
         push('bot', 'Added <b>' + esc(it ? it.name : 'item') + ' (' + esc(label) + ')</b> to your order.', [{ label: 'View order', act: 'cart' }]);
         break;

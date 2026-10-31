@@ -392,9 +392,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .dish-meta { display: flex; align-items: center; gap: 6px; min-height: 20px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .tag-pop { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px 2px 6px; border-radius: 999px; background: #FFF1F1; color: var(--red); letter-spacing: .03em; }
 .tag-pop .i { width: 12px; height: 12px; stroke-width: 2.6; }
-.tag-nodel { display: inline-flex; padding: 2px 8px; border-radius: 999px; background: #F1EFEA; color: #5F5A52; letter-spacing: .03em; white-space: nowrap; }
-.tag-pop + .tag-nodel { margin-left: 0; }
-.tag-nodel:first-of-type { margin-left: auto; }
 .cl-nodel { display: block; font-style: normal; font-size: var(--fs-xs); font-weight: 700; color: var(--red); }
 .nodel-note { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; background: #FFF1F1; color: #8E1410; font-size: var(--fs-xs); font-weight: 600; }
 .nodel-note .btn { flex-shrink: 0; }
@@ -971,11 +968,70 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
    The customer site doesn't move: no animation or transitions anywhere.
    (The dashboard keeps its new-order highlight.)
    ========================================================================== */
+/* Home: the crowd favourites. A pizza-first showcase, so it doesn't read as a second menu. */
+.picks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 62px 16px; padding-top: 44px; }
+.picks-even { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.dish.pick { grid-template-columns: minmax(0, 1fr); grid-template-areas: "art" "body" "opts" "foot"; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 0 16px 16px; border: 2px solid #3A3733; border-radius: 22px; background: #1F1D1B; color: var(--white); box-shadow: none; text-align: center; }
+.dish.pick:hover { box-shadow: none; border-color: var(--yellow); }
+.pick .dish-art { justify-self: center; width: min(150px, 88%); margin-top: -44px; padding: 0; border-radius: 50%; background: none; filter: drop-shadow(0 10px 12px rgba(0,0,0,.55)); }
+.pick .dish-art.has-photo { border: 3px solid var(--yellow); }
+.pick .dish-meta { justify-content: center; color: #B9B3AB; }
+.pick .tag-pop { display: none; }
+.pick .dish-name { font-size: 1.3rem; }
+.pick .dish-desc { color: #B9B3AB; }
+.pick .seg { justify-content: center; }
+.pick .seg button { background: transparent; border-color: #55504A; color: #E9E5DE; }
+.pick .seg button:hover { border-color: var(--yellow); }
+.pick .seg button[aria-checked="true"] { background: var(--yellow); border-color: var(--yellow); color: var(--ink); }
+.pick .seg button.is-xl { border-color: var(--yellow); color: var(--yellow); }
+.pick .seg button.is-xl[aria-checked="true"] { color: var(--ink); }
+.pick .dish-variant { color: #E9E5DE; }
+.pick .dish-foot { border-top-color: #3A3733; }
+.pick .dish-price { color: var(--yellow); }
+.pick .add-btn { background: var(--white); color: var(--ink); box-shadow: none; }
+.pick .stepper { box-shadow: none; background: var(--yellow); color: var(--ink); }
+
+/* The big one. */
+.dish.pick-lead { grid-column: span 2; grid-row: span 2; padding: 0 clamp(18px, 3vw, 36px) clamp(18px, 3vw, 30px); border-color: var(--ink); background: var(--yellow); color: var(--ink); }
+.dish.pick-lead:hover { border-color: var(--ink); }
+.pick-lead .dish-art { width: min(410px, 86%); margin-top: -44px; }
+.pick-lead .dish-meta, .pick-lead .dish-desc { color: var(--ink-2); }
+.pick-lead .dish-name { font-size: clamp(1.8rem, 1.3rem + 1.6vw, 2.7rem); }
+.pick-lead .seg button { padding: 7px 14px; font-size: 14px; border-color: var(--ink); color: var(--ink); }
+.pick-lead .seg button:hover { border-color: var(--ink); background: rgba(0,0,0,.08); }
+.pick-lead .seg button.is-xl { border-color: var(--red); color: var(--red); }
+.pick-lead .seg button[aria-checked="true"], .pick-lead .seg button.is-xl[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--white); }
+.pick-lead .dish-foot { border-top-color: rgba(0,0,0,.25); }
+.pick-lead .dish-price { font-size: clamp(1.7rem, 1.2rem + 1.4vw, 2.4rem); color: var(--red); }
+.pick-lead .add-btn { background: var(--red); color: var(--white); }
+.pick-lead .stepper { background: var(--ink); color: var(--white); }
+
+@media (max-width: 1000px) {
+  .picks { grid-template-columns: repeat(2, 1fr); gap: 56px 12px; }
+  .dish.pick-lead { grid-row: auto; }
+}
+@media (max-width: 520px) {
+  .dish.pick { padding: 0 10px 12px; border-radius: 18px; }
+  .pick .dish-art { width: min(116px, 84%); }
+  .pick .dish-name { font-size: 1.08rem; }
+  .pick .dish-foot { flex-direction: column; gap: 8px; }
+  .pick .dish-action, .pick .add-btn { width: 100%; justify-content: center; }
+  .pick .seg button { padding: 4px 7px; font-size: 11px; }
+  .dish.pick-lead { padding: 0 16px 16px; }
+  .pick-lead .dish-art { width: min(250px, 76%); }
+  .pick-lead .dish-foot { flex-direction: row; }
+  .pick-lead .dish-action, .pick-lead .add-btn { width: auto; }
+  .pick-lead .seg button { padding: 6px 11px; font-size: 13px; }
+}
+
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }
 /* The one thing that moves: opening a branch in Find us, so the page doesn't jump. */
 @media (prefers-reduced-motion: no-preference) {
-  body:not(.admin-page) .branch .branch-panel { transition: grid-template-rows .28s ease, opacity .2s ease !important; }
-  body:not(.admin-page) .branch .branch-chev { transition: transform .28s ease !important; }
+  /* Closing fades quickly; opening fades in once there is room for it. */
+  body:not(.admin-page) .branch .branch-panel { transition: grid-template-rows .34s cubic-bezier(.4, 0, .2, 1), opacity .14s linear !important; }
+  body:not(.admin-page) .branch.on .branch-panel { transition: grid-template-rows .34s cubic-bezier(.4, 0, .2, 1), opacity .24s linear .1s !important; }
+  body:not(.admin-page) .branch .branch-chev { transition: transform .34s cubic-bezier(.4, 0, .2, 1), color .2s linear !important; }
+  body:not(.admin-page) .branch .branch-name { transition: color .2s linear !important; }
 }
 
 /* Small touches of the logo's green. Red stays the colour for actions and prices. */

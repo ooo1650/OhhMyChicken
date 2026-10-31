@@ -49,7 +49,7 @@ function dietMatch(item, diet) {
 }
 
 /* ---------- Card ---------- */
-export function DishCard({ item, q }) {
+export function DishCard({ item, q, className }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   const actionRef = useRef(null), focusStep = useRef(false);
@@ -78,7 +78,8 @@ export function DishCard({ item, q }) {
   let action;
   const s = site.settings;
   if (!item.available) action = <span className="sold-tag">Sold out</span>;
-  else if (item.noDelivery && !s.dineIn && !s.takeaway) action = <span className="sold-tag">Not for delivery</span>;
+  // Counter-made drinks stay on the menu, but only a table or pickup order can include them.
+  else if (item.noDelivery && (site.checkout.mode || 'delivery') === 'delivery') action = <span className="sold-tag">{s.dineIn && !s.takeaway ? 'Dine-in only' : 'Not for delivery'}</span>;
   else if (!n) action = <button type="button" className="btn btn-red btn-sm add-btn" aria-label={'Add ' + what + ' to your order'} onClick={add}><Icon name="plus" /> Add</button>;
   else action = (
     <div className="stepper" role="group" aria-label={'Quantity of ' + what}>
@@ -89,7 +90,7 @@ export function DishCard({ item, q }) {
   );
 
   return (
-    <article className={'dish' + (item.available ? '' : ' is-sold')}>
+    <article className={'dish' + (item.available ? '' : ' is-sold') + (className ? ' ' + className : '')}>
       {photo
         ? <div className="dish-art has-photo"><Photo media={photo} alt={photo.alt || item.name} sizes="(max-width: 600px) 90px, 120px" onFail={() => setBroken(true)} /></div>
         : <Art className="dish-art" html={art} />}
@@ -97,7 +98,6 @@ export function DishCard({ item, q }) {
         <div className="dish-meta">
           <DietMark diet={item.diet} /><span>{dietLabel(item.diet)}</span>
           {item.popular && <span className="tag-pop"><Icon name="flame" />Popular</span>}
-          {item.noDelivery && <span className="tag-nodel">Not for delivery</span>}
         </div>
         <h3 className="dish-name"><Highlight text={item.name} q={q} /></h3>
         {item.desc && <p className="dish-desc"><Highlight text={item.desc} q={q} /></p>}

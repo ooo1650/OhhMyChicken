@@ -182,7 +182,10 @@ function Faq() {
 /* ---------- Home view ---------- */
 export function HomeView({ active }) {
   const site = useSite(), s = site.settings;
-  const picks = site.menu.filter((m) => m.popular && m.available).slice(0, 8);
+  const popular = site.menu.filter((m) => m.popular && m.available);
+  // One big pick and four around it; with fewer than five, an even row.
+  const lead = popular.length >= 5;
+  const picks = popular.slice(0, 5);
 
   return (
     <section className="view" id="view-home" hidden={!active}>
@@ -204,7 +207,9 @@ export function HomeView({ active }) {
             <p className="eyebrow">Crowd favourites</p>
             <h2 className="tilt-title" id="specialsTitle"><span>OHH!!!</span> <span className="hl">My Picks</span></h2>
           </div>
-          <div className="card-row">{picks.map((i) => <DishCard key={i.id} item={i} q="" />)}</div>
+          <div className={'picks' + (lead ? '' : ' picks-even')}>
+            {picks.map((i, n) => <DishCard key={i.id} item={i} q="" className={'pick' + (lead && n === 0 ? ' pick-lead' : '')} />)}
+          </div>
           <div className="center mt"><Link to="/menu" className="btn btn-red">See the full menu</Link></div>
         </div>
       </section>

@@ -209,7 +209,7 @@ Only the cart and the per-device "promo used" / "pop-up seen" flags stay in the 
 ## Notes
 
 - **The default menu is the restaurant's printed menu** (74 items, NPR), in `backend/src/defaults.js`. Edit it in Admin → Menu, and use *Export JSON* to keep a backup.
-- **Not for delivery:** the switch on a menu item (Admin → Menu → edit) keeps it on the menu for table orders and pickup, while the cart and the server refuse it for delivery. Coffee, tea and frappes start with it on; bottled drinks don't.
+- **Not for delivery:** the switch on a menu item (Admin → Menu → edit) keeps it on the menu, but only table orders and pickup can add it: on a delivery order it shows "Dine-in only" instead of Add, and the server refuses it too. Coffee, tea and frappes start with it on; bottled drinks don't.
 - **Outlets (branches)** are managed in Admin → Outlets: address, landmark, phones, WhatsApp for orders, delivery note, own hours, map and social links, visible/hidden, main branch and order. Find us shows one card per outlet; with more than one visible, customers pick the outlet after *Place order via WhatsApp*, the order goes to that outlet's WhatsApp and is logged with its name. Table QR codes can name an outlet to skip the choice.
 - **Every dish has its own drawing** (which pizza by its toppings, wings vs. bucket, which MoMo, which coffee or tea). The drawings live in `frontend/src/shared/food-art.js`; an item's `art` field picks one (Admin → Menu → edit → *Drawing*), shown until the dish has a photo, and items without one get a drawing guessed from their name.
 - Update the phone, WhatsApp number and address in Admin (factory defaults are in `backend/src/defaults.js`).

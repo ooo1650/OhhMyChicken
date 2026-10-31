@@ -52,19 +52,24 @@ export function FindUs() {
   const current = outlets.some((o) => o.id === sel) ? sel : first;
   const [expanded, setExpanded] = useState(true);
   const listRef = useRef(null);
-  // Tapping the open branch closes it. When one above closes, the tapped row slides up,
-  // so bring it back into view if it ends up under the header.
   const show = (id) => { setSel(id); setExpanded(true); };
+  // Tapping the open branch closes it. When another one opens, the page is held so the
+  // tapped row stays under the finger while the one above closes. Scrolling lets go.
   const pick = (id) => {
     if (id === current && expanded) { setExpanded(false); return; }
+    const row = listRef.current.querySelector('[aria-controls="branch-' + (id || 'main') + '"]');
+    const from = row.getBoundingClientRect().top, started = performance.now();
+    let held = true;
+    const letGo = () => { held = false; };
+    window.addEventListener('wheel', letGo, { once: true, passive: true });
+    window.addEventListener('touchstart', letGo, { once: true, passive: true });
+    const hold = () => {
+      if (held) window.scrollBy({ top: row.getBoundingClientRect().top - from, behavior: 'instant' });
+      if (held && performance.now() - started < 420) requestAnimationFrame(hold);
+      else { window.removeEventListener('wheel', letGo); window.removeEventListener('touchstart', letGo); }
+    };
     show(id);
-    setTimeout(() => {
-      const row = listRef.current && listRef.current.querySelector('.branch.on');
-      const header = document.getElementById('siteHeader');
-      if (!row || !header) return;
-      const top = row.getBoundingClientRect().top - header.offsetHeight - 8;
-      if (top < 0) window.scrollBy({ top, behavior: 'smooth' });
-    }, 300);
+    requestAnimationFrame(hold);
   };
   const mapped = outlets.some(onMap);
   const [showMap, setShowMap] = useState(readOpen);

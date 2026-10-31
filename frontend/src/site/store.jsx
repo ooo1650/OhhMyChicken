@@ -89,13 +89,15 @@ export function SiteProvider({ boot, children }) {
 
     function addToCart(id, label, qty) {
       const item = getItem(id);
-      if (!item) return;
+      if (!item) return false;
+      if (item.noDelivery && (checkout.mode || 'delivery') === 'delivery') return false;
       const price = item.prices.find((p) => p.label === label) || item.prices[0];
       const next = cart.map((c) => ({ ...c }));
       const line = next.find((c) => c.id === id && c.label === price.label);
       if (line) line.qty += qty || 1;
       else next.push({ id, label: price.label, qty: qty || 1 });
       setCart(next);
+      return true;
     }
     function setQty(id, label, qty) {
       setCart(cart.map((c) => (c.id === id && c.label === label ? { id, label, qty } : c)).filter((c) => c.qty > 0));
