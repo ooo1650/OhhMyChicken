@@ -151,13 +151,15 @@ function SizeGuide() {
           <h2 className="sec-title" id="sizesTitle">Which size do you need?</h2>
         </div>
         <div className="size-guide">
-          {/* Circles drawn to scale, so the jump to 22" is easy to see. */}
-          <svg className="size-rings" viewBox="0 0 220 220" aria-hidden="true" focusable="false">
-            {[...SIZES].reverse().map((z) => (
-              <circle key={z.key} cx="110" cy="110" r={z.inch * 4.8} className={z.key === info.key ? 'on' : undefined} />
-            ))}
-            <text x="110" y="118" textAnchor="middle">{info.inch}"</text>
-          </svg>
+          {/* The pizza and rings are to scale, so the jump to 22" is easy to see. */}
+          <div className="size-visual" aria-hidden="true">
+            <svg className="size-rings" viewBox="0 0 220 220" focusable="false">
+              {SIZES.map((z) => <circle key={z.key} cx="110" cy="110" r={z.inch * 5 - 1} className={z.key === info.key ? 'on' : undefined} />)}
+            </svg>
+            <img className="size-pizza" src={pizza480} srcSet={pizza480 + ' 480w, ' + pizza900 + ' 900w'} sizes="(max-width: 600px) 200px, 340px"
+              width="900" height="900" alt="" loading="lazy" decoding="async" style={{ transform: 'scale(' + (info.inch / 22).toFixed(3) + ')' }} />
+            <span className="size-tag"><b>{info.inch}"</b> {info.name}</span>
+          </div>
           <div className="size-options" role="radiogroup" aria-label="Pizza size">
             {SIZES.map((z, i) => (
               <button key={z.key} ref={(el) => { btns.current[i] = el; }} className="size-opt"
@@ -167,7 +169,7 @@ function SizeGuide() {
             ))}
           </div>
         </div>
-        <p className="size-note">A {info.inch}" pizza is <b>{ratio.toFixed(1)}×</b> the size of a 12". {info.note}</p>
+        <p className="size-note">{info.inch > 12 && <>A {info.inch}" pizza is <b>{ratio.toFixed(1)}×</b> the size of a 12". </>}{info.note}</p>
       </div>
     </section>
   );
