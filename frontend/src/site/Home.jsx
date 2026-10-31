@@ -2,8 +2,7 @@
    Home — hero card with the 3D pizza, categories, popular dishes, size guide, gallery,
    how ordering works, lunch & dinner, outlets and FAQ.
    ========================================================================== */
-import { useEffect, useRef, useState } from 'react';
-import gsap from 'gsap';
+import { useRef, useState } from 'react';
 import { useSite } from './store.jsx';
 import { Link } from './router.jsx';
 import { DishCard } from './Menu.jsx';
@@ -11,7 +10,7 @@ import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
-import { fmt12, reducedMotion } from '../shared/format.js';
+import { fmt12 } from '../shared/format.js';
 import { faqs, meals, servicesText, hoursText, categoryPath } from '../shared/seo.js';
 import { outletList } from '../shared/outlets.js';
 import { track } from '../shared/track.js';
@@ -21,45 +20,21 @@ import pizza480 from '../assets/hero-pizza-480.webp';
 import pizza900 from '../assets/hero-pizza-900.webp';
 
 /* ---------- Hero ---------- */
-// Embers rising from the furnace: [left %, size px, duration s, delay s].
-const EMBERS = [[6, 3, 7, 0], [14, 4, 9, 3], [23, 2, 6, 1.5], [31, 3, 8, 5], [39, 4, 10, 2], [47, 2, 6.5, 4], [55, 3, 8.5, .5], [63, 4, 7.5, 3.5], [71, 2, 9.5, 6], [79, 3, 7, 2.5], [87, 4, 8, 4.5], [94, 2, 6, 1]];
-
-function Furnace() {
-  return (
-    <div className="hero-fire" aria-hidden="true">
-      <span className="fire-glow" />
-      {EMBERS.map(([left, size, dur, delay]) => (
-        <i key={left} style={{ left: left + '%', width: size, height: size, animationDuration: dur + 's', animationDelay: -delay + 's' }} />
-      ))}
-    </div>
-  );
-}
-
 function Hero({ active }) {
   const site = useSite(), s = site.settings;
   const [broken, setBroken] = useState(false);
   const photo = broken ? null : site.hero;
   const outlets = outletList(s).length;
-  const rootRef = useRef(null);
   // The home view stays mounted behind other pages: only fetch its images once it has been opened.
   const opened = useRef(active);
   if (active) opened.current = true;
 
-  // The fire rests while the hero is off screen.
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el || reducedMotion || !('IntersectionObserver' in window)) return undefined;
-    const io = new IntersectionObserver((en) => el.classList.toggle('is-resting', !en[0].isIntersecting));
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
   const pizzas = site.menu.filter((m) => m.isPizza && m.available).flatMap((m) => m.prices.map((p) => +p.price));
   return (
     <div className="hero-shell">
-      <div className={'hero' + (photo ? ' has-photo' : '')} id="hero" ref={rootRef}>
+      <div className={'hero' + (photo ? ' has-photo' : '')} id="hero">
         {photo && opened.current && <Photo media={photo} alt="" sizes="100vw" eager fetchPriority="high" className="hero-photo" onFail={() => setBroken(true)} />}
-        {!photo && <Furnace />}
+        {!photo && <div className="hero-fire" aria-hidden="true"><span className="fire-glow" /></div>}
         {/* The pizza is mirrored in CSS, and breaks out of the card. */}
         {!photo && opened.current && (
           <img className="hero-slice" src={slice1400} srcSet={slice760 + ' 760w, ' + slice1400 + ' 1400w'}
@@ -212,30 +187,10 @@ function Faq() {
 /* ---------- Home view ---------- */
 export function HomeView({ active }) {
   const site = useSite(), s = site.settings;
-  const rootRef = useRef(null);
   const picks = site.menu.filter((m) => m.popular && m.available).slice(0, 8);
 
-  // Sections fade in as they scroll into view.
-  useEffect(() => {
-    if (reducedMotion || !('IntersectionObserver' in window)) return undefined;
-    const targets = rootRef.current.querySelectorAll('.section-head, .size-guide, .steps li, .find-copy, .find-map, .branch');
-    targets.forEach((t) => t.classList.add('pre-reveal'));
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((en) => {
-        if (!en.isIntersecting) return;
-        io.unobserve(en.target);
-        gsap.to(en.target, {
-          opacity: 1, y: 0, duration: 0.5, ease: 'power2.out',
-          onComplete: () => { en.target.classList.remove('pre-reveal'); en.target.style.transform = ''; }
-        });
-      });
-    }, { threshold: 0.15 });
-    targets.forEach((t) => io.observe(t));
-    return () => io.disconnect();
-  }, []);
-
   return (
-    <section className="view" id="view-home" ref={rootRef} hidden={!active}>
+    <section className="view" id="view-home" hidden={!active}>
       <Hero active={active} />
       <Categories />
 

@@ -2,7 +2,6 @@
    App — routes, page <head>, header/nav, offer pop-up and footer.
    ========================================================================== */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import gsap from 'gsap';
 import { useSite, promoSeen, markPromoSeen } from './store.jsx';
 import { useRoute, Link } from './router.jsx';
 import { HomeView } from './Home.jsx';
@@ -218,15 +217,6 @@ export function App() {
     else window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
     return undefined;
   }, [route.n]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Fade the newly shown view in.
-  const firstView = useRef(true);
-  useEffect(() => {
-    // The first view replaces the loading skeleton directly; fading it in from blank would flash.
-    if (firstView.current) { firstView.current = false; return; }
-    if (reducedMotion) return;
-    gsap.fromTo('#view-' + view, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power1.out' });
-  }, [view]);
 
   // Offer pop-up once per session, after the configured delay (not on error pages).
   useEffect(() => {
