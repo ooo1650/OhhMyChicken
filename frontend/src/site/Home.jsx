@@ -35,12 +35,32 @@ function FloatingPizza() {
   const site = useSite(), { menu } = site;
   const pizzas = menu.filter((m) => m.isPizza && m.available).flatMap((m) => m.prices.map((p) => +p.price));
   const from = pizzas.length ? Math.min(...pizzas) : 0;
+  const canvasRef = useRef(null), imgRef = useRef(null);
+  const [is3d, setIs3d] = useState(false);
+
+  // The real 3D pizza loads after the page, as an extra; until then (or if the
+  // device can't run it) the flat image is what people see.
+  useEffect(() => {
+    const conn = navigator.connection;
+    if (reducedMotion || (conn && conn.saveData) || !window.WebGL2RenderingContext) return undefined;
+    let stop = null, gone = false;
+    const hero = canvasRef.current.closest('.hero');
+    const pointer = () => ({ x: +hero.style.getPropertyValue('--px') || 0, y: +hero.style.getPropertyValue('--py') || 0 });
+    const run = () => import('./pizza3d.js')
+      .then((m) => m.startPizza3D(canvasRef.current, imgRef.current.currentSrc || imgRef.current.src, pointer, () => setIs3d(false)))
+      .then((s) => { if (gone) s(); else { stop = s; setIs3d(true); } }, () => {});
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 300));
+    const handle = idle(run);
+    return () => { gone = true; if (window.cancelIdleCallback) window.cancelIdleCallback(handle); if (stop) stop(); };
+  }, []);
+
   return (
-    <div className="hero-stage">
+    <div className={'hero-stage' + (is3d ? ' is-3d' : '')}>
       <span className="hero-glow" aria-hidden="true" />
       <span className="hero-ground" aria-hidden="true" />
       <div className="hero-float">
-        <img className="hero-pizza" src={pizza900} srcSet={pizza480 + ' 480w, ' + pizza900 + ' 900w'} sizes="(max-width: 859px) 300px, 480px"
+        <canvas className="hero-pizza-3d" ref={canvasRef} aria-hidden="true" />
+        <img className="hero-pizza" ref={imgRef} src={pizza900} srcSet={pizza480 + ' 480w, ' + pizza900 + ' 900w'} sizes="(max-width: 859px) 300px, 480px"
           width="900" height="900" alt="" decoding="async" fetchPriority="high" />
       </div>
       <div aria-hidden="true">

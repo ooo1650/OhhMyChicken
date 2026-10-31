@@ -133,7 +133,7 @@ Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped
 
 | Area | What it does |
 | --- | --- |
-| **Hero** | The restaurant's name over a darkened photo chosen in the dashboard (Store → *Home page photo*). With no photo: plain charcoal with the logo. Category shortcuts sit right below it. |
+| **Hero** | The restaurant's name beside a floating pizza. It is real 3D in plain WebGL (`src/site/pizza3d.js`, about 3 KB, loaded after the page), with the flat image `src/assets/hero-pizza-*.webp` as the fallback when WebGL is missing, the device is slow, data saver or reduced motion is on. A photo chosen in the dashboard (Store → *Home page photo*) replaces the pizza. Category shortcuts sit right below. |
 | **Offer pop-up** | Shows after 3 s, once per browser session. "Tap to copy" copies the code and applies it to the cart. You can edit it in Admin. |
 | **Size guide** | Interactive 12" / 15" / 18" / 22" picker that scales the pizza and compares areas. |
 | **Menu** | Full-width menu with a sticky category bar that jumps to each section and highlights the one you're reading, instant search (name, description, type or category), diet filters with veg / non-veg marks, a size / option picker, and an Add button that turns into a quantity stepper. A floating "View order" bar shows the item count and subtotal. Opening `/menu?table=7` (from a table QR sticker) shows a table banner and pre-fills the table at checkout. |
