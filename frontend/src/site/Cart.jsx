@@ -32,12 +32,13 @@ export function CartBar() {
 
 function CartLine({ line }) {
   const site = useSite();
-  const photo = site.settings.dishPhotos ? line.item.image : null;
+  const [broken, setBroken] = useState(false);
+  const photo = broken ? null : line.item.image;
   const art = useMemo(() => (photo ? '' : iconFor(line.item)), [line.item, photo]);
   return (
     <li className="cart-line">
       {photo
-        ? <div className="cl-art has-photo"><Photo media={photo} alt="" sizes="46px" /></div>
+        ? <div className="cl-art has-photo"><Photo media={photo} alt="" sizes="52px" onFail={() => setBroken(true)} /></div>
         : <Art className="cl-art" html={art} />}
       <div className="cl-info"><b>{line.name}</b><span>{line.label} · {site.money(line.unit)}</span></div>
       <div className="qty" role="group" aria-label={'Quantity for ' + line.name}>

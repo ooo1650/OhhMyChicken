@@ -38,7 +38,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       name: admin.settings.name,
       street: f.street.trim(), city: f.city.trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
       country: f.country.trim(), currencyCode: f.currencyCode.trim(), lat: f.lat === '' ? null : f.lat, lng: f.lng === '' ? null : f.lng,
-      mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway, dishPhotos: !!f.dishPhotos,
+      mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway,
       promo: { enabled: !!f.promo.enabled, popup: !!f.promo.popup, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
     };
     const pass = f.newPass, current = f.currentPass;
@@ -81,13 +81,6 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
             <label className="field"><span>Free delivery over</span><input type="number" min="0" {...field('freeDeliveryOver')} /></label>
             <label className="field"><span>Currency</span><input maxLength="5" {...field('currency')} /></label>
           </div>
-        </fieldset>
-        <fieldset>
-          <legend>Menu display</legend>
-          <label className="switch">
-            <input type="checkbox" checked={!!f.dishPhotos} onChange={(e) => setF((x) => ({ ...x, dishPhotos: e.target.checked }))} /><span /> Show dish photos on the menu
-          </label>
-          <p className="tiny muted"><Icon name="info" /> Off: every dish shows its illustration. Photos you've already attached stay saved and come back if you switch this on. The home-page gallery is separate (Photos tab).</p>
         </fieldset>
         <fieldset>
           <legend>Google &amp; local search</legend>

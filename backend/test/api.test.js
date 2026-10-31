@@ -235,12 +235,24 @@ it('photos: upload, link to a dish, serve, delete', async () => {
   const up = await req('POST', '/api/media', { raw: png, headers: { 'Content-Type': 'image/png', 'X-File-Name': encodeURIComponent('Chicken BBQ.png') } });
   assert.equal(up.status, 201);
   assert.equal(up.json.alt, 'Chicken BBQ');
-  assert.deepEqual(up.json.sizes.map((s) => s.w), [320, 640, 800]);
+  assert.deepEqual(up.json.sizes.map((s) => s.w), [320, 480, 640, 800]);
 
   const file = await fetch(B + up.json.sizes[0].url);
   assert.equal(file.status, 200);
   assert.equal(file.headers.get('content-type'), 'image/webp');
-  assert.match(file.headers.get('cache-control'), /immutable/);
+  assert.match(file.headers.get('cache-control'), /s-maxage=31536000, immutable/);
+
+  // A wiped disk loses nothing: the file comes back from the database, and is put back on disk.
+  const name = up.json.sizes[0].url.split('/').pop();
+  const original = Buffer.from(await file.arrayBuffer());
+  fs.rmSync(path.join(uploads, name));
+  const restored = await fetch(B + up.json.sizes[0].url);
+  assert.equal(restored.status, 200);
+  assert.equal(restored.headers.get('content-type'), 'image/webp');
+  assert.ok(original.equals(Buffer.from(await restored.arrayBuffer())));
+  assert.ok(fs.existsSync(path.join(uploads, name)));
+  assert.equal((await fetch(B + '/media/' + 'a'.repeat(24) + '-320.webp')).status, 404);
+  assert.equal((await fetch(B + '/media/..%2Fpackage.json')).status, 404);
 
   const menu = (await req('GET', '/api/menu')).json;
   const linked = await req('PUT', '/api/menu/' + menu[0].id, { body: { ...menu[0], imageId: up.json.id, art: 'pizza-smoky' } });

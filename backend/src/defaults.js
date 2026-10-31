@@ -185,8 +185,6 @@ const SETTINGS = {
   socialLinks: [],
   dineIn: true,
   takeaway: false,
-  // Photos on dish cards (off: every dish shows its drawing). Photos stay linked either way.
-  dishPhotos: false,
   // Branches: shown in Find us; customers pick one when they order on WhatsApp.
   outlets: [
     {

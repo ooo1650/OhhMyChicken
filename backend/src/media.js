@@ -1,7 +1,9 @@
 /* ==========================================================================
    Photos — uploads are decoded and re-encoded with sharp (so only real
    images get through), auto-rotated, stripped of EXIF/GPS data and saved
-   as WebP in several widths under UPLOAD_DIR. Postgres keeps the metadata.
+   as WebP in several widths. Postgres keeps the metadata and a copy of every
+   file; UPLOAD_DIR holds the same files for fast serving. If that disk is
+   wiped (some hosts do it on every deploy), files are restored on first request.
    ========================================================================== */
 'use strict';
 const fs = require('fs/promises');
@@ -16,7 +18,7 @@ const { createGate } = require('./limit');
 const processGate = createGate(1, 20);
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads'));
-const WIDTHS = [320, 640, 1024, 1600];
+const WIDTHS = [320, 480, 640, 800, 1024, 1600];
 const MAX_BYTES = 10 * 1024 * 1024;  // per upload
 const MAX_PIXELS = 50e6;             // refuse decompression bombs
 const MIN_SIDE = 200;                // too small to look good on a dish card
@@ -43,6 +45,7 @@ function toMedia(r) {
 // Admin view adds housekeeping fields.
 function toAdminMedia(r) {
   return Object.assign(toMedia(r), {
+    missing: r.stored != null && Number(r.stored) === 0, // the files were lost: upload it again
     originalName: r.original_name, bytes: r.bytes, createdAt: new Date(r.created_at).getTime(), usedBy: Number(r.used_by || 0)
   });
 }
@@ -76,13 +79,15 @@ async function createNow(buffer, originalName) {
   const base = sharp(buffer, { limitInputPixels: MAX_PIXELS }).rotate(); // rotate() applies EXIF orientation; output has no EXIF
 
   await ensureDir();
-  const sizes = [], written = [];
+  const sizes = [], written = [], files = [];
   let bytes = 0;
   try {
     for (const w of widths) {
       const file = id + '-' + w + '.webp';
-      const info = await base.clone().resize({ width: w, withoutEnlargement: true }).webp({ quality: 78, effort: 4 }).toFile(path.join(UPLOAD_DIR, file));
+      const { data, info } = await base.clone().resize({ width: w, withoutEnlargement: true }).webp({ quality: 78, effort: 4 }).toBuffer({ resolveWithObject: true });
+      await fs.writeFile(path.join(UPLOAD_DIR, file), data);
       written.push(file);
+      files.push({ file, data });
       bytes += info.size;
       sizes.push({ w: info.width, h: info.height, file });
     }
@@ -94,11 +99,41 @@ async function createNow(buffer, originalName) {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM media)) RETURNING *, 0 AS used_by`,
       [id, String(originalName || '').slice(0, 200), altFromName(originalName), largest.w, largest.h, bytes, JSON.stringify(sizes), placeholder]
     );
+    for (const f of files) await pool.query('INSERT INTO media_files (file, media_id, bytes) VALUES ($1, $2, $3)', [f.file, id, f.data]);
     return toAdminMedia(rows[0]);
   } catch (e) {
+    await pool.query('DELETE FROM media WHERE id = $1', [id]).catch(() => {});
     await removeFiles(written);
     throw e;
   }
+}
+
+/* ---------- Serving and keeping files ---------- */
+// A file that isn't on disk: fetch it from the database, put it back on disk, return it.
+async function restoreFile(file) {
+  if (!FILE_RE.test(file)) return null;
+  const { rows } = await pool.query('SELECT bytes FROM media_files WHERE file = $1', [file]);
+  if (!rows.length) return null;
+  await ensureDir();
+  await fs.writeFile(path.join(UPLOAD_DIR, file), rows[0].bytes).catch((e) => console.warn('media: could not write ' + file + ': ' + e.message));
+  return rows[0].bytes;
+}
+
+// Photos uploaded before files were kept in the database: copy them in from the disk.
+async function backfillFiles() {
+  const { rows } = await pool.query(
+    `SELECT m.id, s->>'file' AS file FROM media m CROSS JOIN LATERAL jsonb_array_elements(m.sizes) s
+      WHERE NOT EXISTS (SELECT 1 FROM media_files f WHERE f.file = s->>'file')`);
+  let copied = 0, missing = 0;
+  for (const r of rows) {
+    if (!FILE_RE.test(r.file)) continue;
+    const data = await fs.readFile(path.join(UPLOAD_DIR, r.file)).catch(() => null);
+    if (!data) { missing++; continue; }
+    await pool.query('INSERT INTO media_files (file, media_id, bytes) VALUES ($1, $2, $3) ON CONFLICT (file) DO NOTHING', [r.file, r.id, data]);
+    copied++;
+  }
+  if (copied) console.log('Photos: copied ' + copied + ' file(s) into the database.');
+  if (missing) console.warn('Photos: ' + missing + ' file(s) are lost (not on disk or in the database). Upload those photos again.');
 }
 
 async function removeFiles(files) {
@@ -108,7 +143,7 @@ async function removeFiles(files) {
 /* ---------- Queries ---------- */
 async function listAll() {
   const { rows } = await pool.query(
-    `SELECT m.*, (SELECT count(*) FROM menu_items i WHERE i.image_id = m.id) AS used_by
+    `SELECT m.*, (SELECT count(*) FROM menu_items i WHERE i.image_id = m.id) AS used_by, (SELECT count(*) FROM media_files f WHERE f.media_id = m.id) AS stored
      FROM media m ORDER BY m.created_at DESC`
   );
   return rows.map(toAdminMedia);
@@ -161,4 +196,4 @@ async function exists(id, client) {
   return rows.length > 0;
 }
 
-module.exports = { UPLOAD_DIR, MAX_BYTES, create, listAll, listGallery, update, reorderGallery, remove, exists, toMedia, ensureDir };
+module.exports = { UPLOAD_DIR, MAX_BYTES, create, listAll, listGallery, update, reorderGallery, remove, exists, toMedia, ensureDir, restoreFile, backfillFiles };

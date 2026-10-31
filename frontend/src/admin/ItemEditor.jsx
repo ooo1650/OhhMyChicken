@@ -125,8 +125,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
               </select>
             </label>
           </div>
-          <ArtField f={f} open={artOpen} setOpen={setArtOpen} onPick={(key) => { set('art', key); setArtOpen(false); }} />
-          {admin.settings.dishPhotos && <div className="field">
+          <div className="field">
             <span>Photo</span>
             <div className="item-photo">
               {f.image
@@ -138,7 +137,8 @@ export function ItemEditor({ state, defaultCat, onClose }) {
                 {!f.image && <p className="tiny muted">Without a photo the dish shows its drawing.</p>}
               </div>
             </div>
-          </div>}
+          </div>
+          <ArtField f={f} open={artOpen} setOpen={setArtOpen} onPick={(key) => { set('art', key); setArtOpen(false); }} />
           <label className="field"><span>Description</span><textarea rows="2" maxLength="140" value={f.desc} onChange={(e) => set('desc', e.target.value)} /></label>
           <div className="field">
             <span>Prices / variants</span>
@@ -188,7 +188,7 @@ function ArtField({ f, open, setOpen, onPick }) {
   );
   return (
     <div className="field">
-      <span>Picture on the menu</span>
+      <span>Drawing <em>(shown when there is no photo)</em></span>
       <div className="item-art">
         <Art html={artSvg({ ...sample, art: f.art })} className="item-art-now" />
         <div className="item-photo-actions">

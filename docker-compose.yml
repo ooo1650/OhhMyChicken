@@ -61,7 +61,7 @@ services:
       # Where the backup service writes; the dashboard shows when the last backup succeeded.
       BACKUP_DIR: /app/backups
     volumes:
-      # Uploaded photos (WebP files). The backup service saves them with the database.
+      # Photo files for fast serving; the database keeps a copy and refills this if it is empty.
       - omc-media:/app/uploads
       - ./backups:/app/backups:ro
     # No published port: browsers reach the API through the frontend at /api.
@@ -118,13 +118,12 @@ services:
       TZ: Asia/Kathmandu
       BACKUP_HOUR: ${BACKUP_HOUR:-3}
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
-      # 1 also archives the uploaded photos every night (whole folder each time).
+      # 1 also includes the photo files in each nightly dump (all of them, every time).
       BACKUP_PHOTOS: ${BACKUP_PHOTOS:-0}
       # Who owns the backup files on the host (user:group); only they can read them.
       BACKUP_OWNER: ${BACKUP_OWNER:-1000:1000}
     volumes:
       - ./backups:/backups
-      - omc-media:/media:ro
       - ./deploy/backup.sh:/backup.sh:ro
     # Sleeps all day; pg_dump of a small restaurant database takes a second or two.
     mem_limit: 64m

@@ -859,8 +859,9 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 
 /* ---------- Photos ---------- */
 .photo { display: block; max-width: 100%; height: auto; background-color: var(--cream); }
-.dish-art.has-photo { padding: 0; overflow: hidden; background: var(--cream); }
-.dish-art.has-photo .photo { width: 100%; height: 100%; object-fit: cover; }
+/* Fixed picture area: any photo shape is cropped to fit and can't change the card's size. */
+.dish-art.has-photo { position: relative; padding: 0; overflow: hidden; background: var(--cream); }
+.dish-art.has-photo .photo { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; }
 .cl-art.has-photo { overflow: hidden; padding: 0; }
 .cl-art.has-photo .photo { width: 100%; height: 100%; object-fit: cover; }
 
