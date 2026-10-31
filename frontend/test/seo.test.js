@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { resolveRoute, pageMeta, jsonLd, faqs, meals, safeJson, headHtml, categoryPath } from '../src/shared/seo.js';
 
 // The real factory defaults from the backend, so tests follow menu changes.
@@ -113,4 +114,9 @@ test('open/closed follows Nepal time, not the visitor\'s time zone', async () =>
   assert.equal(isOpenNow(hours, new Date('2026-10-28T04:00:00Z')), false); // 09:45
   assert.equal(isOpenNow(hours, new Date('2026-10-28T16:30:00Z')), false);
   assert.equal(isOpenNow({ hoursOpen: '18:00', hoursClose: '02:00' }, new Date('2026-10-28T19:00:00Z')), true); // 00:45, past midnight
+});
+
+test('seo.js stands alone: the Docker image copies only this file from src/', () => {
+  const src = readFileSync(new URL('../src/shared/seo.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /^\s*(import|export)\b.*\bfrom\s+['"]/m);
 });

@@ -3,14 +3,18 @@
    Plain JS shared by the Node server (first page load, sitemap) and the
    React app (head updates on in-app navigation), so both always agree.
    Everything is derived from the live menu & settings: nothing invented.
+   The server image copies only this file from src/, so it imports nothing.
    ========================================================================== */
 
 const WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 export const OG_IMAGE = { path: '/assets/og-image.png', width: 1200, height: 630 };
 
-import { deliveryRange } from './format.js';
-
 const money = (s, n) => s.currency + ' ' + Number(n || 0).toLocaleString('en-IN');
+/** The delivery fee as customers see it: "Rs. 0–150". */
+export function deliveryRange(s) {
+  const lo = +s.deliveryFeeMin || 0, hi = +s.deliveryFeeMax || 0;
+  return lo === hi ? money(s, hi) : s.currency + ' ' + lo.toLocaleString('en-IN') + '–' + hi.toLocaleString('en-IN');
+}
 function fmt12(t) {
   const p = String(t).split(':'), h = +p[0], m = p[1] || '00';
   return ((h % 12) || 12) + (m === '00' ? '' : ':' + m) + (h < 12 ? ' AM' : ' PM');

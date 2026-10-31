@@ -11,7 +11,8 @@ import { Icon } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
-import { deliveryRange, fmt12 } from '../shared/format.js';
+import { deliveryRange } from '../shared/seo.js';
+import { fmt12 } from '../shared/format.js';
 import { track } from '../shared/track.js';
 import { outletList, outletOpen, outletWhatsApp, outletTitle, telHref } from '../shared/outlets.js';
 

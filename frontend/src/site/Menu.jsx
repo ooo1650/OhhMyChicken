@@ -9,8 +9,8 @@ import { Art, iconFor } from './art.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
-import { deliveryRange, dietLabel, fmt12, PIZZA_CATEGORIES } from '../shared/format.js';
-import { categoryPath, pageMeta } from '../shared/seo.js';
+import { dietLabel, fmt12, PIZZA_CATEGORIES } from '../shared/format.js';
+import { categoryPath, deliveryRange, pageMeta } from '../shared/seo.js';
 import { navigate } from './router.jsx';
 import { track } from '../shared/track.js';
 

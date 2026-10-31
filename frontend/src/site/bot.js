@@ -3,7 +3,8 @@
    base. Answers read the LIVE menu & settings. Replies are HTML strings
    built only from escaped values.
    ========================================================================== */
-import { deliveryRange, esc, fmt12 } from '../shared/format.js';
+import { deliveryRange } from '../shared/seo.js';
+import { esc, fmt12 } from '../shared/format.js';
 import { dietMarkHtml, iconHtml } from '../shared/Icon.jsx';
 import { outletList, outletTitle, telHref, mapHref } from '../shared/outlets.js';
 

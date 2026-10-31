@@ -10,8 +10,8 @@ import { DishCard } from './Menu.jsx';
 import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
-import { deliveryRange, fmt12 } from '../shared/format.js';
-import { faqs, meals, servicesText, hoursText } from '../shared/seo.js';
+import { fmt12 } from '../shared/format.js';
+import { deliveryRange, faqs, meals, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 
 /* ---------- Hero ---------- */
