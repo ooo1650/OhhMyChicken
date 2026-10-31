@@ -10,7 +10,7 @@ const SPRITE_VERSION = createHash('sha256').update(readFileSync(new URL('./publi
 // Two entry points: the customer site (index.html) and the staff dashboard
 // (admin.html), so customers never download dashboard code.
 // In dev, /api goes to the backend and /admin/ serves the dashboard page.
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   define: { __SPRITE__: JSON.stringify('/assets/icons.svg?v=' + SPRITE_VERSION) },
   plugins: [
     react(),
@@ -36,6 +36,10 @@ export default defineConfig({
     // this site, not inlined data: URLs (Vite inlines small files by default).
     assetsInlineLimit: (file) => (/\.woff2?$/.test(file) ? false : undefined),
     assetsDir: 'static', // hashed bundles; /assets/ holds the hand-made SVGs
-    rollupOptions: { input: { main: 'index.html', admin: 'admin.html' } }
-  }
-});
+    ...(isSsrBuild
+      ? { outDir: 'dist-ssr', copyPublicDir: false } // the page renderer; see src/site/entry-server.jsx
+      : { rollupOptions: { input: { main: 'index.html', admin: 'admin.html' } } })
+  },
+  // The renderer is one self-contained file: the production image has no React installed.
+  ssr: { noExternal: true }
+}));

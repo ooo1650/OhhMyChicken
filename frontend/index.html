@@ -15,7 +15,7 @@
   <!-- Fonts come from this site; preloaded so headings don't flash in a fallback font. -->
   <link rel="preload" href="./node_modules/@fontsource/lilita-one/files/lilita-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="./node_modules/@fontsource-variable/rubik/files/rubik-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <!-- Loading skeleton: painted with the HTML, before any script runs; React replaces it.
+  <!-- Loading skeleton: only when a page couldn't be rendered with its real content.
        Self-contained so it does not wait for the main stylesheet. -->
   <style>
     body{margin:0;background:#fff;font-family:Rubik,system-ui,sans-serif}
@@ -44,7 +44,7 @@
   <!--boot-->
 </head>
 <body>
-  <div id="root"><div class="shell shell-home" aria-busy="true">
+  <div id="root"><!--app:start--><div class="shell shell-home" aria-busy="true">
     <p class="sh-sr">Loading…</p>
     <div class="sh-head"><div class="sh-wrap"><img src="/src/assets/logo-192.webp" width="208" height="192" alt=""><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
     <div class="sh-hero"><div class="sh-wrap">
@@ -58,7 +58,7 @@
       <div class="sh-grid"><div class="sh-card"><div class="sk sh-th"></div><div style="display:grid;gap:8px;align-content:start"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:18px;width:80%"></div><div class="sk" style="height:26px;width:90%;margin-top:6px"></div></div></div><div class="sh-card"><div class="sk sh-th"></div><div style="display:grid;gap:8px;align-content:start"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:18px;width:80%"></div><div class="sk" style="height:26px;width:90%;margin-top:6px"></div></div></div><div class="sh-card"><div class="sk sh-th"></div><div style="display:grid;gap:8px;align-content:start"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:18px;width:80%"></div><div class="sk" style="height:26px;width:90%;margin-top:6px"></div></div></div><div class="sh-card"><div class="sk sh-th"></div><div style="display:grid;gap:8px;align-content:start"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:18px;width:80%"></div><div class="sk" style="height:26px;width:90%;margin-top:6px"></div></div></div><div class="sh-card"><div class="sk sh-th"></div><div style="display:grid;gap:8px;align-content:start"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:18px;width:80%"></div><div class="sk" style="height:26px;width:90%;margin-top:6px"></div></div></div><div class="sh-card"><div class="sk sh-th"></div><div style="display:grid;gap:8px;align-content:start"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:18px;width:80%"></div><div class="sk" style="height:26px;width:90%;margin-top:6px"></div></div></div></div>
     </div></div>
     <noscript><p style="padding:24px;text-align:center">Please turn on JavaScript to see the menu and order online.</p></noscript>
-  </div></div>
+  </div><!--app:end--></div>
   <script type="module" src="/src/site/main.jsx"></script>
 </body>
 </html>

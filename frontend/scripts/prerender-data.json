@@ -1,0 +1,2175 @@
+{
+ "defaults": {
+  "SIZES": [
+   {
+    "key": "S",
+    "label": "12\" S"
+   },
+   {
+    "key": "M",
+    "label": "15\" M"
+   },
+   {
+    "key": "L",
+    "label": "18\" L"
+   },
+   {
+    "key": "XL",
+    "label": "22\" XL"
+   }
+  ],
+  "CATEGORIES": [
+   {
+    "id": "nonveg",
+    "name": "Chicken Pizza",
+    "short": "Chicken Pizza",
+    "icon": "cat-chicken-pizza",
+    "slug": "chicken-pizza",
+    "seo": "Chicken Pizza in {city}",
+    "blurb": "Chicken BBQ, sausage, ham, bacon, salami, pepperoni, Hawaiian and tuna pizzas in 12\", 15\", 18\" and our giant 22\" XL."
+   },
+   {
+    "id": "porkbuff",
+    "name": "Pork, Buff & Mix Pizza",
+    "short": "Pork & Buff",
+    "icon": "cat-pork-pizza",
+    "slug": "pork-buff-pizza",
+    "seo": "Pork & Buff Pizza in {city}",
+    "blurb": "Pork BBQ, ham, bacon, pepperoni and Hawaiian pizzas, buff sausage and salami, and mixed-meat pizzas up to 22\" XL."
+   },
+   {
+    "id": "veg",
+    "name": "Cheese & Veg Toppings Pizza",
+    "short": "Veg Pizza",
+    "icon": "cat-veg-pizza",
+    "slug": "veg-pizza",
+    "seo": "Cheese & Veg Pizza in {city}",
+    "blurb": "Cheese pizza and veg toppings: roasted garlic, mushroom, olive, pineapple, sweet corn, paneer, jalapeño and more, 12\" to 22\" XL."
+   },
+   {
+    "id": "special",
+    "name": "OHH !!! MY CHICKEN",
+    "short": "Fried Chicken",
+    "icon": "cat-fried-chicken",
+    "slug": "fried-chicken",
+    "seo": "Fried Chicken in {city}",
+    "blurb": "Crispy fried chicken (full or half), chicken wings and hot wings."
+   },
+   {
+    "id": "momo",
+    "name": "MoMo, Fries & Add-ons",
+    "short": "MoMo & Fries",
+    "icon": "cat-momo",
+    "slug": "momo",
+    "seo": "MoMo & Fries in {city}",
+    "blurb": "Steam or fried MoMo in veg, buff, chicken and pork, French fries, the veggie combo, and extra cheese or toppings for your pizza."
+   },
+   {
+    "id": "drinks",
+    "name": "Coffee, Tea & Drinks",
+    "short": "Drinks",
+    "icon": "cat-coffee",
+    "slug": "drinks",
+    "seo": "Coffee & Drinks in {city}",
+    "blurb": "Espresso coffees, milk and lemon teas, iced coffees and frappes, plus soft drinks and water."
+   }
+  ],
+  "ORDER_DETAILS_DAYS": 90
+ },
+ "menu": [
+  {
+   "id": "chicken-bbq-pizza",
+   "category": "nonveg",
+   "name": "Chicken BBQ Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-bbq",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-sausage-pizza",
+   "category": "nonveg",
+   "name": "Chicken Sausage Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 700
+    },
+    {
+     "label": "15\" M",
+     "price": 850
+    },
+    {
+     "label": "18\" L",
+     "price": 950
+    },
+    {
+     "label": "22\" XL",
+     "price": 1450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-sausage",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-ham-pizza",
+   "category": "nonveg",
+   "name": "Chicken Ham Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 700
+    },
+    {
+     "label": "15\" M",
+     "price": 850
+    },
+    {
+     "label": "18\" L",
+     "price": 950
+    },
+    {
+     "label": "22\" XL",
+     "price": 1450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-ham",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-bacon-pizza",
+   "category": "nonveg",
+   "name": "Chicken Bacon Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 700
+    },
+    {
+     "label": "15\" M",
+     "price": 850
+    },
+    {
+     "label": "18\" L",
+     "price": 950
+    },
+    {
+     "label": "22\" XL",
+     "price": 1450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-bacon",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-salami-pizza",
+   "category": "nonveg",
+   "name": "Chicken Salami Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 750
+    },
+    {
+     "label": "15\" M",
+     "price": 900
+    },
+    {
+     "label": "18\" L",
+     "price": 1000
+    },
+    {
+     "label": "22\" XL",
+     "price": 1500
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-salami",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "smoky-chicken-pizza",
+   "category": "nonveg",
+   "name": "Smoky Chicken Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 850
+    },
+    {
+     "label": "15\" M",
+     "price": 1000
+    },
+    {
+     "label": "18\" L",
+     "price": 1100
+    },
+    {
+     "label": "22\" XL",
+     "price": 2000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-smoky",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-pepperoni",
+   "category": "nonveg",
+   "name": "Chicken Pepperoni",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 850
+    },
+    {
+     "label": "15\" M",
+     "price": 1000
+    },
+    {
+     "label": "18\" L",
+     "price": 1100
+    },
+    {
+     "label": "22\" XL",
+     "price": 2000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-pepperoni",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-lovers-pizza",
+   "category": "nonveg",
+   "name": "Chicken Lovers Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 1000
+    },
+    {
+     "label": "15\" M",
+     "price": 1150
+    },
+    {
+     "label": "18\" L",
+     "price": 1250
+    },
+    {
+     "label": "22\" XL",
+     "price": 2250
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-lovers",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "chicken-hawaiian",
+   "category": "nonveg",
+   "name": "Chicken Hawaiian",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 870
+    },
+    {
+     "label": "15\" M",
+     "price": 1050
+    },
+    {
+     "label": "18\" L",
+     "price": 1200
+    },
+    {
+     "label": "22\" XL",
+     "price": 1820
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-hawaiian",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "tuna-pizza",
+   "category": "nonveg",
+   "name": "Tuna Pizza",
+   "diet": "fish",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-tuna",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "pork-bbq-pizza",
+   "category": "porkbuff",
+   "name": "Pork BBQ Pizza",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-bbq",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "ham-pizza",
+   "category": "porkbuff",
+   "name": "Ham Pizza",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 750
+    },
+    {
+     "label": "15\" M",
+     "price": 900
+    },
+    {
+     "label": "18\" L",
+     "price": 1000
+    },
+    {
+     "label": "22\" XL",
+     "price": 1500
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-ham",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "bacon-pizza",
+   "category": "porkbuff",
+   "name": "Bacon Pizza",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 750
+    },
+    {
+     "label": "15\" M",
+     "price": 900
+    },
+    {
+     "label": "18\" L",
+     "price": 1000
+    },
+    {
+     "label": "22\" XL",
+     "price": 1500
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-bacon",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "pork-pepperoni",
+   "category": "porkbuff",
+   "name": "Pork Pepperoni",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 850
+    },
+    {
+     "label": "15\" M",
+     "price": 1000
+    },
+    {
+     "label": "18\" L",
+     "price": 1100
+    },
+    {
+     "label": "22\" XL",
+     "price": 2000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-pepperoni",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "pork-lovers-pizza",
+   "category": "porkbuff",
+   "name": "Pork Lovers Pizza",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 1000
+    },
+    {
+     "label": "15\" M",
+     "price": 1150
+    },
+    {
+     "label": "18\" L",
+     "price": 1250
+    },
+    {
+     "label": "22\" XL",
+     "price": 2250
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-lovers",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "hawaiian-pizza",
+   "category": "porkbuff",
+   "name": "Hawaiian Pizza",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 870
+    },
+    {
+     "label": "15\" M",
+     "price": 1050
+    },
+    {
+     "label": "18\" L",
+     "price": 1200
+    },
+    {
+     "label": "22\" XL",
+     "price": 1820
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-hawaiian",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "buff-sausage-pizza",
+   "category": "porkbuff",
+   "name": "Buff Sausage Pizza",
+   "diet": "buff",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-sausage",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "buff-salami-pizza",
+   "category": "porkbuff",
+   "name": "Buff Salami Pizza",
+   "diet": "buff",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 700
+    },
+    {
+     "label": "15\" M",
+     "price": 850
+    },
+    {
+     "label": "18\" L",
+     "price": 950
+    },
+    {
+     "label": "22\" XL",
+     "price": 1450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-salami",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "smoky-buff-pizza",
+   "category": "porkbuff",
+   "name": "Smoky Buff Pizza",
+   "diet": "buff",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 700
+    },
+    {
+     "label": "15\" M",
+     "price": 850
+    },
+    {
+     "label": "18\" L",
+     "price": 950
+    },
+    {
+     "label": "22\" XL",
+     "price": 1450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-smoky",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "buff-lovers-pizza",
+   "category": "porkbuff",
+   "name": "Buff Lovers Pizza",
+   "diet": "buff",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 900
+    },
+    {
+     "label": "15\" M",
+     "price": 1050
+    },
+    {
+     "label": "18\" L",
+     "price": 1150
+    },
+    {
+     "label": "22\" XL",
+     "price": 2050
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-lovers",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "mix-non-veg-pizza",
+   "category": "porkbuff",
+   "name": "Mix Non Veg Pizza",
+   "diet": "mix",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 850
+    },
+    {
+     "label": "15\" M",
+     "price": 1000
+    },
+    {
+     "label": "18\" L",
+     "price": 1100
+    },
+    {
+     "label": "22\" XL",
+     "price": 2000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-mix",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "mix-buff-pizza",
+   "category": "porkbuff",
+   "name": "Mix Buff Pizza",
+   "diet": "buff",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 850
+    },
+    {
+     "label": "15\" M",
+     "price": 1000
+    },
+    {
+     "label": "18\" L",
+     "price": 1100
+    },
+    {
+     "label": "22\" XL",
+     "price": 2000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-mix",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "mix-chicken-pizza",
+   "category": "porkbuff",
+   "name": "Mix Chicken Pizza",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 900
+    },
+    {
+     "label": "15\" M",
+     "price": 1050
+    },
+    {
+     "label": "18\" L",
+     "price": 1150
+    },
+    {
+     "label": "22\" XL",
+     "price": 2050
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-mix",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "mix-pork-pizza",
+   "category": "porkbuff",
+   "name": "Mix Pork Pizza",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 900
+    },
+    {
+     "label": "15\" M",
+     "price": 1050
+    },
+    {
+     "label": "18\" L",
+     "price": 1150
+    },
+    {
+     "label": "22\" XL",
+     "price": 2050
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-mix",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "meat-lovers-pizza",
+   "category": "porkbuff",
+   "name": "Meat Lovers Pizza",
+   "diet": "mix",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 1000
+    },
+    {
+     "label": "15\" M",
+     "price": 1150
+    },
+    {
+     "label": "18\" L",
+     "price": 1250
+    },
+    {
+     "label": "22\" XL",
+     "price": 2250
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-meat-lovers",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "cheese-pizza",
+   "category": "veg",
+   "name": "Cheese Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 500
+    },
+    {
+     "label": "15\" M",
+     "price": 650
+    },
+    {
+     "label": "18\" L",
+     "price": 750
+    },
+    {
+     "label": "22\" XL",
+     "price": 1150
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-cheese",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "regular-veg-pizza",
+   "category": "veg",
+   "name": "Regular Veg Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 550
+    },
+    {
+     "label": "15\" M",
+     "price": 700
+    },
+    {
+     "label": "18\" L",
+     "price": 800
+    },
+    {
+     "label": "22\" XL",
+     "price": 1200
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-veg",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "roasted-garlic-pizza",
+   "category": "veg",
+   "name": "Roasted Garlic Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 600
+    },
+    {
+     "label": "15\" M",
+     "price": 750
+    },
+    {
+     "label": "18\" L",
+     "price": 850
+    },
+    {
+     "label": "22\" XL",
+     "price": 1350
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-garlic",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "mushroom-pizza",
+   "category": "veg",
+   "name": "Mushroom Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-mushroom",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "olive-pizza",
+   "category": "veg",
+   "name": "Olive Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-olive",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "pineapple-pizza",
+   "category": "veg",
+   "name": "Pineapple Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-pineapple",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "sweet-corn-pizza",
+   "category": "veg",
+   "name": "Sweet Corn Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 650
+    },
+    {
+     "label": "15\" M",
+     "price": 800
+    },
+    {
+     "label": "18\" L",
+     "price": 900
+    },
+    {
+     "label": "22\" XL",
+     "price": 1400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-corn",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "paneer-pizza",
+   "category": "veg",
+   "name": "Paneer Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 700
+    },
+    {
+     "label": "15\" M",
+     "price": 850
+    },
+    {
+     "label": "18\" L",
+     "price": 950
+    },
+    {
+     "label": "22\" XL",
+     "price": 1450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-paneer",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "jalapeno-pizza",
+   "category": "veg",
+   "name": "Jalapeno Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 750
+    },
+    {
+     "label": "15\" M",
+     "price": 900
+    },
+    {
+     "label": "18\" L",
+     "price": 1000
+    },
+    {
+     "label": "22\" XL",
+     "price": 1500
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-jalapeno",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "mix-vegetable-pizza",
+   "category": "veg",
+   "name": "Mix Vegetable Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 850
+    },
+    {
+     "label": "15\" M",
+     "price": 1000
+    },
+    {
+     "label": "18\" L",
+     "price": 1100
+    },
+    {
+     "label": "22\" XL",
+     "price": 2000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "pizza-veg-mix",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "veggie-lovers-pizza",
+   "category": "veg",
+   "name": "Veggie Lovers Pizza",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 1000
+    },
+    {
+     "label": "15\" M",
+     "price": 1150
+    },
+    {
+     "label": "18\" L",
+     "price": 1250
+    },
+    {
+     "label": "22\" XL",
+     "price": 2250
+    }
+   ],
+   "available": true,
+   "popular": true,
+   "noDelivery": false,
+   "art": "pizza-veg-lovers",
+   "imageId": null,
+   "image": null,
+   "isPizza": true
+  },
+  {
+   "id": "crispy-fried-chicken",
+   "category": "special",
+   "name": "Crispy Fried Chicken",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Half",
+     "price": 550
+    },
+    {
+     "label": "Full",
+     "price": 1000
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "fried-chicken",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "chicken-wings",
+   "category": "special",
+   "name": "Chicken Wings",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "6 pcs",
+     "price": 550
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "wings",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "hot-wings",
+   "category": "special",
+   "name": "Hot Wings",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "8 pcs",
+     "price": 500
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "hot-wings",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "veg-momo",
+   "category": "momo",
+   "name": "Veg Momo",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Steam",
+     "price": 120
+    },
+    {
+     "label": "Fried",
+     "price": 150
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "momo-veg",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "buff-momo",
+   "category": "momo",
+   "name": "Buff Momo",
+   "diet": "buff",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Steam",
+     "price": 160
+    },
+    {
+     "label": "Fried",
+     "price": 190
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "momo-buff",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "chicken-momo",
+   "category": "momo",
+   "name": "Chicken Momo",
+   "diet": "chicken",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Steam",
+     "price": 180
+    },
+    {
+     "label": "Fried",
+     "price": 210
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "momo-chicken",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "pork-momo",
+   "category": "momo",
+   "name": "Pork Momo",
+   "diet": "pork",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Steam",
+     "price": 180
+    },
+    {
+     "label": "Fried",
+     "price": 210
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "momo-pork",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "french-fries",
+   "category": "momo",
+   "name": "French Fries",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "1 basket",
+     "price": 250
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "fries",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "french-fries-cheese",
+   "category": "momo",
+   "name": "French Fries with Cheese",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "1 basket",
+     "price": 400
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "cheese-fries",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "veggie-combo",
+   "category": "momo",
+   "name": "Veggie Combo",
+   "diet": "veg",
+   "desc": "Hash brown, smiley & French fries.",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 300
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "veggie-combo",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "extra-cheese",
+   "category": "momo",
+   "name": "Extra Cheese (add-on)",
+   "diet": "veg",
+   "desc": "Add to any pizza; priced by pizza size.",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 150
+    },
+    {
+     "label": "15\" M",
+     "price": 200
+    },
+    {
+     "label": "18\" L",
+     "price": 250
+    },
+    {
+     "label": "22\" XL",
+     "price": 450
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "extra-cheese",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "extra-toppings",
+   "category": "momo",
+   "name": "Extra Toppings (add-on)",
+   "diet": "mix",
+   "desc": "Add to any pizza; priced by pizza size.",
+   "prices": [
+    {
+     "label": "12\" S",
+     "price": 120
+    },
+    {
+     "label": "15\" M",
+     "price": 170
+    },
+    {
+     "label": "18\" L",
+     "price": 200
+    },
+    {
+     "label": "22\" XL",
+     "price": 300
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "extra-toppings",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "espresso",
+   "category": "drinks",
+   "name": "Espresso",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Single",
+     "price": 110
+    },
+    {
+     "label": "Double",
+     "price": 140
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "espresso",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "americano",
+   "category": "drinks",
+   "name": "Americano",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 130
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "americano",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "double-americano",
+   "category": "drinks",
+   "name": "Double Americano",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 170
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "double-americano",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "cappuccino",
+   "category": "drinks",
+   "name": "Cappuccino",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 150
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "cappuccino",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "double-cappuccino",
+   "category": "drinks",
+   "name": "Double Cappuccino",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 180
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "double-cappuccino",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "cafe-latte",
+   "category": "drinks",
+   "name": "Cafe Latte",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 150
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "latte",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "latte-macchiato",
+   "category": "drinks",
+   "name": "Latte Macchiato",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 160
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "latte-macchiato",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "honey-latte",
+   "category": "drinks",
+   "name": "Honey Latte",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 180
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "honey-latte",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "cafe-mocha",
+   "category": "drinks",
+   "name": "Cafe Mocha",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 190
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "mocha",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "mocha-madness",
+   "category": "drinks",
+   "name": "Mocha Madness",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 230
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "mocha-madness",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "iced-espresso-shakerato",
+   "category": "drinks",
+   "name": "Iced Espresso Shakerato",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 190
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "shakerato",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "iced-americano",
+   "category": "drinks",
+   "name": "Iced Americano",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 200
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "iced-americano",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "iced-cappuccino",
+   "category": "drinks",
+   "name": "Iced Cappuccino",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 220
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "iced-cappuccino",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "blended-mocha",
+   "category": "drinks",
+   "name": "Blended Mocha",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 250
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "blended-mocha",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "cafe-frappe",
+   "category": "drinks",
+   "name": "Cafe Frappe",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 250
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "frappe",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "oreo-frappe",
+   "category": "drinks",
+   "name": "Oreo Frappe",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 280
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "oreo-frappe",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "milk-tea",
+   "category": "drinks",
+   "name": "Milk Tea",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 50
+    },
+    {
+     "label": "Masala",
+     "price": 60
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "milk-tea",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "black-tea",
+   "category": "drinks",
+   "name": "Black Tea",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 40
+    },
+    {
+     "label": "Masala",
+     "price": 50
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "black-tea",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "lemon-tea",
+   "category": "drinks",
+   "name": "Lemon Tea",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 50
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "lemon-tea",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "hot-lemon",
+   "category": "drinks",
+   "name": "Hot Lemon",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 40
+    },
+    {
+     "label": "With honey",
+     "price": 110
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "hot-lemon",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "ginger-lemon-honey",
+   "category": "drinks",
+   "name": "Ginger Lemon with Honey",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 120
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "ginger-lemon",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "apple-tea",
+   "category": "drinks",
+   "name": "Apple Tea",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 90
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "apple-tea",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "peach-tea",
+   "category": "drinks",
+   "name": "Peach Tea",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 90
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "peach-tea",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "hot-milk",
+   "category": "drinks",
+   "name": "Hot Milk",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 60
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": true,
+   "art": "hot-milk",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "coke-fanta-sprite",
+   "category": "drinks",
+   "name": "Coke / Fanta / Sprite",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Regular",
+     "price": 80
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "soft-drinks",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  },
+  {
+   "id": "mineral-water",
+   "category": "drinks",
+   "name": "Mineral Water",
+   "diet": "veg",
+   "desc": "",
+   "prices": [
+    {
+     "label": "Bottle",
+     "price": 35
+    }
+   ],
+   "available": true,
+   "popular": false,
+   "noDelivery": false,
+   "art": "water",
+   "imageId": null,
+   "image": null,
+   "isPizza": false
+  }
+ ],
+ "settings": {
+  "name": "Ohh My Chicken Pizza Hub",
+  "phone": "+977 984-1336695",
+  "whatsapp": "9779841103351",
+  "address": "Jhamsikhel, Lalitpur",
+  "hoursOpen": "09:00",
+  "hoursClose": "21:00",
+  "deliveryFeeMin": 0,
+  "deliveryFeeMax": 150,
+  "currency": "Rs.",
+  "street": "",
+  "city": "Kathmandu",
+  "region": "Bagmati",
+  "postalCode": "",
+  "country": "NP",
+  "currencyCode": "NPR",
+  "lat": null,
+  "lng": null,
+  "mapsUrl": "",
+  "socialLinks": [],
+  "dineIn": true,
+  "takeaway": false,
+  "outlets": [
+   {
+    "id": "jhamsikhel",
+    "name": "Jhamsikhel",
+    "area": "Lalitpur",
+    "main": true,
+    "active": true,
+    "address": "Jhamsikhel, Lalitpur",
+    "landmark": "Opposite Vesper Cafe, on the left of the road from Pulchowk (Damkal Chowk) towards Jawalakhel.",
+    "phones": [
+     "+977 984-1336695"
+    ],
+    "whatsapp": "9779841103351",
+    "delivery": "Delivers across Lalitpur",
+    "hoursOpen": "",
+    "hoursClose": "",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Jhamsikhel+Lalitpur",
+    "lat": 27.6795,
+    "lng": 85.308,
+    "instagram": "https://www.instagram.com/ohh_mychicken_pizzahub/",
+    "facebook": ""
+   },
+   {
+    "id": "maharajgunj",
+    "name": "Maharajgunj",
+    "area": "Kathmandu",
+    "main": false,
+    "active": true,
+    "address": "Maharajgunj Sadak, Kathmandu 44600",
+    "landmark": "Plus code P8QP+G78",
+    "phones": [
+     "+977 986-0060005",
+     "+977 984-1368821"
+    ],
+    "whatsapp": "9779709174249",
+    "delivery": "Delivers in Kathmandu",
+    "hoursOpen": "",
+    "hoursClose": "",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=P8QP%2BG78+Kathmandu",
+    "lat": 27.7388,
+    "lng": 85.3355,
+    "instagram": "",
+    "facebook": ""
+   },
+   {
+    "id": "bhaktapur",
+    "name": "Bhaktapur",
+    "area": "Radhe Radhe, Bhaktapur",
+    "main": false,
+    "active": true,
+    "address": "Radhe Radhe, Bhaktapur",
+    "landmark": "",
+    "phones": [
+     "+977 976-7319518",
+     "+977 970-4835403"
+    ],
+    "whatsapp": "9779704835403",
+    "delivery": "Home delivery in Bhaktapur",
+    "hoursOpen": "",
+    "hoursClose": "",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Radhe+Radhe+Bhaktapur",
+    "lat": 27.6787,
+    "lng": 85.4205,
+    "instagram": "https://www.instagram.com/ohhmychickenpizzahub_bhaktapur/",
+    "facebook": ""
+   },
+   {
+    "id": "pokhara",
+    "name": "Pokhara",
+    "area": "Pokhara",
+    "main": false,
+    "active": true,
+    "address": "Pokhara",
+    "landmark": "",
+    "phones": [
+     "+977 976-8046482",
+     "+977 971-5073316"
+    ],
+    "whatsapp": "9779841103351",
+    "delivery": "",
+    "hoursOpen": "",
+    "hoursClose": "",
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Pokhara",
+    "lat": null,
+    "lng": null,
+    "instagram": "https://www.instagram.com/ohhmychickenpizzahubpokhara/",
+    "facebook": ""
+   }
+  ],
+  "promo": {
+   "enabled": true,
+   "popup": false,
+   "code": "OHH22",
+   "percent": 15,
+   "headline": "GET 15% OFF YOUR FIRST GIANT 22\" PIZZA!",
+   "delaySec": 3
+  }
+ },
+ "gallery": [],
+ "updatedAt": null
+}

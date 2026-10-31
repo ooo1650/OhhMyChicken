@@ -1,6 +1,7 @@
 # Keep secrets, local data and build junk out of the image build context.
 node_modules
 dist
+dist-ssr
 uploads
 coverage
 .env

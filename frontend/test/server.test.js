@@ -50,11 +50,22 @@ test('home: server-rendered SEO head, inlined data, security headers', { skip },
   assert.equal(r.headers.get('x-powered-by'), null);
 });
 
-test('pages arrive with a loading skeleton shaped like the page', { skip }, async () => {
+test('pages arrive with their real content, from the live data', { skip }, async () => {
   const home = await (await get('/')).text();
-  assert.match(home, /<div id="root"><div class="shell shell-home" aria-busy="true">/);
+  assert.match(home, /The largest pizza in town/);
+  assert.doesNotMatch(home, /aria-busy="true"/);
   assert.match(home, /<link rel="preload" href="\/static\/logo-192-[\w-]+\.webp" as="image"/);
-  assert.match(await (await get('/menu/drinks')).text(), /class="shell shell-menu"/);
+  const menu = await (await get('/menu')).text();
+  assert.match(menu, /Chicken BBQ Pizza/);
+  assert.match(menu, /Rs\. 650/);
+});
+
+test('the built static files are real pages too', { skip: !fs.existsSync(path.join(ROOT, 'dist', 'index.html')) && 'build first' }, () => {
+  const page = (f) => fs.readFileSync(path.join(ROOT, 'dist', f), 'utf8');
+  assert.match(page('index.html'), /The largest pizza in town/);
+  assert.match(page('menu/index.html'), /Chicken BBQ Pizza/);
+  assert.match(page('menu/drinks/index.html'), /Cappuccino/);
+  assert.doesNotMatch(page('index.html'), /aria-busy="true"/);
 });
 
 test('pages may be kept by a CDN for a minute; 404s, the dashboard and the API never', { skip }, async () => {

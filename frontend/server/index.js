@@ -3,6 +3,7 @@
    and renders each page's <head> (title, description, canonical, social
    cards, schema.org data) from the live menu & settings, so search
    engines and link previews see the full page without running JS.
+   Each page's content is rendered too (see src/site/entry-server.jsx).
    Also: /sitemap.xml, /robots.txt, real 404s and the staff dashboard
    page at ADMIN_PATH.
    ========================================================================== */
@@ -23,9 +24,11 @@ const ADMIN_PATH = '/' + String(process.env.ADMIN_PATH || 'admin').replace(/^\/+
 const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
 const BOOT_TTL_MS = 5000;
 
-const indexTpl = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
+const SSR = path.resolve(DIST, '../dist-ssr');
+const indexTpl = fs.readFileSync(path.join(SSR, 'template.html'), 'utf8'); // dist/index.html is the prerendered home page
+const { render: renderPage } = await import(path.join(SSR, 'entry-server.js'));
 const adminPage = fs.readFileSync(path.join(DIST, 'admin.html'), 'utf8');
-if (!indexTpl.includes('<!--seo:start-->') || !indexTpl.includes('<!--boot-->')) throw new Error('index.html is missing the <!--seo:start--> or <!--boot--> markers');
+if (!['<!--seo:start-->', '<!--boot-->', '<!--app:start-->'].every((m) => indexTpl.includes(m))) throw new Error('the page template is missing its <!--seo:start-->, <!--boot--> or <!--app:start--> marker');
 
 const app = express();
 app.disable('x-powered-by');
@@ -99,6 +102,28 @@ function getBoot() {
   return pending;
 }
 
+// A page's content from the live data, kept briefly since many visitors see the same one.
+// If rendering ever fails, the visitor gets the loading skeleton and the app starts as usual.
+const PAGE_TTL_MS = 60000;
+const pages = new Map();
+function pageContent(req, route, b) {
+  const key = req.path + '|' + b.updatedAt;
+  const hit = pages.get(key);
+  if (hit && Date.now() - hit.at < PAGE_TTL_MS) return hit.html;
+  try {
+    const html = renderPage(req.path, b, new Date());
+    // Only real pages: an endless supply of made-up addresses must not fill the memory.
+    if (route.view !== 'notfound') {
+      if (pages.size > 100) pages.clear();
+      pages.set(key, { html, at: Date.now() });
+    }
+    return html;
+  } catch (e) {
+    console.warn('Could not render ' + req.path + ':', e.message);
+    return null;
+  }
+}
+
 const originOf = (req) => PUBLIC_URL || req.protocol + '://' + req.get('host');
 
 app.get('/healthz', (req, res) => res.type('text/plain').send('ok\n'));
@@ -155,8 +180,10 @@ app.get(/.*/, async (req, res) => {
   // The loading skeleton looks like the page being opened.
   if (route.view === 'menu') html = html.replace('shell shell-home', 'shell shell-menu');
   if (b) {
-    html = html.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, headHtml(route, b, originOf(req)))
-      .replace('<!--boot-->', '<script type="application/json" id="boot-data">' + safeJson(b) + '</script>');
+    html = html.replace(/<!--seo:start-->[\s\S]*?<!--seo:end-->/, () => headHtml(route, b, originOf(req)))
+      .replace('<!--boot-->', () => '<script type="application/json" id="boot-data">' + safeJson(b) + '</script>');
+    const content = pageContent(req, route, b);
+    if (content) html = html.replace(/<!--app:start-->[\s\S]*?<!--app:end-->/, () => content);
   }
   // Without menu data we can't tell a category from a typo: serve the app, don't index.
   const status = b && route.view === 'notfound' ? 404 : 200;

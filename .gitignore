@@ -12,6 +12,7 @@ id_rsa*
 # ---- Dependencies & builds ----
 node_modules/
 dist/
+dist-ssr/
 coverage/
 *.tsbuildinfo
 

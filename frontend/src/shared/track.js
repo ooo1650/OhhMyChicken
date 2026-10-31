@@ -1,7 +1,7 @@
 /* Anonymous usage events → POST /api/t (stored without cookies or IPs; see
    backend/src/analytics.js). Batched, sent in the background, and switched
    off entirely when the browser asks not to be tracked. */
-const OFF = typeof navigator === 'undefined' ||
+const OFF = typeof window === 'undefined' ||
   navigator.doNotTrack === '1' || window.doNotTrack === '1' || navigator.globalPrivacyControl === true;
 const queue = [];
 let timer = null;

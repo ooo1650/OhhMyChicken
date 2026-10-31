@@ -1,9 +1,52 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://ohhmychicken.onrender.com/api/:path*" },
-    { "source": "/media/:path*", "destination": "https://ohhmychicken.onrender.com/media/:path*" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/admin/", "destination": "/admin.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://ohhmychicken.onrender.com/api/:path*"
+    },
+    {
+      "source": "/media/:path*",
+      "destination": "https://ohhmychicken.onrender.com/media/:path*"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/menu",
+      "destination": "/menu/index.html"
+    },
+    {
+      "source": "/menu/chicken-pizza",
+      "destination": "/menu/chicken-pizza/index.html"
+    },
+    {
+      "source": "/menu/pork-buff-pizza",
+      "destination": "/menu/pork-buff-pizza/index.html"
+    },
+    {
+      "source": "/menu/veg-pizza",
+      "destination": "/menu/veg-pizza/index.html"
+    },
+    {
+      "source": "/menu/fried-chicken",
+      "destination": "/menu/fried-chicken/index.html"
+    },
+    {
+      "source": "/menu/momo",
+      "destination": "/menu/momo/index.html"
+    },
+    {
+      "source": "/menu/drinks",
+      "destination": "/menu/drinks/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

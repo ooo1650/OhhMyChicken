@@ -23,7 +23,7 @@ const promoUsed = () => read(KEYS.promoUsed, false);
 const SiteCtx = createContext(null);
 export const useSite = () => useContext(SiteCtx);
 
-export function SiteProvider({ boot, children }) {
+export function SiteProvider({ boot, at, children }) {
   const { defaults } = boot;
   const [menu] = useState(boot.menu);
   const [settings] = useState(boot.settings);
@@ -35,7 +35,7 @@ export function SiteProvider({ boot, children }) {
     if (!Array.isArray(saved) || ok.length !== saved.length) write(KEYS.cart, ok);
     return ok;
   });
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => at || new Date()); // `at`: the time a server render is for
   // The outlet the customer last ordered from (pre-selected next time), and one fixed by a table QR code.
   const [outletId, setOutletIdState] = useState(() => read(KEYS.outlet, ''));
   const [tableOutlet, setTableOutlet] = useState('');

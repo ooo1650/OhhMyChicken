@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Ohh My Chicken! frontend — React build (Vite) served by a small Node server
-# that renders each page's SEO <head>, serves /sitemap.xml and proxies /api.
+# that renders each page (SEO <head> and content), serves /sitemap.xml and proxies /api.
 #   docker build -t ohh-my-chicken-frontend ./frontend
 
 # ---- 1. Build the React app ----
@@ -32,6 +32,7 @@ COPY package.json ./
 COPY server ./server
 COPY src/shared/seo.js ./src/shared/seo.js
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/dist-ssr ./dist-ssr
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

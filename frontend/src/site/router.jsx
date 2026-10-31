@@ -5,7 +5,12 @@ import { useEffect, useState } from 'react';
 
 const listeners = new Set();
 const notify = () => listeners.forEach((fn) => fn());
-const current = () => ({ pathname: location.pathname, params: Object.fromEntries(new URLSearchParams(location.search)) });
+// When a page is rendered on the server there is no address bar, so it is told the path.
+let serverPath = '/';
+export const setServerPath = (p) => { serverPath = p; };
+const current = () => (typeof location === 'undefined'
+  ? { pathname: serverPath, params: {} }
+  : { pathname: location.pathname, params: Object.fromEntries(new URLSearchParams(location.search)) });
 
 export function useRoute() {
   const [route, setRoute] = useState(() => ({ ...current(), n: 0 }));

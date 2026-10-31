@@ -120,3 +120,8 @@ test('seo.js stands alone: the Docker image copies only this file from src/', ()
   const src = readFileSync(new URL('../src/shared/seo.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /^\s*(import|export)\b.*\bfrom\s+['"]/m);
 });
+
+test('the static pages are built from the current default menu', () => {
+  const { text } = require('../scripts/sync-prerender-data.cjs');
+  assert.equal(readFileSync(new URL('../scripts/prerender-data.json', import.meta.url), 'utf8'), text, 'run: node scripts/sync-prerender-data.cjs');
+});
