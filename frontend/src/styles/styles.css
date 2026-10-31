@@ -284,6 +284,7 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .size-note { margin-top: 16px; text-align: center; font-size: var(--fs-sm); color: var(--ink-2); }
 
 /* Steps */
+.how-lead { max-width: 68ch; margin-top: 12px; font-size: var(--fs-lg); line-height: 1.5; }
 .steps { list-style: none; padding: 0; margin: clamp(20px, 3vw, 36px) 0 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); counter-reset: step; }
 .steps li { position: relative; background: var(--white); border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 16px 16px 16px 72px; min-height: 84px; }
 .steps li:nth-child(2) { transform: rotate(1deg); } .steps li:nth-child(odd) { transform: rotate(-1deg); }
@@ -835,12 +836,6 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 #main:focus { outline: none; }
 
 /* ---------- Lunch & dinner, FAQ, 404, footer details ---------- */
-.meals { background: var(--cream); border-block: 3px solid var(--ink); }
-.meals-lead { max-width: 68ch; margin-top: 12px; font-size: var(--fs-lg); line-height: 1.5; }
-.meal-cards { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-.meal-cards li { position: relative; background: var(--white); border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 16px 16px 16px 72px; min-height: 84px; }
-.meal-cards h3 { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-lg); letter-spacing: .01em; }
-.meal-cards p { font-size: var(--fs-sm); }
 
 .faq-wrap { max-width: 860px; }
 .faq-list { display: grid; gap: 10px; }

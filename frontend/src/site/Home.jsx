@@ -13,7 +13,7 @@ import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
-import { categoryPath, deliveryRange, faqs, meals, serviceArea, servicesText, hoursText } from '../shared/seo.js';
+import { categoryPath, faqs, meals, serviceArea, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 import { outletList } from '../shared/outlets.js';
 
@@ -151,34 +151,22 @@ function SizeGuide() {
   );
 }
 
-/* ---------- Lunch, dinner & delivery (what the restaurant offers, from settings) ---------- */
-function Meals() {
-  const site = useSite(), s = site.settings, m = meals(s);
-  const services = servicesText(s);
+/* ---------- How ordering works, and what the restaurant offers (from settings) ---------- */
+function HowItWorks() {
+  const { settings: s } = useSite(), m = meals(s), services = servicesText(s);
   return (
-    <section className="section section-light meals" aria-labelledby="mealsTitle">
+    <section className="section section-yellow" aria-labelledby="howTitle">
       <div className="wrap">
-        <div className="section-head">
-          <p className="eyebrow eyebrow-red">{['Lunch', 'Dinner', 'Delivery'].filter((w) => w === 'Delivery' || m.includes(w.toLowerCase())).join(' · ')}</p>
-          <h2 className="section-title" id="mealsTitle">Pizza restaurant in {serviceArea(s)}</h2>
-          <p className="meals-lead">
-            {s.name} is a pizza and fried chicken restaurant in {serviceArea(s)}. {services.charAt(0).toUpperCase() + services.slice(1)}
-            {m.length ? ' for ' + m.join(' or ') : ''}: giant 22" pizzas for the whole table, crispy fried chicken, hot wings and MoMo,
-            cooked fresh to order. Open every day, {hoursText(s)}.
-          </p>
-        </div>
-        <ul className="meal-cards">
-          {m.includes('lunch') && (
-            <li><span className="step-ico"><Icon name="clock" /></span><h3>Lunch</h3>
-              <p>A 12" pizza for one, a chicken combo or a plate of MoMo for your lunch break.</p></li>
-          )}
-          {m.includes('dinner') && (
-            <li><span className="step-ico"><Icon name="utensils" /></span><h3>Dinner</h3>
-              <p>Family dinner or a night with friends: an 18" Large feeds 4–5, the 22" XL feeds 6–8.</p></li>
-          )}
-          <li><span className="step-ico"><Icon name="bike" /></span><h3>Delivery</h3>
-            <p>Pizza delivery across {serviceArea(s)}, hot from the oven. Delivery fee {deliveryRange(s)}.</p></li>
-        </ul>
+        <h2 className="section-title" id="howTitle">Hot to your door in 3 steps</h2>
+        <p className="how-lead">
+          {s.name} bakes giant pizzas and fries crispy chicken and MoMo, fresh to order, across {serviceArea(s)}.
+          {' '}{services.charAt(0).toUpperCase() + services.slice(1)}{m.length ? ' for ' + m.join(' or ') : ''}, any day from {hoursText(s)}.
+        </p>
+        <ol className="steps">
+          <li><span className="step-ico"><Icon name="phone-app" /></span><b>Pick</b><p>A 12" for lunch, an 18" for the family, a 22" for the whole party.</p></li>
+          <li><span className="step-ico"><Icon name="flame" /></span><b>We bake</b><p>Pizzas, chicken and MoMo, stone-baked and fried fresh to order.</p></li>
+          <li><span className="step-ico"><Icon name="bike" /></span><b>We zoom</b><p>Delivered hot to your door{s.dineIn ? ', or brought to your table' : ''}.</p></li>
+        </ol>
         <div className="center mt"><Link to="/menu" className="btn btn-red">See the menu &amp; prices</Link></div>
       </div>
     </section>
@@ -256,7 +244,7 @@ function choosePicks(menu) {
 
 /* ---------- Home view ---------- */
 export function HomeView() {
-  const site = useSite(), s = site.settings;
+  const site = useSite();
   const picks = choosePicks(site.menu);
 
   return (
@@ -286,18 +274,7 @@ export function HomeView() {
 
       <Gallery />
 
-      <section className="section section-yellow" aria-labelledby="howTitle">
-        <div className="wrap">
-          <h2 className="section-title" id="howTitle">Hot to your door in 3 steps</h2>
-          <ol className="steps">
-            <li><span className="step-ico"><Icon name="phone-app" /></span><b>Pick</b><p>Browse the menu &amp; choose your size.</p></li>
-            <li><span className="step-ico"><Icon name="flame" /></span><b>We bake</b><p>Stone-baked &amp; fried fresh to order.</p></li>
-            <li><span className="step-ico"><Icon name="bike" /></span><b>We zoom</b><p>Delivered hot to your door.</p></li>
-          </ol>
-        </div>
-      </section>
-
-      <Meals />
+      <HowItWorks />
 
       <FindUs />
 
