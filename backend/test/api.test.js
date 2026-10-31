@@ -4,7 +4,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const net = require('node:net');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -421,6 +421,29 @@ it('sessions: one hour from login, not extended by use, refused once over', asyn
   await db.end();
   assert.equal((await get('/api/orders')).status, 401);
   assert.deepEqual(await (await get('/api/admin/session')).json(), { authed: false });
+});
+
+it('outlets: old default WhatsApp numbers move to the new ones, numbers set by hand stay', async () => {
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  const read = async () => (await db.query('SELECT data FROM settings WHERE id = 1')).rows[0].data;
+  const saved = await read();
+  const edited = JSON.parse(JSON.stringify(saved));
+  edited.whatsapp = '9779841336695';
+  edited.outlets.find((o) => o.id === 'jhamsikhel').whatsapp = '9779841336695';
+  edited.outlets.find((o) => o.id === 'maharajgunj').whatsapp = '9779860060005';
+  edited.outlets.find((o) => o.id === 'bhaktapur').whatsapp = '9779812345678';
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(edited)]);
+  const init = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
+  assert.equal(init.status, 0, String(init.stderr));
+  const after = await read(), num = (id) => after.outlets.find((o) => o.id === id).whatsapp;
+  assert.equal(after.whatsapp, '9779841103351');
+  assert.equal(num('jhamsikhel'), '9779841103351');
+  assert.equal(num('maharajgunj'), '9779709174249');
+  assert.equal(num('bhaktapur'), '9779812345678');
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(saved)]);
+  await db.end();
 });
 
 it('logout ends the session', async () => {

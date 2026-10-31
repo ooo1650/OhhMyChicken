@@ -164,7 +164,7 @@ const SETTINGS = {
   name: 'Ohh My Chicken Pizza Hub',
   // Main branch contact; each outlet below has its own.
   phone: '+977 984-1336695',
-  whatsapp: '9779841336695',
+  whatsapp: '9779841103351',
   address: 'Jhamsikhel, Lalitpur',
   hoursOpen: '10:00',
   hoursClose: '22:00',
@@ -191,7 +191,7 @@ const SETTINGS = {
       id: 'jhamsikhel', name: 'Jhamsikhel', area: 'Lalitpur', main: true, active: true,
       address: 'Jhamsikhel, Lalitpur',
       landmark: 'Opposite Vesper Cafe, on the left of the road from Pulchowk (Damkal Chowk) towards Jawalakhel.',
-      phones: ['+977 984-1336695'], whatsapp: '9779841336695',
+      phones: ['+977 984-1336695'], whatsapp: '9779841103351',
       delivery: 'Delivers across Lalitpur', hoursOpen: '', hoursClose: '',
       mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Jhamsikhel+Lalitpur',
       lat: 27.6795, lng: 85.308, // approximate: Jhamsikhel road near Vesper Cafe
@@ -201,7 +201,7 @@ const SETTINGS = {
       id: 'maharajgunj', name: 'Maharajgunj', area: 'Kathmandu', main: false, active: true,
       address: 'Maharajgunj Sadak, Kathmandu 44600',
       landmark: 'Plus code P8QP+G78',
-      phones: ['+977 986-0060005', '+977 984-1368821'], whatsapp: '9779860060005',
+      phones: ['+977 986-0060005', '+977 984-1368821'], whatsapp: '9779709174249',
       delivery: 'Delivers in Kathmandu', hoursOpen: '', hoursClose: '',
       mapsUrl: 'https://www.google.com/maps/search/?api=1&query=P8QP%2BG78+Kathmandu',
       lat: 27.7388, lng: 85.3355, // approximate: Maharajgunj
@@ -211,7 +211,7 @@ const SETTINGS = {
       id: 'bhaktapur', name: 'Bhaktapur', area: 'Radhe Radhe, Bhaktapur', main: false, active: true,
       address: 'Radhe Radhe, Bhaktapur',
       landmark: '',
-      phones: ['+977 976-7319518', '+977 970-4835403'], whatsapp: '9779767319518',
+      phones: ['+977 976-7319518', '+977 970-4835403'], whatsapp: '9779704835403',
       delivery: 'Home delivery in Bhaktapur', hoursOpen: '', hoursClose: '',
       mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Radhe+Radhe+Bhaktapur',
       lat: 27.6787, lng: 85.4205, // approximate: Radhe Radhe chowk

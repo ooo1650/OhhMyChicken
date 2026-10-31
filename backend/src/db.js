@@ -70,6 +70,25 @@ async function backfillOutletPins(c) {
   console.log('Added map pins to ' + filled + ' outlet(s).');
 }
 
+// The WhatsApp order numbers changed: move databases still on the old ones. A number chosen in the dashboard stays.
+const OLD_WHATSAPP = { jhamsikhel: '9779841336695', maharajgunj: '9779860060005', bhaktapur: '9779767319518' };
+async function moveOutletWhatsApp(c) {
+  const { rows } = await c.query('SELECT data FROM settings WHERE id = 1');
+  if (!rows.length) return;
+  const data = rows[0].data, outlets = Array.isArray(data.outlets) ? data.outlets : [];
+  let moved = 0;
+  const next = outlets.map((o) => {
+    const d = defaults.SETTINGS.outlets.find((x) => x.id === o.id);
+    if (!d || o.whatsapp !== OLD_WHATSAPP[o.id]) return o;
+    moved++;
+    return { ...o, whatsapp: d.whatsapp };
+  });
+  const main = data.whatsapp === OLD_WHATSAPP.jhamsikhel;
+  if (!moved && !main) return;
+  await c.query('UPDATE settings SET data = data || $1::jsonb WHERE id = 1', [JSON.stringify({ outlets: next, whatsapp: main ? defaults.SETTINGS.whatsapp : data.whatsapp })]);
+  console.log('Updated WhatsApp numbers on ' + moved + ' outlet(s).');
+}
+
 async function seed() {
   const envPass = process.env.ADMIN_PASSCODE || '';
   // Strength is checked only when ADMIN_PASSCODE is about to be used (new database, or
@@ -80,6 +99,7 @@ async function seed() {
     if (!rows[0].n) await insertMenu(c, defaults.MENU);
     await c.query('INSERT INTO settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO NOTHING', [JSON.stringify(defaults.SETTINGS)]);
     await backfillOutletPins(c);
+    await moveOutletWhatsApp(c);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');
