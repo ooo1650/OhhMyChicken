@@ -348,3 +348,6 @@ body.admin-page { background: #F6F4EE; }
 .insights-locked p { color: var(--ink-2); max-width: 44ch; }
 .insights-locked .il-cta { font-weight: 700; color: var(--ink); }
 .il-mail { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); }
+
+.session-end { display: inline-flex; align-items: center; gap: 6px; margin-right: 4px; font-size: var(--fs-xs); color: #BDB7B0; white-space: nowrap; }
+.session-end .i { width: 14px; height: 14px; }

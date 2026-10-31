@@ -87,7 +87,6 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 | `PORT` | backend | API port (default `4000`) |
 | `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
 | `ADMIN_PASSCODE` | backend | Admin passcode (10+ characters, not easy to guess). **Required in production**: the backend won't start until a passcode is chosen. It replaces the default once; after that, change it in the dashboard |
-| `SESSION_TTL_HOURS` | backend | Admin session length (default `12`) |
 | `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
 | `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
 | `TRUST_PROXY` | backend | Proxy hops in front of the API so rate limits see the real client IP. Compose sets `1` (the frontend server); use `2` if another proxy sits in front |
@@ -153,6 +152,8 @@ There is no built-in admin passcode. In development, a new database without `ADM
 docker compose exec -T backend node src/db.js customers > customers.csv     # name, phone, orders, last outlet, consent date
 docker compose exec backend node src/db.js forget-customer 9841234567       # someone asks to be removed (also clears their old orders)
 ```
+
+**Sessions:** a dashboard sign-in lasts one hour from login, whatever the staff do in that time. The dashboard warns 5 minutes before the end, then locks itself, and the server refuses the session from then on.
 
 **Forgotten passcode:** whoever runs the server sets a new one; menu, orders and settings are untouched and every device is signed out:
 

@@ -62,7 +62,7 @@ function Login({ error: initialError, onUnlocked }) {
   );
 }
 
-function Dashboard({ defaultPass, onPassChanged, onLock }) {
+function Dashboard({ endsAt: sessionEnd, defaultPass, onPassChanged, onLock }) {
   const admin = useAdmin(), toast = useToast();
   const [tab, setTab] = useState('menu');
   const [live, setLive] = useState(true);
@@ -106,6 +106,7 @@ function Dashboard({ defaultPass, onPassChanged, onLock }) {
         <div className="wrap admin-head-inner">
           <h1 id="adminTitle"><span className="brand-block brand-ohh">OMC</span> Dashboard</h1>
           <div className="admin-head-actions">
+            {sessionEnd && <span className="session-end hide-xs" title="For security, a sign-in lasts 1 hour"><Icon name="clock" /> Signed in until {new Date(sessionEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}
             <a href="/" className="btn btn-ghost btn-sm" target="_blank" rel="noopener"><Icon name="external" /><span className="hide-xs">View site</span></a>
             <button className="btn btn-yellow btn-sm" onClick={onLock}><Icon name="lock" /> Lock</button>
           </div>
@@ -138,6 +139,10 @@ function Dashboard({ defaultPass, onPassChanged, onLock }) {
   );
 }
 
+// The server says how long is left, so a wrong clock on this device can't change the limit.
+const endsAt = (s) => (s && s.expiresInMs ? Date.now() + s.expiresInMs : null);
+const WARN_MS = 5 * 60 * 1000;
+
 export function AdminApp() {
   const admin = useAdmin(), toast = useToast();
   const [state, setState] = useState({ phase: 'loading', defaultPass: false, error: '' });
@@ -147,7 +152,7 @@ export function AdminApp() {
 
   useEffect(() => {
     admin.session().then(
-      (s) => setState({ phase: s.authed ? 'dashboard' : 'login', defaultPass: !!s.defaultPass, error: '' }),
+      (s) => setState({ phase: s.authed ? 'dashboard' : 'login', defaultPass: !!s.defaultPass, endsAt: endsAt(s), error: '' }),
       (err) => setState({ phase: 'login', defaultPass: false, error: err.message })
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -163,9 +168,30 @@ export function AdminApp() {
   }, [toast]);
 
   const unlocked = useCallback(() => {
-    admin.session().then((s) => s.defaultPass, () => false)
-      .then((defaultPass) => setState({ phase: 'dashboard', defaultPass, error: '' }));
+    admin.session().then((s) => s, () => ({}))
+      .then((s) => setState({ phase: 'dashboard', defaultPass: !!s.defaultPass, endsAt: endsAt(s), error: '' }));
   }, [admin]);
+
+  // One hour after signing in: warn 5 minutes before, then lock, hiding the screen straight away.
+  const end = authed ? state.endsAt : null;
+  useEffect(() => {
+    if (!end) return undefined;
+    let warned = false;
+    const check = () => {
+      const left = end - Date.now();
+      if (left <= 0) {
+        setState({ phase: 'login', defaultPass: false, error: 'Signed out after 1 hour. Enter the passcode to continue.' });
+        admin.logout();
+      } else if (left <= WARN_MS && !warned) {
+        warned = true;
+        toast('You will be signed out in ' + Math.ceil(left / 60000) + ' min. Save any changes.', 'info');
+      }
+    };
+    check();
+    const timer = setInterval(check, 5000);
+    document.addEventListener('visibilitychange', check); // a sleeping phone or laptop wakes up late
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', check); };
+  }, [end]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lock = () => {
     setState({ phase: 'login', defaultPass: false, error: '' });
@@ -174,5 +200,5 @@ export function AdminApp() {
 
   if (state.phase === 'loading') return null;
   if (!authed) return <Login error={state.error} onUnlocked={unlocked} />;
-  return <Dashboard defaultPass={state.defaultPass} onPassChanged={() => setState((s) => ({ ...s, defaultPass: false }))} onLock={lock} />;
+  return <Dashboard endsAt={state.endsAt} defaultPass={state.defaultPass} onPassChanged={() => setState((s) => ({ ...s, defaultPass: false }))} onLock={lock} />;
 }

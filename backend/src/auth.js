@@ -10,7 +10,8 @@ const { pool } = require('./db');
 const { hashPasscode, verifyPasscode, weakness, MIN_PASS, MAX_PASS } = require('./passcode');
 const { createBucket, clientKey, createGate } = require('./limit');
 
-const TTL_MS = (Number(process.env.SESSION_TTL_HOURS) || 12) * 3600 * 1000;
+// A sign-in lasts one hour from the moment of login: using the dashboard doesn't extend it.
+const TTL_MS = 60 * 60 * 1000;
 // Secure cookies by default in production. Set COOKIE_SECURE=false only when
 // serving plain HTTP on a private network (never on the public internet).
 const SECURE = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production';
@@ -36,11 +37,18 @@ function setCookie(res, value, maxAgeMs) {
     (SECURE ? '; Secure' : '') + '; Max-Age=' + Math.floor(maxAgeMs / 1000));
 }
 
-async function sessionValid(req) {
+// Milliseconds left in this request's session; 0 when there isn't a valid one.
+async function sessionLeft(req) {
   const token = readCookie(req, COOKIE);
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return false;
-  const { rows } = await pool.query('SELECT 1 FROM admin_sessions WHERE token_hash = $1 AND expires_at > now()', [sha(token)]);
-  return rows.length > 0;
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return 0;
+  const { rows } = await pool.query('SELECT EXTRACT(EPOCH FROM expires_at - now()) * 1000 AS left_ms FROM admin_sessions WHERE token_hash = $1 AND expires_at > now()', [sha(token)]);
+  return rows.length ? Math.ceil(Number(rows[0].left_ms)) : 0;
+}
+const sessionValid = async (req) => (await sessionLeft(req)) > 0;
+
+// Sessions from before the one-hour limit (or a longer setting) don't get to outlive it.
+async function capSessions() {
+  await pool.query('UPDATE admin_sessions SET expires_at = now() + make_interval(secs => $1) WHERE expires_at > now() + make_interval(secs => $1)', [TTL_MS / 1000]);
 }
 
 async function requireAdmin(req, res, next) {
@@ -78,10 +86,10 @@ async function record(req, ok) {
 // Whether the default passcode is still in use is only told to a signed-in
 // user: to anyone else it would say "the published passcode works here".
 async function status(req) {
-  const authed = await sessionValid(req);
-  if (!authed) return { authed: false };
+  const expiresInMs = await sessionLeft(req);
+  if (!expiresInMs) return { authed: false };
   const { rows } = await pool.query('SELECT is_default FROM admin_auth WHERE id = 1');
-  return { authed: true, defaultPass: !!(rows[0] && rows[0].is_default) };
+  return { authed: true, defaultPass: !!(rows[0] && rows[0].is_default), expiresInMs };
 }
 
 // scrypt is slow and memory-hungry on purpose. Cap how many run at once so a
@@ -163,4 +171,4 @@ async function security(req, res) {
   res.json({ recent: recent.rows, failed24h: failed.rows[0].n, sessions: sessions.rows[0].n, paused: failures.count(ALL) >= MAX_GLOBAL, lastBackup: lastBackup() });
 }
 
-module.exports = { requireAdmin, status, login, logout, changePasscode, signOutOthers, security, MIN_PASS, MAX_PASS };
+module.exports = { capSessions, requireAdmin, status, login, logout, changePasscode, signOutOthers, security, MIN_PASS, MAX_PASS };

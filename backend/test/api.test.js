@@ -97,7 +97,9 @@ it('login: wrong passcode fails, right one sets an httpOnly cookie', async () =>
   assert.match(set, /SameSite=Strict/);
   cookie = set.split(';')[0];
   const s = await req('GET', '/api/admin/session');
-  assert.deepEqual(s.json, { authed: true, defaultPass: false });
+  assert.equal(s.json.authed, true);
+  assert.equal(s.json.defaultPass, false);
+  assert.ok(s.json.expiresInMs > 3590000 && s.json.expiresInMs <= 3600000, 'one hour: ' + s.json.expiresInMs);
 });
 
 it('orders: totals are recalculated on the server', async () => {
@@ -397,6 +399,28 @@ it('insights: locked unless the server switches it on, even for a signed-in admi
     assert.equal(r.status, 402);
     assert.ok(!('totals' in await r.json()));
   } finally { locked.kill(); }
+});
+
+it('sessions: one hour from login, not extended by use, refused once over', async () => {
+  const { Client } = require('pg');
+  const login = await fetch(B + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: PASS }) });
+  const header = login.headers.get('set-cookie');
+  assert.match(header, /Max-Age=3600\b/);
+  assert.match(header, /HttpOnly/);
+  const mine = header.split(';')[0], get = (u) => fetch(B + u, { headers: { Cookie: mine } });
+  const left = async () => (await (await get('/api/admin/session')).json()).expiresInMs;
+  const first = await left();
+  await get('/api/orders');
+  await new Promise((r) => setTimeout(r, 1100));
+  assert.ok(await left() < first, 'using the dashboard does not extend it');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  const crypto = require('node:crypto');
+  const hash = crypto.createHash('sha256').update(decodeURIComponent(mine.split('=')[1])).digest('hex');
+  await db.query("UPDATE admin_sessions SET expires_at = now() - interval '1 second' WHERE token_hash = $1", [hash]);
+  await db.end();
+  assert.equal((await get('/api/orders')).status, 401);
+  assert.deepEqual(await (await get('/api/admin/session')).json(), { authed: false });
 });
 
 it('logout ends the session', async () => {

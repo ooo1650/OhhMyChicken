@@ -80,6 +80,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   await media.ensureDir();
   await db.migrate();
   await db.seed();
+  await require('./auth').capSessions();
   media.backfillFiles().catch((e) => console.warn('media backfill:', e.message));
   require('./analytics').startCleanup();
   // Blank customers' personal details on old orders, now and every 6 hours.
