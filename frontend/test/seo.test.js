@@ -98,7 +98,7 @@ test('outlets: each branch is its own restaurant in the data, and listed in the 
   const j = branches.find((n) => n['@id'].endsWith('#outlet-jhamsikhel'));
   assert.equal(j.telephone, '+9779841336695');
   assert.equal(j.address.addressLocality, 'Lalitpur');
-  assert.match(faqs(b).find((f) => /outlets/.test(f.q)).a, /Jhamsikhel, Lalitpur.*Maharajgunj, Kathmandu.*Radhe Radhe, Bhaktapur/);
+  assert.match(faqs(b).find((f) => /outlets/.test(f.q)).a, /Jhamsikhel, Lalitpur.*Maharajgunj, Kathmandu.*Radhe Radhe, Bhaktapur.* and Pokhara/);
   // Hidden outlets disappear; with one left the site is single-location again.
   const one = boot({ outlets: d.SETTINGS.outlets.map((o, i) => ({ ...o, active: i === 0 })) });
   assert.ok(!jsonLd(resolveRoute('/', one.defaults.CATEGORIES), one, ORIGIN)['@graph'].some((n) => n.parentOrganization));

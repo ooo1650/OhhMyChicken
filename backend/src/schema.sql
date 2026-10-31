@@ -154,3 +154,12 @@ CREATE TABLE IF NOT EXISTS media_files (
   bytes    BYTEA NOT NULL
 );
 CREATE INDEX IF NOT EXISTS media_files_media_idx ON media_files (media_id);
+
+-- v1.8: drinks made at the counter can be ordered at a table or for pickup, not delivered.
+ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS no_delivery BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- One-time changes to saved data that have already run (see once() in db.js).
+CREATE TABLE IF NOT EXISTS data_changes (
+  id TEXT PRIMARY KEY,
+  at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

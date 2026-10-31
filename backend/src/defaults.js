@@ -67,8 +67,11 @@ const ART = {
   'ginger-lemon-honey': 'ginger-lemon', 'apple-tea': 'apple-tea', 'peach-tea': 'peach-tea', 'hot-milk': 'hot-milk',
   'coke-fanta-sprite': 'soft-drinks', 'mineral-water': 'water'
 };
+// Drinks made at the counter don't travel; bottled ones do.
+const BOTTLED = ['coke-fanta-sprite', 'mineral-water'];
 function item(id, category, name, diet, prices, extra) {
-  return Object.assign({ id, category, name, diet, desc: '', prices, available: true, popular: false, art: ART[id] || '' }, extra);
+  const noDelivery = category === 'drinks' && !BOTTLED.includes(id);
+  return Object.assign({ id, category, name, diet, desc: '', prices, available: true, popular: false, noDelivery, art: ART[id] || '' }, extra);
 }
 const HOT = { popular: true }; // highlighted in red on the printed menu
 
@@ -216,6 +219,16 @@ const SETTINGS = {
       mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Radhe+Radhe+Bhaktapur',
       lat: 27.6787, lng: 85.4205, // approximate: Radhe Radhe chowk
       instagram: 'https://www.instagram.com/ohhmychickenpizzahub_bhaktapur/', facebook: ''
+    },
+    {
+      id: 'pokhara', name: 'Pokhara', area: 'Pokhara', main: false, active: true,
+      address: 'Pokhara',
+      landmark: '',
+      phones: ['+977 976-8046482', '+977 971-5073316'], whatsapp: '9779841103351',
+      delivery: '', hoursOpen: '', hoursClose: '',
+      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ohh+My+Chicken+Pizza+Hub+Pokhara',
+      lat: null, lng: null, // outside the valley map: listed without a pin
+      instagram: 'https://www.instagram.com/ohhmychickenpizzahubpokhara/', facebook: ''
     }
   ],
   promo: {

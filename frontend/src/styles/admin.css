@@ -351,3 +351,4 @@ body.admin-page { background: #F6F4EE; }
 
 .session-end { display: inline-flex; align-items: center; gap: 6px; margin-right: 4px; font-size: var(--fs-xs); color: #BDB7B0; white-space: nowrap; }
 .session-end .i { width: 14px; height: 14px; }
+.no-del-chip { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #F1EFEA; color: #5F5A52; font-size: 11px; font-style: normal; font-weight: 700; white-space: nowrap; }

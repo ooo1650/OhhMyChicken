@@ -76,7 +76,9 @@ export function DishCard({ item, q }) {
   }
 
   let action;
+  const s = site.settings;
   if (!item.available) action = <span className="sold-tag">Sold out</span>;
+  else if (item.noDelivery && !s.dineIn && !s.takeaway) action = <span className="sold-tag">Not for delivery</span>;
   else if (!n) action = <button type="button" className="btn btn-red btn-sm add-btn" aria-label={'Add ' + what + ' to your order'} onClick={add}><Icon name="plus" /> Add</button>;
   else action = (
     <div className="stepper" role="group" aria-label={'Quantity of ' + what}>
@@ -95,6 +97,7 @@ export function DishCard({ item, q }) {
         <div className="dish-meta">
           <DietMark diet={item.diet} /><span>{dietLabel(item.diet)}</span>
           {item.popular && <span className="tag-pop"><Icon name="flame" />Popular</span>}
+          {item.noDelivery && <span className="tag-nodel">Not for delivery</span>}
         </div>
         <h3 className="dish-name"><Highlight text={item.name} q={q} /></h3>
         {item.desc && <p className="dish-desc"><Highlight text={item.desc} q={q} /></p>}

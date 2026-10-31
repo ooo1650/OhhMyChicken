@@ -13,7 +13,7 @@ const media = require('./media');
 function toItem(r) {
   return {
     id: r.id, category: r.category, name: r.name, diet: r.diet, desc: r.description,
-    prices: r.prices, available: r.available, popular: r.popular, isPizza: validate.isPizza(r.category),
+    prices: r.prices, available: r.available, popular: r.popular, noDelivery: r.no_delivery, isPizza: validate.isPizza(r.category),
     imageId: r.image_id || null,
     art: r.art || '',
     image: r.m_id ? media.toMedia({
@@ -44,12 +44,12 @@ async function upsertItem(raw) {
     if (dupe.rows.length) validate.fail('An item called “' + dupe.rows[0].name + '” already exists.');
     if (m.imageId && !(await media.exists(m.imageId, c))) validate.fail('That photo was deleted. Choose another one.');
     await c.query(
-      `INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, image_id, art, sort_order)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM menu_items))
+      `INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, image_id, art, no_delivery, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM menu_items))
        ON CONFLICT (id) DO UPDATE SET category = EXCLUDED.category, name = EXCLUDED.name, diet = EXCLUDED.diet,
          description = EXCLUDED.description, prices = EXCLUDED.prices, available = EXCLUDED.available,
-         popular = EXCLUDED.popular, image_id = EXCLUDED.image_id, art = EXCLUDED.art, updated_at = now()`,
-      [m.id, m.category, m.name, m.diet, m.desc, JSON.stringify(m.prices), m.available, m.popular, m.imageId, m.art]
+         popular = EXCLUDED.popular, image_id = EXCLUDED.image_id, art = EXCLUDED.art, no_delivery = EXCLUDED.no_delivery, updated_at = now()`,
+      [m.id, m.category, m.name, m.diet, m.desc, JSON.stringify(m.prices), m.available, m.popular, m.imageId, m.art, m.noDelivery]
     );
     return getItem(c, m.id);
   });

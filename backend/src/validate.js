@@ -81,6 +81,7 @@ function item(raw) {
     id, name, category: raw.category, diet, desc, prices,
     available: raw.available !== false,
     popular: !!raw.popular,
+    noDelivery: !!raw.noDelivery,
     imageId: imageId(raw.imageId),
     art: art(raw.art)
   };

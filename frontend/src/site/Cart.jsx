@@ -30,7 +30,7 @@ export function CartBar() {
   );
 }
 
-function CartLine({ line }) {
+function CartLine({ line, stays }) {
   const site = useSite();
   const [broken, setBroken] = useState(false);
   const photo = broken ? null : line.item.image;
@@ -40,7 +40,7 @@ function CartLine({ line }) {
       {photo
         ? <div className="cl-art has-photo"><Photo media={photo} alt="" sizes="52px" onFail={() => setBroken(true)} /></div>
         : <Art className="cl-art" html={art} />}
-      <div className="cl-info"><b>{line.name}</b><span>{line.label} · {site.money(line.unit)}</span></div>
+      <div className="cl-info"><b>{line.name}</b><span>{line.label} · {site.money(line.unit)}</span>{stays && <em className="cl-nodel">Not for delivery</em>}</div>
       <div className="qty" role="group" aria-label={'Quantity for ' + line.name}>
         <button type="button" aria-label="Decrease" onClick={() => site.setQty(line.id, line.label, line.qty - 1)}><Icon name={line.qty === 1 ? 'trash' : 'minus'} /></button>
         <output>{line.qty}</output>
@@ -65,6 +65,7 @@ export function CartDrawer() {
   // a table number at a table, nothing for pickup. Name and phone are optional.
   const mode = checkout.mode || 'delivery';
   const MODES = [['delivery', 'Delivery', 'bike']].concat(s.dineIn ? [['table', 'At my table', 'utensils']] : [], s.takeaway ? [['pickup', 'Pickup', 'bag']] : []);
+  const stay = mode === 'delivery' ? lines.filter((l) => l.item.noDelivery) : [];
   const withPromo = site.totals(promoCode, mode);
   const t = usedKey === promoKey ? { ...site.totals('', mode), promoMsg: 'This code was already used with this phone number.' } : withPromo;
   useEffect(() => {
@@ -88,6 +89,7 @@ export function CartDrawer() {
   function details() {
     const f = formRef.current, data = detailsOf();
     const bad = (input, msg) => { if (input) { input.classList.add('invalid'); input.focus(); } toast(msg, 'error'); return null; };
+    if (stay.length) return bad(null, stay[0].name + ' can\'t be delivered. Remove it to order delivery.');
     [f.address, f.table, f.name, f.phone].forEach((i) => i && i.classList.remove('invalid'));
     if (mode === 'delivery' && !data.address) return bad(f.address, 'Please enter your delivery address');
     if (mode === 'table' && !/^[\w-]{1,6}$/.test(data.table)) return bad(f.table, 'Please enter your table number');
@@ -149,7 +151,7 @@ export function CartDrawer() {
         </header>
         <div className="drawer-body" hidden={step === 'outlet'}>
           {lines.length
-            ? <ul className="cart-lines">{lines.map((l) => <CartLine key={l.id + '|' + l.label} line={l} />)}</ul>
+            ? <ul className="cart-lines">{lines.map((l) => <CartLine key={l.id + '|' + l.label} line={l} stays={mode === 'delivery' && l.item.noDelivery} />)}</ul>
             : <div className="empty"><span className="empty-ico"><Icon name="bag" /></span><p>Your order is empty.</p>
                 <Link to="/menu" className="btn btn-red btn-sm" onClick={close}>Browse the menu</Link></div>}
         </div>
@@ -204,6 +206,12 @@ export function CartDrawer() {
                     onClick={() => site.setCheckout({ ...checkout, mode: id })}><Icon name={icon} />{label}</button>
                 ))}
               </div>
+            )}
+            {stay.length > 0 && (
+              <p className="nodel-note" role="alert">
+                <span>{stay.map((l) => l.name).join(', ')} can't be delivered.{MODES.length > 1 ? ' Choose another option above, or remove ' + (stay.length > 1 ? 'them' : 'it') + '.' : ''}</span>
+                <button type="button" className="btn btn-link btn-sm" onClick={() => stay.forEach((l) => site.setQty(l.id, l.label, 0))}>Remove</button>
+              </p>
             )}
             {mode === 'delivery' && <input type="text" name="address" value={checkout.address} onChange={set('address')} placeholder="Delivery address: area, street, landmark" required maxLength="200" autoComplete="street-address" aria-label="Delivery address" />}
             {mode === 'table' && <input type="text" name="table" value={checkout.table || ''} onChange={set('table')} placeholder="Table number" required maxLength="6" inputMode="numeric" aria-label="Table number" />}

@@ -45,8 +45,8 @@ async function insertMenu(client, list) {
   for (let i = 0; i < list.length; i++) {
     const m = list[i];
     await client.query(
-      'INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, sort_order, image_id, art) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
-      [m.id, m.category, m.name, m.diet, m.desc || '', JSON.stringify(m.prices), m.available !== false, !!m.popular, i, m.imageId || null, m.art || '']
+      'INSERT INTO menu_items (id, category, name, diet, description, prices, available, popular, sort_order, image_id, art, no_delivery) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
+      [m.id, m.category, m.name, m.diet, m.desc || '', JSON.stringify(m.prices), m.available !== false, !!m.popular, i, m.imageId || null, m.art || '', !!m.noDelivery]
     );
   }
 }
@@ -61,7 +61,7 @@ async function backfillOutletPins(c) {
   let filled = 0;
   const next = outlets.map((o) => {
     const d = defaults.SETTINGS.outlets.find((x) => x.id === o.id);
-    if (!d || o.lat != null || o.lng != null || o.address !== d.address) return o;
+    if (!d || d.lat == null || o.lat != null || o.lng != null || o.address !== d.address) return o;
     filled++;
     return { ...o, lat: d.lat, lng: d.lng };
   });
@@ -89,6 +89,28 @@ async function moveOutletWhatsApp(c) {
   console.log('Updated WhatsApp numbers on ' + moved + ' outlet(s).');
 }
 
+// The Pokhara branch, for databases saved before it opened.
+async function addPokhara(c) {
+  const { rows } = await c.query('SELECT data FROM settings WHERE id = 1');
+  const outlets = rows.length && Array.isArray(rows[0].data.outlets) ? rows[0].data.outlets : [];
+  if (!outlets.length || outlets.some((o) => o.id === 'pokhara' || /pokhara/i.test(o.name))) return;
+  const pokhara = defaults.SETTINGS.outlets.find((o) => o.id === 'pokhara');
+  await c.query("UPDATE settings SET data = jsonb_set(data, '{outlets}', $1::jsonb) WHERE id = 1", [JSON.stringify([...outlets, pokhara])]);
+  console.log('Added the Pokhara outlet.');
+}
+
+// Counter-made drinks stop being offered for delivery on saved menus.
+async function markNoDelivery(c) {
+  const ids = defaults.MENU.filter((m) => m.noDelivery).map((m) => m.id);
+  await c.query('UPDATE menu_items SET no_delivery = TRUE, updated_at = now() WHERE id = ANY($1)', [ids]);
+}
+
+// Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
+async function once(c, id, change) {
+  const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
+  if (rowCount) await change(c);
+}
+
 async function seed() {
   const envPass = process.env.ADMIN_PASSCODE || '';
   // Strength is checked only when ADMIN_PASSCODE is about to be used (new database, or
@@ -99,7 +121,9 @@ async function seed() {
     if (!rows[0].n) await insertMenu(c, defaults.MENU);
     await c.query('INSERT INTO settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO NOTHING', [JSON.stringify(defaults.SETTINGS)]);
     await backfillOutletPins(c);
-    await moveOutletWhatsApp(c);
+    await once(c, 'outlet-whatsapp-numbers', moveOutletWhatsApp);
+    await once(c, 'pokhara-outlet', addPokhara);
+    await once(c, 'counter-drinks-no-delivery', markNoDelivery);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');

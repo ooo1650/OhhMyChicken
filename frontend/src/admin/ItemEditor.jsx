@@ -32,12 +32,12 @@ export function ItemEditor({ state, defaultCat, onClose }) {
   useEffect(() => {
     if (!open) return;
     const item = state.item, copy = state.copy;
-    const d = item ? JSON.parse(JSON.stringify(item)) : { name: '', category: defaultCat !== 'all' ? defaultCat : 'nonveg', diet: 'chicken', desc: '', prices: [], available: true, popular: false };
+    const d = item ? JSON.parse(JSON.stringify(item)) : { name: '', category: defaultCat !== 'all' ? defaultCat : 'nonveg', diet: 'chicken', desc: '', prices: [], available: true, popular: false, noDelivery: false };
     if (copy) { d.id = ''; d.name += ' (copy)'; }
     let prices = d.prices.map((p) => row(p.label, p.price));
     if (!prices.length && PIZZA_CATEGORIES.includes(d.category)) prices = sizes.map((s) => row(s.label, ''));
     if (!prices.length) prices = [row('Regular', '')];
-    setF({ id: d.id || '', imageId: d.imageId || null, image: d.image || null, art: d.art || '', name: d.name, category: d.category, diet: d.diet, desc: d.desc || '', available: d.available !== false, popular: !!d.popular, prices, title: item && !copy ? 'Edit ' + item.name : 'Add menu item' });
+    setF({ id: d.id || '', imageId: d.imageId || null, image: d.image || null, art: d.art || '', name: d.name, category: d.category, diet: d.diet, desc: d.desc || '', available: d.available !== false, popular: !!d.popular, noDelivery: !!d.noDelivery, prices, title: item && !copy ? 'Edit ' + item.name : 'Add menu item' });
     setErr('');
     setPicking(state.pick === true);
     setArtOpen(state.pick === 'art');
@@ -94,7 +94,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
     const dupe = admin.menu.find((m) => m.name.toLowerCase() === name.toLowerCase() && m.id !== f.id);
     if (dupe) { setErr('An item called “' + dupe.name + '” already exists.'); return; }
 
-    const saved = admin.upsertItem({ id: f.id, name, category: f.category, diet: f.diet, desc: f.desc.trim(), prices, available: f.available, popular: f.popular, imageId: f.imageId, image: f.image, art: f.art });
+    const saved = admin.upsertItem({ id: f.id, name, category: f.category, diet: f.diet, desc: f.desc.trim(), prices, available: f.available, popular: f.popular, noDelivery: f.noDelivery, imageId: f.imageId, image: f.image, art: f.art });
     onClose();
     toast('Saved “' + saved.name + '”');
   }
@@ -159,6 +159,7 @@ export function ItemEditor({ state, defaultCat, onClose }) {
           <div className="field-row">
             <label className="switch"><input type="checkbox" checked={f.available} onChange={(e) => set('available', e.target.checked)} /><span /> Available</label>
             <label className="switch"><input type="checkbox" checked={f.popular} onChange={(e) => set('popular', e.target.checked)} /><span /> Featured</label>
+            <label className="switch" title="Stays on the menu for table orders and pickup"><input type="checkbox" checked={f.noDelivery} onChange={(e) => set('noDelivery', e.target.checked)} /><span /> Not for delivery</label>
           </div>
           <p className="form-error" aria-live="assertive">{err}</p>
           <div className="modal-actions">

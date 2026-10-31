@@ -435,6 +435,7 @@ it('outlets: old default WhatsApp numbers move to the new ones, numbers set by h
   edited.outlets.find((o) => o.id === 'maharajgunj').whatsapp = '9779860060005';
   edited.outlets.find((o) => o.id === 'bhaktapur').whatsapp = '9779812345678';
   await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(edited)]);
+  await db.query("DELETE FROM data_changes WHERE id = 'outlet-whatsapp-numbers'");
   const init = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
   assert.equal(init.status, 0, String(init.stderr));
   const after = await read(), num = (id) => after.outlets.find((o) => o.id === id).whatsapp;
@@ -442,8 +443,54 @@ it('outlets: old default WhatsApp numbers move to the new ones, numbers set by h
   assert.equal(num('jhamsikhel'), '9779841103351');
   assert.equal(num('maharajgunj'), '9779709174249');
   assert.equal(num('bhaktapur'), '9779812345678');
+  // It only happens once: going back to an old number in the dashboard sticks.
+  after.outlets.find((o) => o.id === 'maharajgunj').whatsapp = '9779860060005';
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(after)]);
+  spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
+  assert.equal((await read()).outlets.find((o) => o.id === 'maharajgunj').whatsapp, '9779860060005');
   await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(saved)]);
   await db.end();
+});
+
+it('outlets: Pokhara joins saved branch lists once, and stays gone if staff remove it', async () => {
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  const init = () => spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
+  const read = async () => (await db.query('SELECT data FROM settings WHERE id = 1')).rows[0].data;
+  const saved = await read();
+  const without = { ...saved, outlets: saved.outlets.filter((o) => o.id !== 'pokhara') };
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(without)]);
+  await db.query("DELETE FROM data_changes WHERE id = 'pokhara-outlet'");
+  init();
+  const pokhara = (await read()).outlets.find((o) => o.id === 'pokhara');
+  assert.equal(pokhara.whatsapp, '9779841103351');
+  assert.equal(pokhara.lat, null);
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(without)]);
+  init();
+  assert.ok(!(await read()).outlets.some((o) => o.id === 'pokhara'));
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(saved)]);
+  await db.end();
+});
+
+it('menu: counter-made drinks stay on the menu but can only be ordered at a table', async () => {
+  const menu = (await req('GET', '/api/menu')).json;
+  const coffee = menu.find((m) => m.id === 'cappuccino'), coke = menu.find((m) => m.id === 'coke-fanta-sprite');
+  assert.ok(coffee && coffee.available && coffee.noDelivery);
+  assert.equal(coke.noDelivery, false);
+  assert.equal(menu.filter((m) => m.category !== 'drinks' && m.noDelivery).length, 0);
+  const line = (m) => ({ id: m.id, label: m.prices[0].label, qty: 1 });
+  const order = { outlet: 'jhamsikhel', items: [line(coffee), line(coke)] };
+  const no = await req('POST', '/api/orders', { body: { ...order, mode: 'delivery', address: 'Home' } });
+  assert.equal(no.status, 400);
+  assert.match(no.json.error, /Cappuccino can't be delivered/);
+  assert.equal((await req('POST', '/api/orders', { body: { ...order, mode: 'table', table: '4' } })).status, 201);
+  assert.equal((await req('POST', '/api/orders', { body: { ...order, items: [line(coke)], mode: 'delivery', address: 'Home' } })).status, 201);
+  // The switch is saved with the item, and turning it off allows delivery.
+  const open = await req('PUT', '/api/menu/' + coffee.id, { body: { ...coffee, noDelivery: false } });
+  assert.equal(open.json.noDelivery, false);
+  assert.equal((await req('POST', '/api/orders', { body: { ...order, mode: 'delivery', address: 'Home' } })).status, 201);
+  assert.equal((await req('PUT', '/api/menu/' + coffee.id, { body: coffee })).json.noDelivery, true);
 });
 
 it('logout ends the session', async () => {

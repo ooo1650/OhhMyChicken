@@ -98,7 +98,7 @@ export function MenuPanel({ hidden, searchRef }) {
       const saved = await admin.saveMenu(list.map((m, i) => ({
         id: m.id || 'imp' + i + Date.now().toString(36), name: m.name.trim(), category: m.category, diet: m.diet || 'veg', desc: m.desc || '',
         prices: m.prices.map((p) => ({ label: p.label, price: Math.round(+p.price) })),
-        available: m.available !== false, popular: !!m.popular, art: m.art || '', isPizza: PIZZA_CATEGORIES.includes(m.category)
+        available: m.available !== false, popular: !!m.popular, noDelivery: !!m.noDelivery, art: m.art || '', isPizza: PIZZA_CATEGORIES.includes(m.category)
       })));
       if (!saved) return;
       if (data.settings) admin.saveSettings(data.settings);
@@ -152,7 +152,7 @@ export function MenuPanel({ hidden, searchRef }) {
                   <td data-label="Item"><div className="cell-item">{i.image
                     ? <button type="button" className="thumb-btn" title="Change photo" aria-label={'Change the photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Photo media={i.image} alt="" sizes="44px" className="cell-thumb" /></button>
                     : <button type="button" className="thumb-btn thumb-add" title="Add a photo" aria-label={'Add a photo of ' + i.name} onClick={() => openEditor(i, false, true)}><Icon name="plus" /><span>Photo</span></button>}
-                    <span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.desc && <small>{i.desc}</small>}</div></div></td>
+                    <span className="diet"><DietMark diet={i.diet} /></span><div><b>{i.name}</b>{i.noDelivery && <em className="no-del-chip">Not for delivery</em>}{i.desc && <small>{i.desc}</small>}</div></div></td>
                   <td data-label="Category"><span className="cat-pill">{c.icon && <Icon name={c.icon} />}{c.short}</span></td>
                   <td data-label="Prices"><div className="price-chips">{i.prices.map((p) => <span key={p.label}><em>{p.label}</em> {admin.money(p.price)}</span>)}</div></td>
                   <td data-label="Status">
