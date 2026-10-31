@@ -69,8 +69,8 @@ export function SiteProvider({ boot, children }) {
     }).filter(Boolean);
 
     /* Totals. The promo applies to ONE 22" XL pizza (the priciest one in the cart). */
-    // mode: 'delivery' (fee applies), 'pickup' or 'table' (no fee). Same maths as the server.
-    function totals(code, mode) {
+    // Same maths as the server. The delivery fee is a range the outlet confirms, so it isn't in the total.
+    function totals(code) {
       const s = settings;
       const subtotal = cartLines.reduce((n, l) => n + l.total, 0);
       let discount = 0, promoMsg = '';
@@ -84,8 +84,7 @@ export function SiteProvider({ boot, children }) {
           else { discount = Math.round(xl.unit * s.promo.percent / 100); promoMsg = s.promo.percent + '% off your 22" ' + xl.name + '!'; }
         }
       }
-      const delivery = (mode && mode !== 'delivery') || subtotal === 0 || subtotal - discount >= s.freeDeliveryOver ? 0 : +s.deliveryFee;
-      return { subtotal, discount, delivery, total: subtotal - discount + delivery, promoMsg };
+      return { subtotal, discount, total: subtotal - discount, promoMsg };
     }
 
     function addToCart(id, label, qty) {

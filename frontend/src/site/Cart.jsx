@@ -11,7 +11,7 @@ import { Icon } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
-import { fmt12 } from '../shared/format.js';
+import { deliveryRange, fmt12 } from '../shared/format.js';
 import { track } from '../shared/track.js';
 import { outletList, outletOpen, outletWhatsApp, outletTitle, telHref } from '../shared/outlets.js';
 
@@ -66,8 +66,8 @@ export function CartDrawer() {
   const mode = checkout.mode || 'delivery';
   const MODES = [['delivery', 'Delivery', 'bike']].concat(s.dineIn ? [['table', 'At my table', 'utensils']] : [], s.takeaway ? [['pickup', 'Pickup', 'bag']] : []);
   const stay = mode === 'delivery' ? lines.filter((l) => l.item.noDelivery) : [];
-  const withPromo = site.totals(promoCode, mode);
-  const t = usedKey === promoKey ? { ...site.totals('', mode), promoMsg: 'This code was already used with this phone number.' } : withPromo;
+  const withPromo = site.totals(promoCode);
+  const t = usedKey === promoKey ? { ...site.totals(''), promoMsg: 'This code was already used with this phone number.' } : withPromo;
   useEffect(() => {
     if (!promoCode || !withPromo.discount || phoneDigits.length < 7) return undefined;
     const timer = setTimeout(() => site.checkPromo(promoCode, checkout.phone).then((r) => { if (r.used) setUsedKey(promoKey); }, () => {}), 600);
@@ -115,8 +115,8 @@ export function CartDrawer() {
       lines.map((l) => '• ' + l.qty + '× ' + l.name + ' (' + l.label + ') — ' + site.money(l.total)).join('\n') +
       '\n\nSubtotal: ' + site.money(t.subtotal) +
       (t.discount ? '\nPromo ' + promoCode.toUpperCase() + ': −' + site.money(t.discount) : '') +
-      (mode === 'delivery' ? '\nDelivery: ' + (t.delivery ? site.money(t.delivery) : 'FREE') : '') +
-      '\n*Total: ' + site.money(t.total) + '*' +
+      (mode === 'delivery' ? '\nDelivery: ' + deliveryRange(s) + ' (outlet to confirm)' : '') +
+      '\n*Total: ' + site.money(t.total) + (mode === 'delivery' ? ' + delivery' : '') + '*' +
       '\n\n' + served + (data.name ? '\nName: ' + data.name : '') + (data.phone ? '\nPhone: ' + data.phone : '') +
       (outlet.single ? '' : '\nOutlet: ' + outletTitle(outlet));
 
@@ -179,7 +179,7 @@ export function CartDrawer() {
                 );
               })}
             </ul>
-            <p className="tiny muted">Your total is {site.money(t.total)}. Nothing is sent until you tap send in WhatsApp. No WhatsApp on this device? Call the outlet and read out your order.</p>
+            <p className="tiny muted">Your total is {site.money(t.total)}{mode === 'delivery' ? ' + delivery' : ''}. Nothing is sent until you tap send in WhatsApp. No WhatsApp on this device? Call the outlet and read out your order.</p>
           </div>
         )}
         <footer className="drawer-foot" hidden={!lines.length || step === 'outlet'}>
@@ -195,8 +195,8 @@ export function CartDrawer() {
           <dl className="totals">
             <div><dt>Subtotal</dt><dd>{site.money(t.subtotal)}</dd></div>
             {t.discount > 0 && <div className="disc"><dt>Promo {promoCode.toUpperCase()}</dt><dd>− {site.money(t.discount)}</dd></div>}
-            {mode === 'delivery' && <div><dt>Delivery{t.delivery ? <> <small>(free over {site.money(s.freeDeliveryOver)})</small></> : null}</dt><dd>{t.delivery ? site.money(t.delivery) : 'FREE'}</dd></div>}
-            <div className="grand"><dt>Total</dt><dd>{site.money(t.total)}</dd></div>
+            {mode === 'delivery' && <div><dt>Delivery</dt><dd>{deliveryRange(s)}</dd></div>}
+            <div className="grand"><dt>Total{mode === 'delivery' && <small> + delivery</small>}</dt><dd>{site.money(t.total)}</dd></div>
           </dl>
           <form className="checkout" ref={formRef} onSubmit={submit} noValidate>
             {MODES.length > 1 && (

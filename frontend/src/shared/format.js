@@ -7,6 +7,12 @@ export function esc(s) {
 
 export const money = (settings, n) => settings.currency + ' ' + Number(n || 0).toLocaleString('en-IN');
 
+/** The delivery fee as customers see it: "Rs. 0–150". */
+export function deliveryRange(s) {
+  const lo = +s.deliveryFeeMin || 0, hi = +s.deliveryFeeMax || 0;
+  return lo === hi ? money(s, hi) : s.currency + ' ' + lo.toLocaleString('en-IN') + '–' + hi.toLocaleString('en-IN');
+}
+
 export function fmt12(t) {
   const p = String(t).split(':'), h = +p[0];
   return ((h % 12) || 12) + ':' + (p[1] || '00') + (h < 12 ? ' AM' : ' PM');

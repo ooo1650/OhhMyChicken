@@ -493,6 +493,34 @@ it('menu: counter-made drinks stay on the menu but can only be ordered at a tabl
   assert.equal((await req('PUT', '/api/menu/' + coffee.id, { body: coffee })).json.noDelivery, true);
 });
 
+it('settings: saved delivery fee becomes a range, default hours become 9 to 9, chosen hours stay', async () => {
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  const init = () => spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
+  const read = async () => (await db.query('SELECT data FROM settings WHERE id = 1')).rows[0].data;
+  const saved = await read();
+  const old = (hours) => {
+    const { deliveryFeeMin, deliveryFeeMax, ...rest } = saved;
+    return JSON.stringify({ ...rest, deliveryFee: 100, freeDeliveryOver: 2000, ...hours });
+  };
+  const run = async (hours) => {
+    await db.query('UPDATE settings SET data = $1 WHERE id = 1', [old(hours)]);
+    await db.query("DELETE FROM data_changes WHERE id = 'delivery-range-and-hours'");
+    init();
+    return read();
+  };
+  const moved = await run({ hoursOpen: '10:00', hoursClose: '22:00' });
+  assert.equal(moved.hoursOpen, '09:00');
+  assert.equal(moved.hoursClose, '21:00');
+  assert.equal(moved.deliveryFeeMin, 0);
+  assert.equal(moved.deliveryFeeMax, 150);
+  assert.ok(!('deliveryFee' in moved) && !('freeDeliveryOver' in moved));
+  assert.equal((await run({ hoursOpen: '11:00', hoursClose: '20:00' })).hoursOpen, '11:00');
+  await db.query('UPDATE settings SET data = $1 WHERE id = 1', [JSON.stringify(saved)]);
+  await db.end();
+});
+
 it('logout ends the session', async () => {
   assert.equal((await req('POST', '/api/admin/logout', { body: {} })).status, 200);
   assert.equal((await req('GET', '/api/orders')).status, 401);

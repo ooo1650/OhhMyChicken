@@ -8,6 +8,8 @@
 const WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 export const OG_IMAGE = { path: '/assets/og-image.png', width: 1200, height: 630 };
 
+import { deliveryRange } from './format.js';
+
 const money = (s, n) => s.currency + ' ' + Number(n || 0).toLocaleString('en-IN');
 function fmt12(t) {
   const p = String(t).split(':'), h = +p[0], m = p[1] || '00';
@@ -137,8 +139,7 @@ export function faqs(boot) {
   }
   list.push({
     q: 'Do you deliver pizza in ' + city(s) + '?',
-    a: 'Yes. Delivery takes about ' + s.deliveryMins + ' minutes. The delivery fee is ' + money(s, s.deliveryFee) +
-      (s.freeDeliveryOver ? ', and delivery is free on orders over ' + money(s, s.freeDeliveryOver) : '') + '.'
+    a: 'Yes. Delivery takes about ' + s.deliveryMins + ' minutes. The delivery fee is ' + deliveryRange(s) + '.'
   });
   list.push({
     q: 'What pizza sizes do you have?',

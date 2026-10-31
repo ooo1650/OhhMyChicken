@@ -122,14 +122,14 @@ router.post('/orders', limit(ORDER_LIMIT, 10 * 60 * 1000), async (req, res) => {
     address = 'Table ' + tableNo;
   } else if (mode === 'pickup') address = 'Pickup';
   else if (!address) fail('Please enter your delivery address.');
-  let t = totals(menu, settings, cart, b.code, mode);
+  let t = totals(menu, settings, cart, b.code);
   if (!t.lines.length) fail('Those items are no longer on the menu.');
   const stays = mode === 'delivery' && t.lines.find((l) => l.item.noDelivery);
   if (stays) fail(stays.name + ' can\'t be delivered. Remove it to order delivery.');
   // The promo is once per customer: a phone number that already used it pays full price.
   if (t.discount > 0 && (!phone || !name)) fail('Add your name and phone number to use the promo code (it works once per number).');
   const promoRejected = t.discount > 0 && await models.promoUsedBy(phone, b.code);
-  if (promoRejected) t = totals(menu, settings, cart, '', mode);
+  if (promoRejected) t = totals(menu, settings, cart, '');
   // With branches, the order names the one it was sent to.
   const open = settings.outlets.filter((o) => o.active);
   let outlet = '';

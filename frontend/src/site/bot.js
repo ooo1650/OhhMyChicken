@@ -3,7 +3,7 @@
    base. Answers read the LIVE menu & settings. Replies are HTML strings
    built only from escaped values.
    ========================================================================== */
-import { esc, fmt12 } from '../shared/format.js';
+import { deliveryRange, esc, fmt12 } from '../shared/format.js';
 import { dietMarkHtml, iconHtml } from '../shared/Icon.jsx';
 import { outletList, outletTitle, telHref, mapHref } from '../shared/outlets.js';
 
@@ -97,7 +97,7 @@ export function makeBot(site) {
     { id: 'delivery', words: ['deliver', 'delivery', 'how long', 'fee', 'charge', 'area', 'shipping', 'rider', 'eta', 'fast'],
       reply: function () {
         let s = S();
-        return { html: 'We deliver hot in about <b>' + s.deliveryMins + ' minutes</b>.<br>Delivery fee: <b>' + money(s.deliveryFee) + '</b> — <b>FREE</b> on orders over ' + money(s.freeDeliveryOver) + '.<br>Call <a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a> to check if we reach your area.' };
+        return { html: 'We deliver hot in about <b>' + s.deliveryMins + ' minutes</b>.<br>Delivery fee: <b>' + esc(deliveryRange(s)) + '</b>, the outlet confirms it.<br>Call <a href="tel:' + esc(s.phone.replace(/\s/g, '')) + '">' + esc(s.phone) + '</a> to check if we reach your area.' };
       } },
     { id: 'order', words: ['order', 'buy', 'checkout', 'cart', 'purchase', 'book', 'place'],
       reply: function () {

@@ -54,7 +54,7 @@ test('settings: validates and normalises fields', () => {
 test('pricing: totals come from the menu, not the client', () => {
   const t = totals(menu, settings(), [{ id: bbq.id, label: '12" S', qty: 2 }], '');
   assert.equal(t.subtotal, priceOf(bbq, '12" S') * 2);
-  assert.equal(t.total, t.subtotal + (t.subtotal >= defaults.SETTINGS.freeDeliveryOver ? 0 : defaults.SETTINGS.deliveryFee));
+  assert.equal(t.total, t.subtotal);
 });
 
 test('pricing: unknown items and variants are dropped', () => {
@@ -81,12 +81,15 @@ test('pricing: promo takes % off the priciest 22" pizza only', () => {
   assert.equal(totals(menu, { ...s, promo: { ...s.promo, enabled: false } }, cart, s.promo.code).discount, 0);
 });
 
-test('pricing: free delivery over the threshold', () => {
+test('pricing: the delivery fee is a range, never added to the total, with no free threshold', () => {
   const s = settings();
+  assert.equal(s.deliveryFeeMin, 0);
+  assert.equal(s.deliveryFeeMax, 150);
+  assert.equal(s.freeDeliveryOver, undefined);
   const big = totals(menu, s, [{ id: bbq.id, label: '22" XL', qty: 5 }], '');
+  assert.equal(big.total, big.subtotal);
   assert.equal(big.delivery, 0);
-  const small = totals(menu, { ...s, freeDeliveryOver: 1e9 }, [{ id: bbq.id, label: '12" S', qty: 1 }], '');
-  assert.equal(small.delivery, s.deliveryFee);
+  assert.throws(() => validate.settings({ deliveryFeeMin: 200, deliveryFeeMax: 150 }), /highest delivery fee/);
 });
 
 test('rate limits: an IPv6 /64 counts as one client', () => {

@@ -122,6 +122,7 @@ function settings(raw, current) {
   const p = s.promo;
   const whatsapp = String(s.whatsapp == null ? '' : s.whatsapp).replace(/\D/g, '');
   if (whatsapp && !/^\d{8,15}$/.test(whatsapp)) fail('WhatsApp number must be 8–15 digits.');
+  if (+s.deliveryFeeMax < +s.deliveryFeeMin) fail('The highest delivery fee can\'t be below the lowest.');
   if (!TIME_RE.test(s.hoursOpen) || !TIME_RE.test(s.hoursClose)) fail('Opening hours must be in HH:MM format.');
   return {
     name: str(s.name, 60, 'Store name', { required: true }),
@@ -131,8 +132,8 @@ function settings(raw, current) {
     hoursOpen: s.hoursOpen,
     hoursClose: s.hoursClose,
     deliveryMins: int(s.deliveryMins, 5, 180, 'Delivery time'),
-    deliveryFee: int(s.deliveryFee, 0, 1000000, 'Delivery fee'),
-    freeDeliveryOver: int(s.freeDeliveryOver, 0, 10000000, 'Free delivery threshold'),
+    deliveryFeeMin: int(s.deliveryFeeMin, 0, 1000000, 'Lowest delivery fee'),
+    deliveryFeeMax: int(s.deliveryFeeMax, 0, 1000000, 'Highest delivery fee'),
     currency: str(s.currency, 5, 'Currency'),
     street: str(s.street, 120, 'Street address'),
     city: str(s.city, 60, 'City', { required: true }),

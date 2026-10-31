@@ -105,6 +105,16 @@ async function markNoDelivery(c) {
   await c.query('UPDATE menu_items SET no_delivery = TRUE, updated_at = now() WHERE id = ANY($1)', [ids]);
 }
 
+// Delivery became a fee range with no free threshold, and the default hours became 9 to 9 (hours chosen by staff stay).
+async function moveDeliveryAndHours(c) {
+  const { rows } = await c.query('SELECT data FROM settings WHERE id = 1');
+  if (!rows.length) return;
+  const d = rows[0].data, S = defaults.SETTINGS;
+  const onDefault = d.hoursOpen === '10:00' && d.hoursClose === '22:00';
+  const next = { deliveryFeeMin: S.deliveryFeeMin, deliveryFeeMax: S.deliveryFeeMax, ...(onDefault ? { hoursOpen: S.hoursOpen, hoursClose: S.hoursClose } : {}) };
+  await c.query("UPDATE settings SET data = (data - 'deliveryFee' - 'freeDeliveryOver') || $1::jsonb WHERE id = 1", [JSON.stringify(next)]);
+}
+
 // Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
 async function once(c, id, change) {
   const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
@@ -124,6 +134,7 @@ async function seed() {
     await once(c, 'outlet-whatsapp-numbers', moveOutletWhatsApp);
     await once(c, 'pokhara-outlet', addPokhara);
     await once(c, 'counter-drinks-no-delivery', markNoDelivery);
+    await once(c, 'delivery-range-and-hours', moveDeliveryAndHours);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');

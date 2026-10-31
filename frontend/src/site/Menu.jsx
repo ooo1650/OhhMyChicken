@@ -9,7 +9,7 @@ import { Art, iconFor } from './art.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
-import { dietLabel, fmt12, PIZZA_CATEGORIES } from '../shared/format.js';
+import { deliveryRange, dietLabel, fmt12, PIZZA_CATEGORIES } from '../shared/format.js';
 import { categoryPath, pageMeta } from '../shared/seo.js';
 import { navigate } from './router.jsx';
 import { track } from '../shared/track.js';
@@ -234,7 +234,7 @@ export function MenuView({ active, table, cat }) {
           <ul className="menu-facts" aria-label="Ordering info">
             <li className={site.isOpen ? undefined : 'is-closed'}><Icon name="clock" /><span>{site.isOpen ? 'Open now · until ' + fmt12(s.hoursClose) : 'Closed · opens ' + fmt12(s.hoursOpen)}</span></li>
             <li><Icon name="bike" /><span><b>{s.deliveryMins}</b> min delivery</span></li>
-            <li><Icon name="tag" /><span>Free delivery over <b>{site.money(s.freeDeliveryOver)}</b></span></li>
+            <li><Icon name="tag" /><span>Delivery <b>{deliveryRange(s)}</b></span></li>
           </ul>
         </div>
       </div>

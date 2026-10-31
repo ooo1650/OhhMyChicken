@@ -10,7 +10,7 @@ import { DishCard } from './Menu.jsx';
 import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
 import { Icon } from '../shared/Icon.jsx';
-import { fmt12 } from '../shared/format.js';
+import { deliveryRange, fmt12 } from '../shared/format.js';
 import { faqs, meals, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 
@@ -149,7 +149,7 @@ function Meals() {
               <p>Family dinner or a night with friends: an 18" Large feeds 4–5, the 22" XL feeds 6–8.</p></li>
           )}
           <li><span className="step-ico"><Icon name="bike" /></span><h3>Delivery</h3>
-            <p>Pizza delivery across {s.city} in about {s.deliveryMins} minutes{s.freeDeliveryOver ? ', free over ' + site.money(s.freeDeliveryOver) : ''}.</p></li>
+            <p>Pizza delivery across {s.city} in about {s.deliveryMins} minutes, delivery fee {deliveryRange(s)}.</p></li>
         </ul>
         <div className="center mt"><Link to="/menu" className="btn btn-red">See the menu &amp; prices</Link></div>
       </div>

@@ -169,11 +169,12 @@ const SETTINGS = {
   phone: '+977 984-1336695',
   whatsapp: '9779841103351',
   address: 'Jhamsikhel, Lalitpur',
-  hoursOpen: '10:00',
-  hoursClose: '22:00',
+  hoursOpen: '09:00',
+  hoursClose: '21:00',
   deliveryMins: 35,
-  deliveryFee: 100,
-  freeDeliveryOver: 2000,
+  // The outlet confirms the actual fee, so it isn't part of the order total.
+  deliveryFeeMin: 0,
+  deliveryFeeMax: 150,
   currency: 'Rs.',
   // Search engines & Google Business: structured address, map pin, services.
   street: '',
