@@ -15,10 +15,12 @@ import { Icon } from '../shared/Icon.jsx';
 import { fmt12 } from '../shared/format.js';
 import { categoryPath, deliveryRange, faqs, meals, servicesText, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
+import { outletList } from '../shared/outlets.js';
 
 /* ---------- Hero ---------- */
 function Hero() {
-  const { settings, menu } = useSite();
+  const { settings } = useSite();
+  const outlets = outletList(settings).length;
   const heroPizza = useMemo(() => pizza({ seed: 22, id: 'hero' }), []);
 
   return (
@@ -56,7 +58,9 @@ function Hero() {
 
           <ul className="hero-stats">
             <li><b>22"</b><span>XL pizza</span></li>
-            <li><b>{menu.length}</b><span>menu items</span></li>
+            {outlets > 1
+              ? <li><b>{outlets}</b><span>outlets</span></li>
+              : <li><b>{fmt12(settings.hoursClose).replace(':00', '')}</b><span>open daily till</span></li>}
           </ul>
         </div>
 
