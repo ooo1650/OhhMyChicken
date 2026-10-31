@@ -127,6 +127,11 @@ async function fixPizaToday(c) {
   await c.query("UPDATE media SET alt = 'A freshly baked pizza from our oven' WHERE lower(alt) = 'pizatoday'");
 }
 
+// Fried chicken joins the crowd favourites on the home page.
+async function featureFriedChicken(c) {
+  await c.query("UPDATE menu_items SET popular = TRUE, updated_at = now() WHERE id = 'crispy-fried-chicken'");
+}
+
 // Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
 async function once(c, id, change) {
   const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
@@ -149,6 +154,7 @@ async function seed() {
     await once(c, 'delivery-range-and-hours', moveDeliveryAndHours);
     await once(c, 'no-delivery-time', dropDeliveryTime);
     await once(c, 'photo-pizatoday', fixPizaToday);
+    await once(c, 'feature-fried-chicken', featureFriedChicken);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');

@@ -119,7 +119,7 @@ const MENU = [
   item('veggie-lovers-pizza',    'veg', 'Veggie Lovers Pizza',       'veg', sizes(1000, 1150, 1250, 2250), HOT),
 
   // ---- OHH !!! MY CHICKEN ----
-  item('crispy-fried-chicken',   'special', 'Crispy Fried Chicken',  'chicken', [{ label: 'Half', price: 550 }, { label: 'Full', price: 1000 }]),
+  item('crispy-fried-chicken',   'special', 'Crispy Fried Chicken',  'chicken', [{ label: 'Half', price: 550 }, { label: 'Full', price: 1000 }], HOT),
   item('chicken-wings',          'special', 'Chicken Wings',         'chicken', one('6 pcs', 550)),
   item('hot-wings',              'special', 'Hot Wings',             'chicken', one('8 pcs', 500)),
 

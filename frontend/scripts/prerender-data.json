@@ -1246,7 +1246,7 @@
     }
    ],
    "available": true,
-   "popular": false,
+   "popular": true,
    "noDelivery": false,
    "art": "fried-chicken",
    "imageId": null,

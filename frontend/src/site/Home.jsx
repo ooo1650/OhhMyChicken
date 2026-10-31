@@ -6,6 +6,8 @@ import { Fragment, useMemo, useRef, useState } from 'react';
 import { useSite } from './store.jsx';
 import { Link } from './router.jsx';
 import { Art, iconFor, pizza } from './art.jsx';
+import { artKey } from '../shared/food-art.js';
+import { useToast } from '../shared/toast.jsx';
 import { Photo } from '../shared/Photo.jsx';
 import { Gallery } from './Gallery.jsx';
 import { FindUs } from './FindUs.jsx';
@@ -202,26 +204,56 @@ function Faq() {
   );
 }
 
-/* ---------- A crowd favourite: the pizza, its name and starting price; opens its menu section ---------- */
+/* ---------- A crowd favourite: its picture and name open its menu section; Add takes its first size ---------- */
 function Pick({ item }) {
-  const site = useSite();
+  const site = useSite(), toast = useToast();
   const art = useMemo(() => (item.image ? '' : iconFor(item)), [item]);
   const cat = site.categories.find((c) => c.id === item.category);
+  const first = item.prices[0], n = site.cartQty(item.id, first.label);
+  const add = () => {
+    if (!site.addToCart(item.id, first.label, 1)) return;
+    track('add_to_cart', { item_id: item.id, value: first.label, num: 1 });
+    toast('Added ' + item.name + ' (' + first.label + ')');
+  };
   return (
-    <Link to={cat ? categoryPath(cat) : '/menu'} className="pick">
-      {item.image
-        ? <span className="pick-art"><Photo media={item.image} alt={item.image.alt || item.name} sizes="220px" /></span>
-        : <Art as="span" className="pick-art" html={art} />}
-      <span className="pick-name">{item.name}</span>
-      <span className="pick-price">From {site.money(Math.min(...item.prices.map((p) => p.price)))}</span>
-    </Link>
+    <>
+      <Link to={cat ? categoryPath(cat) : '/menu'} className="pick">
+        {item.image
+          ? <span className="pick-art"><Photo media={item.image} alt={item.image.alt || item.name} sizes="220px" /></span>
+          : <Art as="span" className="pick-art" html={art} />}
+        <span className="pick-name">{item.name}</span>
+        <span className="pick-price">{first.label} · {site.money(first.price)}</span>
+      </Link>
+      {n
+        ? (
+          <div className="stepper pick-action" role="group" aria-label={'Quantity of ' + item.name}>
+            <button type="button" aria-label="Remove one" onClick={() => site.setQty(item.id, first.label, n - 1)}><Icon name={n === 1 ? 'trash' : 'minus'} /></button>
+            <output>{n}</output>
+            <button type="button" aria-label="Add one more" onClick={() => site.setQty(item.id, first.label, n + 1)}><Icon name="plus" /></button>
+          </div>
+        )
+        : <button type="button" className="btn btn-yellow btn-sm pick-action" aria-label={'Add ' + item.name + ' (' + first.label + ') to your order'} onClick={add}><Icon name="plus" /> Add</button>}
+    </>
   );
+}
+
+// Four favourites that look different from each other, always including fried chicken.
+function choosePicks(menu) {
+  const seen = new Set();
+  const varied = menu.filter((m) => m.popular && m.available).filter((m) => {
+    const look = artKey(m);
+    if (seen.has(look)) return false;
+    seen.add(look);
+    return true;
+  });
+  const chicken = varied.filter((m) => m.category === 'special').slice(0, 1);
+  return chicken.concat(varied.filter((m) => m.category !== 'special')).slice(0, 4);
 }
 
 /* ---------- Home view ---------- */
 export function HomeView() {
   const site = useSite(), s = site.settings;
-  const picks = site.menu.filter((m) => m.popular && m.available).slice(0, 4);
+  const picks = choosePicks(site.menu);
 
   return (
     <section className="view" id="view-home">
