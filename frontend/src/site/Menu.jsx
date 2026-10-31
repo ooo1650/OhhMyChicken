@@ -9,7 +9,7 @@ import { Art, iconFor } from './art.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
 import { Photo } from '../shared/Photo.jsx';
 import { useToast } from '../shared/toast.jsx';
-import { dietLabel, fmt12, reducedMotion, PIZZA_CATEGORIES } from '../shared/format.js';
+import { dietLabel, fmt12, PIZZA_CATEGORIES } from '../shared/format.js';
 import { categoryPath, pageMeta } from '../shared/seo.js';
 import { navigate } from './router.jsx';
 import { track } from '../shared/track.js';
@@ -159,7 +159,7 @@ export function MenuView({ active, table, cat }) {
     // Keep the active link visible in the horizontally scrolling bar.
     const nav = navRef.current, current = nav && nav.querySelector('[data-cat="' + id + '"]');
     if (current && nav.scrollWidth > nav.clientWidth) {
-      nav.scrollTo({ left: current.offsetLeft - nav.clientWidth / 2 + current.offsetWidth / 2, behavior: reducedMotion ? 'auto' : 'smooth' });
+      nav.scrollTo({ left: current.offsetLeft - nav.clientWidth / 2 + current.offsetWidth / 2, behavior: 'auto' });
     }
   }, []);
 
@@ -188,7 +188,7 @@ export function MenuView({ active, table, cat }) {
     const sec = document.getElementById('cat-' + id);
     if (!sec) return;
     const y = sec.getBoundingClientRect().top + window.scrollY - stickyOffset() - 8;
-    window.scrollTo({ top: y, behavior: reducedMotion ? 'auto' : 'smooth' });
+    window.scrollTo({ top: y, behavior: 'auto' });
     setActive(id);
   }, [stickyOffset, setActive]);
 

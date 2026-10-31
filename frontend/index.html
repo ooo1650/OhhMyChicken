@@ -21,9 +21,6 @@
     body{margin:0;background:#fff;font-family:Rubik,system-ui,sans-serif}
     .shell{--sk:#ECE6DA;min-height:100vh}
     .sk{background:var(--sk);border-radius:10px;position:relative;overflow:hidden}
-    .sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:sk 1.3s infinite}
-    @keyframes sk{to{transform:translateX(100%)}}
-    @media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
     .sh-head{height:78px;background:#E50914;border-bottom:3px solid #121212}
     .sh-wrap{max-width:1140px;margin:0 auto;padding:0 clamp(16px,4vw,32px)}
     .sh-head .sh-wrap{height:100%;display:flex;align-items:center;gap:10px}
@@ -34,14 +31,14 @@
     .sh-hero .sh-wrap{display:flex;gap:40px;align-items:center}
     .sh-hero .sk{--sk:rgba(255,255,255,.18)}
     .sh-copy{flex:1;display:grid;gap:14px;max-width:520px}
-    .sh-pizza{width:min(38vw,420px);aspect-ratio:1;border-radius:50%!important;flex-shrink:0;--sk:rgba(255,199,44,.35)!important}
+    .sh-pizza{width:min(60vw,780px);aspect-ratio:2.2/1;border-radius:24px!important;flex-shrink:0;--sk:rgba(255,199,44,.35)!important}
     .sh-menu{display:none;padding:28px 0}
     .sh-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));margin-top:20px}
     .sh-card{border:2px solid #ECE6DA;border-radius:18px;padding:14px;display:grid;grid-template-columns:96px 1fr;gap:12px}
     .sh-card .sh-th{width:96px;height:96px;border-radius:14px}
     .shell-menu .sh-hero{display:none}.shell-menu .sh-menu{display:block}
     .sh-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-    @media (max-width:859px){.sh-head .sk{display:none}.sh-head .sk:last-of-type{display:block;width:40px;margin-left:auto}.sh-hero .sh-wrap{flex-direction:column;align-items:stretch}.sh-pizza{width:70vw;align-self:center}}
+    @media (max-width:999px){.sh-head .sk{display:none}.sh-head .sk:last-of-type{display:block;width:40px;margin-left:auto}.sh-hero .sh-wrap{flex-direction:column;align-items:stretch}.sh-pizza{width:100%;aspect-ratio:2.2/1}}
     @media (max-width:520px){.sh-head{height:64px}.sh-head img{height:56px}}
   </style>
   <!--boot-->

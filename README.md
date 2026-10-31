@@ -135,7 +135,7 @@ Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped
 
 | Area | What it does |
 | --- | --- |
-| **Hero** | Wavy title, a giant 22" pizza that turns slowly, and a delivery rider that crosses the road once (tap the road for another trip). The rest of the site is still on purpose: no scroll effects or floating decorations. Motion is plain CSS and stops with the system's *reduce motion* setting. |
+| **Hero** | Wavy title beside a still photo of a pizza with a slice being lifted, background removed ([Pexels, Shourav Sheikh](https://www.pexels.com/photo/delicious-pizza-with-mushrooms-and-black-olives-5695589/), free license; `src/assets/hero-slice-*.webp`). The customer site has no animation or transitions at all. |
 | **Offer pop-up** | Off by default (Dashboard → Store → *Show the offer pop-up on the site*); the promo code works either way. When on, it shows after 3 s, once per browser session. "Tap to copy" copies the code and applies it to the cart. You can edit it in Admin. |
 | **Size guide** | Interactive 12" / 15" / 18" / 22" picker that scales the pizza and compares areas. |
 | **Menu** | Full-width menu with a sticky category bar that jumps to each section and highlights the one you're reading, instant search (name, description, type or category), diet filters with veg / non-veg marks, a size / option picker, and an Add button that turns into a quantity stepper. A floating "View order" bar shows the item count and subtotal. Opening `/menu?table=7` (from a table QR sticker) shows a table banner and pre-fills the table at checkout. |

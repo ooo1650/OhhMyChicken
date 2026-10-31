@@ -11,7 +11,6 @@ import { Chat } from './Chat.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 import { useLayer } from '../shared/layer.js';
-import { reducedMotion } from '../shared/format.js';
 import { resolveRoute, applyHead, categoryPath, hoursText } from '../shared/seo.js';
 import { track } from '../shared/track.js';
 import { outletList, outletTitle, telHref } from '../shared/outlets.js';
@@ -208,12 +207,12 @@ export function App() {
       const timer = setTimeout(() => {
         const target = document.getElementById(page.section), header = document.getElementById('siteHeader');
         const y = target.getBoundingClientRect().top + window.scrollY - header.offsetHeight + 1;
-        window.scrollTo({ top: y, behavior: reducedMotion || changed ? 'auto' : 'smooth' });
+        window.scrollTo({ top: y, behavior: 'auto' });
       }, changed ? 60 : 0);
       return () => clearTimeout(timer);
     }
     if (changed) window.scrollTo(0, 0);
-    else window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'auto' });
     return undefined;
   }, [route.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
