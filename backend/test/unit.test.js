@@ -63,6 +63,14 @@ test('pricing: unknown items and variants are dropped', () => {
   assert.equal(t.total, 0);
 });
 
+test('offer pop-up: off by default, also for settings saved before it existed; the code still works', () => {
+  assert.equal(settings().promo.popup, false);
+  const saved = validate.settings({ promo: { enabled: true, code: 'OHH22', percent: 15, headline: 'x', delaySec: 3 } }, defaults.SETTINGS);
+  assert.equal(saved.promo.popup, false);
+  assert.equal(saved.promo.enabled, true);
+  assert.equal(validate.settings({ promo: { popup: true } }, defaults.SETTINGS).promo.popup, true);
+});
+
 test('pricing: promo takes % off the priciest 22" pizza only', () => {
   const s = settings();
   const cart = [{ id: bbq.id, label: '22" XL', qty: 1 }, { id: bbq.id, label: '12" S', qty: 1 }];

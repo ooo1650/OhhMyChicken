@@ -2,7 +2,6 @@
    App — routes, page <head>, header/nav, offer pop-up and footer.
    ========================================================================== */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import gsap from 'gsap';
 import { useSite, promoSeen, markPromoSeen } from './store.jsx';
 import { useRoute, Link } from './router.jsx';
 import { HomeView } from './Home.jsx';
@@ -78,12 +77,7 @@ function PromoModal() {
   const close = () => site.setPromoOpen(false);
   const { hidden, isOpen } = useLayer(site.promoOpen, ref, { onClose: close, focus: '.code-pill' });
 
-  useEffect(() => {
-    if (site.promoOpen) track('promo_shown');
-    if (!site.promoOpen || reducedMotion) return;
-    gsap.fromTo(ref.current.querySelector('.promo-card'), { scale: 0.6, rotation: -6, opacity: 0 }, { scale: 1, rotation: 0, opacity: 1, duration: 0.6, ease: 'back.out(2)' });
-    gsap.fromTo(ref.current.querySelector('.promo-burst'), { rotation: -180, scale: 0 }, { rotation: -12, scale: 1, duration: 0.8, delay: 0.15, ease: 'back.out(2.5)' });
-  }, [site.promoOpen]);
+  useEffect(() => { if (site.promoOpen) track('promo_shown'); }, [site.promoOpen]);
 
   const copy = () => {
     track('promo_copied');
@@ -223,20 +217,11 @@ export function App() {
     return undefined;
   }, [route.n]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fade the newly shown view in.
-  const firstView = useRef(true);
-  useEffect(() => {
-    // The first view replaces the loading skeleton directly; fading it in from blank would flash.
-    if (firstView.current) { firstView.current = false; return; }
-    if (reducedMotion) return;
-    gsap.fromTo('#view-' + view, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out', clearProps: 'transform' });
-  }, [view]);
-
   // Offer pop-up once per session, after the configured delay (not on error pages).
   useEffect(() => {
     if (page.view === 'notfound') return undefined;
     const t = setTimeout(() => {
-      if (!site.settings.promo.enabled || promoSeen() || document.documentElement.classList.contains('no-scroll')) return;
+      if (!site.settings.promo.enabled || !site.settings.promo.popup || promoSeen() || document.documentElement.classList.contains('no-scroll')) return;
       markPromoSeen();
       site.setPromoOpen(true);
     }, Math.max(0, +site.settings.promo.delaySec || 0) * 1000);

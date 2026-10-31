@@ -39,7 +39,7 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       street: f.street.trim(), city: f.city.trim(), region: f.region.trim(), postalCode: f.postalCode.trim(),
       country: f.country.trim(), currencyCode: f.currencyCode.trim(), lat: f.lat === '' ? null : f.lat, lng: f.lng === '' ? null : f.lng,
       mapsUrl: f.mapsUrl.trim(), socialLinks: f.socialLinks.split(/\s+/).filter(Boolean), dineIn: !!f.dineIn, takeaway: !!f.takeaway, dishPhotos: !!f.dishPhotos,
-      promo: { enabled: !!f.promo.enabled, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
+      promo: { enabled: !!f.promo.enabled, popup: !!f.promo.popup, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
     };
     const pass = f.newPass, current = f.currentPass;
     if (pass && pass.length < 10) { toast('New passcode must be at least 10 characters', 'error'); form.newPass.focus(); return; }
@@ -116,9 +116,12 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
           <label className="switch"><input type="checkbox" checked={!!f.takeaway} onChange={(e) => setF((x) => ({ ...x, takeaway: e.target.checked }))} /><span /> Takeaway / pickup</label>
         </fieldset>
         <fieldset>
-          <legend>Offer pop-up</legend>
+          <legend>Promo code &amp; pop-up</legend>
           <label className="switch">
-            <input type="checkbox" name="promo.enabled" checked={!!f.promo.enabled} onChange={(e) => setF((x) => ({ ...x, promo: { ...x.promo, enabled: e.target.checked } }))} /><span /> Show offer pop-up
+            <input type="checkbox" name="promo.enabled" checked={!!f.promo.enabled} onChange={(e) => setF((x) => ({ ...x, promo: { ...x.promo, enabled: e.target.checked } }))} /><span /> Promo code works at checkout
+          </label>
+          <label className="switch">
+            <input type="checkbox" name="promo.popup" checked={!!f.promo.popup} onChange={(e) => setF((x) => ({ ...x, promo: { ...x.promo, popup: e.target.checked } }))} /><span /> Show the offer pop-up on the site
           </label>
           <label className="field"><span>Headline</span><input maxLength="80" {...promo('headline')} /></label>
           <div className="field-row">

@@ -222,6 +222,7 @@ const SETTINGS = {
   ],
   promo: {
     enabled: true,
+    popup: false, // the offer pop-up; the code works either way
     code: 'OHH22',
     percent: 15,
     headline: 'GET 15% OFF YOUR FIRST GIANT 22" PIZZA!',

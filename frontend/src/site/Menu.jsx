@@ -4,7 +4,6 @@
    used by the home "popular" row.
    ========================================================================== */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import gsap from 'gsap';
 import { useSite } from './store.jsx';
 import { Art, iconFor } from './art.jsx';
 import { Icon, DietMark } from '../shared/Icon.jsx';
@@ -49,23 +48,6 @@ function dietMatch(item, diet) {
   return item.diet === 'mix' && diet !== 'veg'; // mixed meat counts for every meat filter
 }
 
-function flyToCart(from) {
-  if (reducedMotion) return;
-  const bar = document.getElementById('cartBar');
-  const target = bar && !bar.hidden ? bar : document.getElementById('cartBtn');
-  const to = target.getBoundingClientRect(), src = from.getBoundingClientRect();
-  const dot = document.createElement('span');
-  dot.className = 'fly-dot';
-  dot.style.left = src.left + src.width / 2 + 'px';
-  dot.style.top = src.top + 'px';
-  document.body.appendChild(dot);
-  gsap.to(dot, {
-    x: to.left + to.width / 2 - (src.left + src.width / 2), y: to.top + to.height / 2 - src.top,
-    scale: 0.4, duration: 0.6, ease: 'power2.in',
-    onComplete: () => { dot.remove(); gsap.fromTo(target, { scale: 1.08 }, { scale: 1, duration: 0.35, ease: 'back.out(3)' }); }
-  });
-}
-
 /* ---------- Card ---------- */
 export function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
@@ -86,12 +68,11 @@ export function DishCard({ item, q }) {
     }
   }, [n]);
 
-  function add(e) {
+  function add() {
     focusStep.current = true;
     site.addToCart(item.id, label, 1);
     track('add_to_cart', { item_id: item.id, value: label, num: 1 });
     toast('Added ' + item.name + ' (' + label + ')');
-    flyToCart(e.currentTarget);
   }
 
   let action;

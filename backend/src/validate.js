@@ -149,6 +149,7 @@ function settings(raw, current) {
     outlets: outlets(s.outlets),
     promo: {
       enabled: !!p.enabled,
+      popup: !!p.popup,
       code: str(p.code, 20, 'Promo code').toUpperCase(),
       percent: int(p.percent, 1, 90, 'Promo %'),
       headline: str(p.headline, 80, 'Headline'),

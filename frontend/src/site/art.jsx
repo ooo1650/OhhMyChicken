@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Art — hand-built SVG illustrations (hero pizza, rider, toppings, menu art).
+   Art — hand-built SVG illustrations (hero pizza, rider, menu art).
    Pure strings, so they are crisp at any size and cost zero image requests.
    Rendered with <Art html={...}/>; the strings never contain user input.
    ========================================================================== */
@@ -167,20 +167,10 @@ function rider() {
   '</svg>';
 }
 
-// Small floating toppings for the hero
-let FLOATERS = [
-  '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#C8202A"/><circle cx="14" cy="14" r="3" fill="#ffffff44"/><circle cx="25" cy="24" r="2.5" fill="#00000033"/></svg>',
-  '<svg viewBox="0 0 40 40"><path d="M20 3 C33 10 33 28 20 37 C7 28 7 10 20 3z" fill="#2E8B3D"/><path d="M20 6 V34" stroke="#1d5c27" stroke-width="2"/></svg>',
-  '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="12" fill="none" stroke="#1C1C1C" stroke-width="7"/></svg>',
-  '<svg viewBox="0 0 40 40"><path d="M6 22 A14 12 0 0 1 34 22z" fill="#EADCC8" stroke="#a89880" stroke-width="1.5"/><rect x="16" y="22" width="8" height="12" rx="2" fill="#EADCC8" stroke="#a89880" stroke-width="1.5"/></svg>',
-  '<svg viewBox="0 0 40 40"><path d="M12 8 C 26 6 34 18 30 30 C 26 36 18 36 14 32 C 22 28 24 18 12 8z" fill="#2CA02C"/><path d="M12 8 L8 4" stroke="#1d5c27" stroke-width="3" stroke-linecap="round"/></svg>',
-  '<svg viewBox="0 0 40 40"><path d="M4 30 L 20 4 L 36 30 Z" fill="#FFC72C" stroke="#D98B32" stroke-width="2" stroke-linejoin="round"/><circle cx="20" cy="20" r="3" fill="#C8202A"/><circle cx="14" cy="26" r="2.5" fill="#C8202A"/><circle cx="26" cy="26" r="2.5" fill="#C8202A"/></svg>'
-];
-
 // Menu card drawing for an item: see shared/food-art.js.
 const iconFor = artSvg;
 
-export { pizza, rider, WHEELS, FLOATERS, iconFor };
+export { pizza, rider, iconFor };
 
 // An SVG string from this file, inside a wrapper element.
 export function Art({ html, as: Tag = 'div', ...rest }) {

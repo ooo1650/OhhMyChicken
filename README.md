@@ -135,8 +135,8 @@ Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped
 
 | Area | What it does |
 | --- | --- |
-| **Hero** | Wavy SVG title that moves (animated `textPath`), a 22" pizza that slides and spins in, floating toppings with pointer parallax, and a delivery rider crossing the road (tap the road for an express run). |
-| **Offer pop-up** | Shows after 3 s, once per browser session. "Tap to copy" copies the code and applies it to the cart. You can edit it in Admin. |
+| **Hero** | Wavy title, a giant 22" pizza that turns slowly, and a delivery rider that crosses the road once (tap the road for another trip). The rest of the site is still on purpose: no scroll effects or floating decorations. Motion is plain CSS and stops with the system's *reduce motion* setting. |
+| **Offer pop-up** | Off by default (Dashboard → Store → *Show the offer pop-up on the site*); the promo code works either way. When on, it shows after 3 s, once per browser session. "Tap to copy" copies the code and applies it to the cart. You can edit it in Admin. |
 | **Size guide** | Interactive 12" / 15" / 18" / 22" picker that scales the pizza and compares areas. |
 | **Menu** | Full-width menu with a sticky category bar that jumps to each section and highlights the one you're reading, instant search (name, description, type or category), diet filters with veg / non-veg marks, a size / option picker, and an Add button that turns into a quantity stepper. A floating "View order" bar shows the item count and subtotal. Opening `/menu?table=7` (from a table QR sticker) shows a table banner and pre-fills the table at checkout. |
 | **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per phone number: the server checks earlier orders, and the cart says so as soon as the phone is typed), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
@@ -196,7 +196,7 @@ No meta keywords tag: Google and Bing ignore it.
 - **The dashboard is a separate app** served only at `ADMIN_PATH`, with `X-Robots-Tag: noindex` and `Cache-Control: no-store`. The customer site ships none of its markup, code or styles.
 - **Every write endpoint** requires a session, a JSON body and a same-origin `Origin` header, which blocks cross-site request forgery.
 - **Inputs are validated on the server** (menu items, settings, orders). Order totals and discounts are recalculated server-side, so a tampered browser can't change prices.
-- **Headers**: the frontend server sends HSTS (when `PUBLIC_URL` is https), a `Permissions-Policy` that turns off camera, microphone and location, and a strict Content-Security-Policy for the pages (scripts only from this origin; GSAP and the QR library are bundled, no CDN), `X-Frame-Options`, `nosniff` and `Referrer-Policy`. The API adds Helmet's headers with `default-src 'none'`, and HSTS in production.
+- **Headers**: the frontend server sends HSTS (when `PUBLIC_URL` is https), a `Permissions-Policy` that turns off camera, microphone and location, and a strict Content-Security-Policy for the pages (scripts only from this origin; the QR library is bundled, no CDN), `X-Frame-Options`, `nosniff` and `Referrer-Policy`. The API adds Helmet's headers with `default-src 'none'`, and HSTS in production.
 - **Rate limits**: 300 API requests/min per client, 20 orders per 10 min, 60 photo uploads per 10 min, 30 login attempts per 15 min, and a 15-minute lockout after 8 wrong passcodes. A client is one IPv4 address or one IPv6 /64, so rotating IPv6 addresses doesn't get around it. Faked `X-Forwarded-For` headers are ignored, since only the configured proxy hops are trusted.
 - **Flood protection**: at most 2 passcode checks run at once (40 queued; more get a quick `503 busy`), so a many-IP guessing flood can't starve the server. Photos are processed one at a time. Public menu data is cached for 2 s, so page-load floods don't reach the database. Slow-sending clients (slowloris) are disconnected, and proxied requests time out. Containers have memory and process limits.
 - **Size limits**: JSON bodies 1 MB, photos 10 MB and 50 megapixels (refusing image "bombs" that are tiny files but huge in memory), URLs and headers 16 KB. SVG and other non-photo formats are refused. Order fields are trimmed (name 80, address 200), up to 50 lines, quantity 1–99.
@@ -271,6 +271,6 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
     MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, confirm.jsx
 ```
 
-Libraries: [React](https://react.dev), [GSAP 3.12.5](https://gsap.com) and [qrcode-generator 1.4.4](https://github.com/kazuhikoarase/qrcode-generator), bundled by Vite. Animations respect `prefers-reduced-motion` and fall back to CSS. UI icons are an SVG sprite (`frontend/public/assets/icons.svg`) drawn in the style of [Lucide](https://lucide.dev). Emoji are not used in the interface.
+Libraries: [React](https://react.dev), [qrcode-generator 1.4.4](https://github.com/kazuhikoarase/qrcode-generator), bundled by Vite. Animations respect `prefers-reduced-motion` and fall back to CSS. UI icons are an SVG sprite (`frontend/public/assets/icons.svg`) drawn in the style of [Lucide](https://lucide.dev). Emoji are not used in the interface.
 
 Old hash URLs (`/#/menu?table=7`) from printed QR stickers redirect to the real URLs in the browser.
