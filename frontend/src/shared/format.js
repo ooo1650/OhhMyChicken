@@ -15,7 +15,7 @@ export function fmt12(t) {
 // The restaurant's clock: Nepal time (UTC+5:45, no daylight saving), whatever
 // time zone the visitor's phone is set to.
 const STORE_UTC_OFFSET_MIN = 5 * 60 + 45;
-export const storeMinutes = (d) => (d.getUTCHours() * 60 + d.getUTCMinutes() + STORE_UTC_OFFSET_MIN) % 1440;
+const storeMinutes = (d) => (d.getUTCHours() * 60 + d.getUTCMinutes() + STORE_UTC_OFFSET_MIN) % 1440;
 
 export function isOpenNow(settings, date) {
   const mins = storeMinutes(date || new Date());

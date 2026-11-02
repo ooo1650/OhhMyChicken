@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cart totals — the same maths as the browser (public/js/store.js), run on
+   Cart totals — the same maths as the browser (frontend/src/site/store.jsx), run on
    the server so stored orders can't be tampered with.
    The promo applies to ONE 22" XL pizza (the priciest one in the cart).
    ========================================================================== */

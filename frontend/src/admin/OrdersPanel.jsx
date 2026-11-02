@@ -6,7 +6,7 @@ import { Kpi } from './Kpi.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
 
-export const STATUSES = [
+const STATUSES = [
   { id: 'new', label: 'New' }, { id: 'preparing', label: 'Preparing' }, { id: 'delivering', label: 'Out for delivery' },
   { id: 'done', label: 'Done' }, { id: 'cancelled', label: 'Cancelled' }
 ];

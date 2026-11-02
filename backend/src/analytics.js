@@ -181,4 +181,4 @@ async function insights(daysRaw) {
   };
 }
 
-module.exports = { collect, recordServer, insights, startCleanup, EVENTS };
+module.exports = { collect, recordServer, insights, startCleanup };

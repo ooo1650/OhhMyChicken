@@ -222,4 +222,4 @@ function socialLinks(v) {
 
 function isPizza(category) { return PIZZA_CATEGORIES.includes(category); }
 
-module.exports = { ValidationError, item, menu, settings, isPizza, fail, clean };
+module.exports = { item, menu, settings, isPizza, fail, clean };

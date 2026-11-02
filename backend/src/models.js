@@ -155,6 +155,7 @@ async function forgetOldCustomerDetails() {
 }
 
 // Opt-in customer list (see schema.sql). Called only when the customer ticked the box.
+// The operator reads or edits it from the command line: see db.js.
 const phoneKey = (phone) => String(phone || '').replace(/\D/g, '').slice(-10);
 async function rememberCustomer({ name, phone, outlet }) {
   const key = phoneKey(phone);
@@ -164,15 +165,6 @@ async function rememberCustomer({ name, phone, outlet }) {
      ON CONFLICT (phone_key) DO UPDATE SET phone = EXCLUDED.phone, name = COALESCE(NULLIF(EXCLUDED.name, ''), customers.name),
        outlet = EXCLUDED.outlet, orders = customers.orders + 1, last_order = now(), consent_at = now()`, [key, phone, name || '', outlet || '']);
 }
-async function listCustomers() {
-  const { rows } = await pool.query('SELECT name, phone, orders, outlet, consent_at, last_order FROM customers ORDER BY last_order DESC');
-  return rows;
-}
-async function forgetCustomer(phone) {
-  const key = phoneKey(phone);
-  const { rowCount } = await pool.query('DELETE FROM customers WHERE phone_key = $1', [key]);
-  return rowCount;
-}
 
 async function clearOrders() { await pool.query('TRUNCATE orders'); }
 
@@ -180,5 +172,5 @@ module.exports = {
   listMenu, upsertItem, deleteItem, replaceMenu, resetMenu,
   getSettings, saveSettings, resetSettings, contentUpdatedAt,
   createOrder, listOrders, promoUsedBy, forgetOldCustomerDetails, ORDER_DETAILS_DAYS,
-  rememberCustomer, listCustomers, forgetCustomer, phoneKey, setOrderStatus, clearOrders, ORDER_STATUSES
+  rememberCustomer, setOrderStatus, clearOrders
 };

@@ -49,7 +49,7 @@ function dietMatch(item, diet) {
 }
 
 /* ---------- Card ---------- */
-export function DishCard({ item, q }) {
+function DishCard({ item, q }) {
   const site = useSite(), toast = useToast();
   const [label, setLabel] = useState(item.prices[0].label);
   // Arriving from a size card on the home page: that size is already chosen.

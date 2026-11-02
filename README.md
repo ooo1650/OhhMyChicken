@@ -244,10 +244,12 @@ backend/                  Express JSON API (own Dockerfile, port 4000)
 frontend/                 React app + SEO page server (own Dockerfile, port 8080)
   index.html, admin.html  the two pages (customer site, staff dashboard)
   vite.config.js          two entry points, dev proxy for /api
-  server/index.js         serves the build, renders SEO <head> + inlined data, sitemap, robots, 404s, /api proxy
+  server/index.js         serves the build, renders each page (head + content) with live data, sitemap, robots, 404s, /api proxy
   test/                   SEO unit tests + frontend-server end-to-end tests
   brand/logo.png          the restaurant logo (source for every logo file below)
   scripts/brand-assets.cjs  rebuilds favicon, app icons, search preview and header logo from it
+  scripts/prerender.mjs   after the build: static pages for hosts without Node (Vercel)
+  scripts/sync-prerender-data.cjs  refreshes prerender-data.json from backend/src/defaults.js
   public/assets/          icon sprite, social preview image, app icons (favicon.ico sits in public/)
   public/site.webmanifest web app manifest
   src/styles/             styles.css (brand, layout, components), admin.css (dashboard)
@@ -256,20 +258,22 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
   src/shared/seo.js       routes, titles, descriptions, FAQ and schema.org data (used by server and app)
   src/site/               customer site
     main.jsx, App.jsx     bootstrap, routes, page head, header, offer pop-up, 404, footer
+    entry-server.jsx      renders a page to HTML (Node server and prerender)
     router.jsx            path router on the History API
     store.jsx             menu & settings, cart (localStorage), totals, shared UI state
-    Home.jsx              hero, size guide, lunch & dinner section, FAQ, reveals
+    Home.jsx              hero, size guide, picks, how ordering works, FAQ
+    FindUs.jsx, ValleyMap.jsx  outlet list and the drawn valley map
     Menu.jsx              search, category scroll-spy, diet filters, dish cards & steppers
     Cart.jsx              cart drawer, floating order bar, WhatsApp checkout
     Chat.jsx, bot.js      Chicky's UI and intents
     Gallery.jsx           home-page photo gallery and lightbox
-    art.jsx               hand-built SVG pizza, rider, toppings, food icons
+    art.jsx               the large drawn pizza (hero, size guide); menu drawings are in shared/food-art.js
   src/admin/              staff dashboard
     AdminApp.jsx          login gate, tabs, live orders polling
     store.jsx             CMS, auth and order calls
     PhotosPanel.jsx       photo library (upload, describe, gallery, delete) + picker for dishes
     InsightsPanel.jsx     analytics dashboard (KPIs, charts, funnel, tables)
-    MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, confirm.jsx
+    MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, OutletsPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, Kpi.jsx, confirm.jsx
 ```
 
 Libraries: [React](https://react.dev), [qrcode-generator 1.4.4](https://github.com/kazuhikoarase/qrcode-generator), bundled by Vite. Animations respect `prefers-reduced-motion` and fall back to CSS. UI icons are an SVG sprite (`frontend/public/assets/icons.svg`) drawn in the style of [Lucide](https://lucide.dev). Emoji are not used in the interface.

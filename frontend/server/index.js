@@ -36,7 +36,7 @@ if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PRO
 
 /* ---------- Security headers ---------- */
 // Scripts are all bundled, so the CSP allows only our origin plus Google Fonts.
-// Inline style attributes are needed for CSS custom properties and GSAP.
+// Inline style attributes are needed for CSS custom properties set from code.
 // JSON data blocks (<script type="application/json">) are not executed, so no 'unsafe-inline'.
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
   "font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; " +

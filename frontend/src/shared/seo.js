@@ -7,7 +7,7 @@
    ========================================================================== */
 
 const WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-export const OG_IMAGE = { path: '/assets/og-image.png', width: 1200, height: 630 };
+const OG_IMAGE = { path: '/assets/og-image.png', width: 1200, height: 630 };
 
 const money = (s, n) => s.currency + ' ' + Number(n || 0).toLocaleString('en-IN');
 /** The delivery fee as customers see it: "Rs. 0–150". */

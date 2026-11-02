@@ -195,7 +195,7 @@ Every line should say `PASS` or `SKIP`. The two skips are HTTPS-only checks that
 docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://SERVER-IP
 ```
 
-Expect a few low "WARN" notes, for example that the CSP allows inline *styles*. GSAP animations need that, and it's not script execution. Anything marked **FAIL** is worth looking at.
+Expect a few low "WARN" notes, for example that the CSP allows inline *styles*. Styles set from code need that, and it's not script execution. Anything marked **FAIL** is worth looking at.
 
 **c) Open ports.** Only 22 (SSH) and 80 should answer:
 

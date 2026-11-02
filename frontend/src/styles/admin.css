@@ -293,8 +293,7 @@ body.admin-page { background: #F6F4EE; }
 .thumb-add:hover, .thumb-add:focus-visible { border-color: var(--red); color: var(--red); }
 
 /* Menu picture (built-in drawing) — table thumbnail and the editor's picker */
-.cell-art { width: 100%; height: 100%; padding: 3px; }
-.cell-art svg, .item-art-now svg, .art-tile-img svg { display: block; width: 100%; height: 100%; }
+.item-art-now svg, .art-tile-img svg { display: block; width: 100%; height: 100%; }
 .item-art { display: flex; gap: 12px; align-items: center; }
 .item-art-now { width: 72px; height: 72px; flex-shrink: 0; padding: 6px; border-radius: 10px; border: 2px solid var(--ink); background: var(--cream); }
 .art-picker { margin-top: 8px; max-height: 300px; overflow-y: auto; padding: 8px; border: 2px solid var(--line); border-radius: 12px; background: var(--white); overscroll-behavior: contain; }
