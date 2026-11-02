@@ -109,7 +109,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 }
 .icon-btn svg { width: 24px; height: 24px; }
 .icon-btn:hover { background: rgba(0,0,0,.08); }
-.icon-btn:active { }
 
 /* ---------- Brand (logo badge; brand-block is still used in the dashboard) ---------- */
 .brand { display: inline-flex; align-items: center; text-decoration: none; flex-shrink: 0; }
@@ -246,6 +245,13 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .ss-txt { font-size: clamp(.55rem, 1.6vw, .85rem); }
 
 
+/* Phones: the screen is mostly the hero, so dark edges keep it from being a wall of red. */
+@media (max-width: 700px) {
+  .site-header, .main-nav { background: var(--ink); }
+  .hero { background: linear-gradient(180deg, #C80A12 0%, #A50810 100%); }
+  .hero-dots { opacity: .08; }
+}
+
 /* Marquee */
 .marquee { background: var(--yellow); color: var(--ink); border-block: 3px solid var(--ink); transform: rotate(-1.5deg); margin: -10px -12px 0; position: relative; z-index: 3; overflow: hidden; padding: 10px 0; }
 .marquee-track { display: flex; gap: 22px; width: max-content; font-family: var(--font-display); font-size: clamp(1rem, .9rem + .6vw, 1.5rem); letter-spacing: .03em; white-space: nowrap; }
@@ -275,7 +281,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .size-opt b { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.2rem); line-height: 1; color: var(--red); }
 .size-opt span { font-weight: 800; font-size: var(--fs-sm); }
 .size-opt em { font-style: normal; font-size: var(--fs-xs); color: var(--muted); }
-.size-opt:hover { }
 .size-opt[aria-checked="true"] { background: var(--yellow); }
 .size-opt { position: relative; }
 .size-from { font-size: var(--fs-sm); font-weight: 800; color: var(--ink); }
@@ -291,6 +296,23 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .step-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; display: grid; place-items: center; font-size: 24px; background: var(--red); border-radius: 50%; border: 3px solid var(--ink); }
 .steps b { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-lg); }
 .steps p { font-size: var(--fs-sm); color: var(--ink-2); }
+
+/* Home: the crowd favourites. Just the pizzas; sizes and ordering are on the menu. */
+.picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(18px, 3vw, 36px); }
+.pick { display: block; text-align: center; color: var(--white); text-decoration: none; }
+.pick-art { display: block; aspect-ratio: 1; width: min(100%, 220px); margin: 0 auto 12px; border-radius: 50%; overflow: hidden; }
+.pick-art svg, .pick-art .photo { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pick-name { display: block; font-family: var(--font-display); font-size: 1.25rem; line-height: 1.15; }
+.pick:hover .pick-name { color: var(--yellow); }
+.pick-price { display: block; margin-top: 4px; font-size: var(--fs-sm); color: #B9B3AB; }
+.picks li { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pick-action { margin-top: auto; }
+.stepper.pick-action { background: var(--yellow); color: var(--ink); box-shadow: none; }
+.stepper.pick-action button:hover { background: rgba(0,0,0,.12); }
+@media (max-width: 700px) {
+  .picks { grid-template-columns: repeat(2, 1fr); }
+  .pick-name { font-size: 1.08rem; }
+}
 
 /* Find us */
 .outlet-ico { width: 46px; height: 46px; flex-shrink: 0; display: grid; place-items: center; border-radius: 14px; background: var(--red); color: var(--white); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
@@ -312,7 +334,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .branch-no { font-family: var(--font-display); font-size: 1.15rem; color: var(--red); width: 2ch; flex-shrink: 0; }
 .branch-name { flex: 1; min-width: 0; font-family: var(--font-display); font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.2rem); line-height: 1; transition: transform .25s var(--ease-pop); }
 .branch-name small { display: block; margin-top: 4px; font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
-.branch-row:hover .branch-name { }
 .branch.on .branch-name { color: var(--red); }
 .branch-open { display: inline-flex; align-items: center; font-size: var(--fs-xs); font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); white-space: nowrap; }
 .branch-open::before { content: ''; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #bbb; }
@@ -363,7 +384,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .v-pin-body text { font-family: var(--font-display); font-size: 17px; fill: var(--white); }
 .v-pin-label rect { fill: var(--white); stroke: var(--ink); stroke-width: 2; }
 .v-pin-label text { font-weight: 700; font-size: 13px; fill: var(--ink); }
-.v-pin:hover .v-pin-body, .v-pin:focus-visible .v-pin-body { }
 .v-pin.on .v-pin-body { transform: scale(1.28); }
 .v-pin.on .v-pin-body path { fill: var(--yellow); }
 .v-pin.on .v-pin-body text { fill: var(--ink); }
@@ -371,11 +391,16 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .v-pin.on .v-pin-label text { fill: var(--yellow); }
 .v-pin:focus-visible .v-pin-label rect { stroke: var(--red); stroke-width: 3; }
 @media (max-width: 899px) { .valley { transform: none; box-shadow: 5px 5px 0 var(--ink); } }
+/* Beside the list, the map stays put while branches open and close. */
+@media (min-width: 1024px) {
+  .find-layout:not(.no-map) .find-map { align-self: start; position: sticky; top: 104px; overflow-anchor: none; }
+}
+.map-note { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); width: min(86%, 400px); margin: 0; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--white); font-size: var(--fs-sm); font-weight: 600; text-align: center; }
 
 /* ==========================================================================
-   DISH CARDS (menu + home picks)
+   DISH CARDS (menu)
    ========================================================================== */
-.card-grid, .card-row { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+.card-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
 .dish {
   position: relative; display: grid; grid-template-columns: 96px 1fr; grid-template-areas: "art body" "opts opts" "foot foot"; grid-template-rows: auto 1fr auto; gap: 10px 14px;
   padding: 14px;
@@ -491,7 +516,6 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 .chips, .diet-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 2px; margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); scroll-snap-type: x proximity; }
 .chips::-webkit-scrollbar, .diet-chips::-webkit-scrollbar { display: none; }
 .chip { flex-shrink: 0; scroll-snap-align: start; display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 999px; border: 2px solid var(--ink); background: var(--white); font-weight: 700; font-size: var(--fs-xs); white-space: nowrap; transition: background .15s, transform .15s var(--ease-pop); }
-.chip:hover { }
 .chip[aria-selected="true"], .chip[aria-pressed="true"] { background: var(--yellow); }
 .chip-sm { padding: 5px 11px; border-width: 2px; border-color: var(--line); }
 .chip-sm[aria-pressed="true"], .chip-sm[aria-selected="true"] { border-color: var(--ink); background: var(--yellow); }
@@ -535,6 +559,11 @@ mark { background: var(--yellow); color: var(--ink); border-radius: 3px; padding
 body.has-cart-bar .menu-body { padding-bottom: calc(var(--section-y) + 70px); }
 body.has-cart-bar .site-footer { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
 
+
+/* Phones: dark, like the header, so it stands out on the red hero. */
+@media (max-width: 700px) {
+  .cart-bar, .cart-bar:hover { background: var(--ink); border-color: var(--yellow); }
+}
 
 /* Fields */
 .field { display: grid; gap: 4px; font-size: var(--fs-sm); font-weight: 600; }
@@ -666,10 +695,8 @@ input.invalid { border-color: var(--red) !important; background: #FFF1F1 !import
   display: grid; place-items: center; font-size: 26px;
   transition: transform .2s var(--ease-pop);
 }
-.chat-fab:hover { }
-.chat-fab.is-open { }
 .chat-fab-ico { filter: drop-shadow(1px 1px 0 var(--ink)); }
-.chat-ping { position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: var(--yellow); border: 2px solid var(--ink); }
+.chat-ping { position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: var(--green); border: 2px solid var(--ink); }
 .chat-panel {
   position: fixed; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 75;
   width: min(370px, calc(100vw - 32px)); height: min(540px, calc(100dvh - 120px));
@@ -713,6 +740,19 @@ ol.bot-list { padding-left: 18px; list-style: decimal; }
 .send-btn:hover { background: var(--red-deep); }
 .send-btn svg { width: 18px; height: 18px; }
 
+/* Chat: messages sit just above the suggestions, as in a messaging app. */
+.chat-log > :first-child { margin-top: auto; }
+.chat-quick.is-start { flex-wrap: wrap; overflow: visible; }
+/* Phones: the chat is the whole screen, not a card floating over the page. */
+@media (max-width: 640px) {
+  .chat-panel { inset: var(--chat-top, 0) 0 auto 0; width: 100%; max-width: none; height: var(--chat-h, 100dvh); max-height: none; border: 0; border-radius: 0; box-shadow: none; z-index: 90; }
+  .chat-head { padding: calc(10px + env(safe-area-inset-top)) 12px 10px; }
+  .chat-form { padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .chat-form input { font-size: 16px; min-height: 44px; } /* under 16px, iPhones zoom the page on focus */
+  .send-btn { width: 44px; height: 44px; }
+  .chat-quick button { padding: 8px 14px; font-size: 13px; }
+}
+
 /* ==========================================================================
    MISC
    ========================================================================== */
@@ -742,15 +782,8 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .dish { box-shadow: none; break-inside: avoid; }
 }
 
-/* ---------- Compact mobile cards: swipe carousel for picks, slimmer art ---------- */
+/* ---------- Dish cards on small screens: slimmer art ---------- */
 @media (max-width: 640px) {
-  .card-row {
-    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 88%;
-    overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
-    margin-inline: calc(var(--gutter) * -1); padding: 4px var(--gutter) 10px;
-  }
-  .card-row::-webkit-scrollbar { display: none; }
-  .card-row .dish { scroll-snap-align: center; }
   .dish { grid-template-columns: 80px 1fr; gap: 10px 12px; padding: 12px; }
   .cat-ico { width: 38px; height: 38px; }
 }
@@ -773,7 +806,7 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 .step-ico .i { width: 24px; height: 24px; stroke-width: 2.4; }
 .tiny .i { width: 14px; height: 14px; vertical-align: -.15em; }
 .eyebrow .i { width: 1.1em; height: 1.1em; }
-.mq-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--red); border: 2px solid var(--ink); vertical-align: middle; }
+.mq-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--green); border: 2px solid var(--ink); vertical-align: middle; }
 .chat-fab { color: var(--white); }
 .chat-fab-ico { display: grid; filter: none; }
 .chat-fab-ico .i { width: 26px; height: 26px; stroke-width: 2.4; }
@@ -835,14 +868,13 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 .boot-error { min-height: 100vh; display: grid; place-content: center; gap: 16px; text-align: center; padding: 24px; }
 #main:focus { outline: none; }
 
-/* ---------- Lunch & dinner, FAQ, 404, footer details ---------- */
-
+/* ---------- FAQ, 404 and footer details ---------- */
 .faq-wrap { max-width: 860px; }
 .faq-list { display: grid; gap: 10px; }
 .faq-list details { background: var(--white); border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: var(--shadow-pop); }
 .faq-list summary { cursor: pointer; list-style: none; padding: 14px 48px 14px 18px; position: relative; }
 .faq-list summary::-webkit-details-marker { display: none; }
-.faq-list summary::after { content: '+'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-family: var(--font-display); font-size: 1.6rem; line-height: 1; color: var(--red); }
+.faq-list summary::after { content: '+'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-family: var(--font-display); font-size: 1.6rem; line-height: 1; color: var(--green-deep); }
 .faq-list details[open] summary::after { content: '–'; }
 .faq-list summary h3 { display: inline; font-size: var(--fs-md, 1rem); font-weight: 800; }
 .faq-list details p { padding: 0 18px 16px; color: var(--ink-2, #333); line-height: 1.55; }
@@ -892,7 +924,6 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
 .outlet-opt { background: var(--white); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3px 3px 0 var(--ink); overflow: hidden; transition: transform .15s var(--ease-pop), box-shadow .15s; }
 .outlet-opt:hover, .outlet-opt:focus-within { box-shadow: 5px 5px 0 var(--ink); }
 .oo-main { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; background: none; border: 0; cursor: pointer; color: var(--ink); }
-.oo-main:active { }
 .oo-call { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-top: 1px dashed var(--line); font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); text-decoration: none; }
 .oo-call .i { width: 14px; height: 14px; color: var(--red); }
 .oo-call:hover { background: var(--cream); }
@@ -958,53 +989,12 @@ body.has-cart-bar .toast { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .cart-bar { left: 12px; right: 76px; }
 }
 
+
 /* ==========================================================================
-   The customer site doesn't move: no animation or transitions anywhere.
-   (The dashboard keeps its new-order highlight.)
+   NO MOVEMENT — the customer site has no animations or transitions, except
+   opening a branch in Find us (so the page doesn't jump) and its map.
+   The dashboard keeps its own. This block must stay last.
    ========================================================================== */
-/* Home: the crowd favourites. Just the pizzas; sizes and ordering are on the menu. */
-.picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(18px, 3vw, 36px); }
-.pick { display: block; text-align: center; color: var(--white); text-decoration: none; }
-.pick-art { display: block; aspect-ratio: 1; width: min(100%, 220px); margin: 0 auto 12px; border-radius: 50%; overflow: hidden; }
-.pick-art svg, .pick-art .photo { display: block; width: 100%; height: 100%; object-fit: cover; }
-.pick-name { display: block; font-family: var(--font-display); font-size: 1.25rem; line-height: 1.15; }
-.pick:hover .pick-name { color: var(--yellow); }
-.pick-price { display: block; margin-top: 4px; font-size: var(--fs-sm); color: #B9B3AB; }
-.picks li { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.pick-action { margin-top: auto; }
-.stepper.pick-action { background: var(--yellow); color: var(--ink); box-shadow: none; }
-.stepper.pick-action button:hover { background: rgba(0,0,0,.12); }
-@media (max-width: 700px) {
-  .picks { grid-template-columns: repeat(2, 1fr); }
-  .pick-name { font-size: 1.08rem; }
-}
-
-/* Beside the list, the map stays put while branches open and close. */
-@media (min-width: 1024px) {
-  .find-layout:not(.no-map) .find-map { align-self: start; position: sticky; top: 104px; overflow-anchor: none; }
-}
-.map-note { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); width: min(86%, 400px); margin: 0; padding: 8px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--white); font-size: var(--fs-sm); font-weight: 600; text-align: center; }
-/* Phones: the screen is only ever the hero, so dark edges keep it from being a wall of red. */
-@media (max-width: 700px) {
-  .site-header, .main-nav { background: var(--ink); }
-  .hero { background: linear-gradient(180deg, #C80A12 0%, #A50810 100%); }
-  .hero-dots { opacity: .08; }
-  .cart-bar, .cart-bar:hover { background: var(--ink); border-color: var(--yellow); }
-}
-
-/* Chat: messages sit just above the suggestions, as in a messaging app. */
-.chat-log > :first-child { margin-top: auto; }
-.chat-quick.is-start { flex-wrap: wrap; overflow: visible; }
-/* Phones: the chat is the whole screen, not a card floating over the page. */
-@media (max-width: 640px) {
-  .chat-panel { inset: var(--chat-top, 0) 0 auto 0; width: 100%; max-width: none; height: var(--chat-h, 100dvh); max-height: none; border: 0; border-radius: 0; box-shadow: none; z-index: 90; }
-  .chat-head { padding: calc(10px + env(safe-area-inset-top)) 12px 10px; }
-  .chat-form { padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
-  .chat-form input { font-size: 16px; min-height: 44px; } /* under 16px, iPhones zoom the page on focus */
-  .send-btn { width: 44px; height: 44px; }
-  .chat-quick button { padding: 8px 14px; font-size: 13px; }
-}
-
 body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) *::after { animation: none !important; transition: none !important; }
 /* The one thing that moves: opening a branch in Find us, so the page doesn't jump. */
 @media (prefers-reduced-motion: no-preference) {
@@ -1017,8 +1007,3 @@ body:not(.admin-page) *, body:not(.admin-page) *::before, body:not(.admin-page) 
   body:not(.admin-page) .v-pin-body { transition: transform .34s cubic-bezier(.4, 0, .2, 1) !important; }
   body:not(.admin-page) .v-pin-body path, body:not(.admin-page) .v-pin-body text, body:not(.admin-page) .v-pin-label rect, body:not(.admin-page) .v-pin-label text { transition: fill .2s linear !important; }
 }
-
-/* Small touches of the logo's green. Red stays the colour for actions and prices. */
-.mq-dot { background: var(--green); }
-.faq-list summary::after { color: var(--green-deep); }
-.chat-ping { background: var(--green); }
