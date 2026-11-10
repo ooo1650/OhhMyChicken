@@ -147,6 +147,11 @@ async function moveTunaAddNote(c) {
   await c.query("UPDATE settings SET data = jsonb_build_object('deliveryNote', $1::text) || data WHERE id = 1", [defaults.SETTINGS.deliveryNote]);
 }
 
+// A Brevo sender saved on 587 or 465 moves to 2525, which hosts like Render don't block.
+async function brevoPort(c) {
+  await c.query("UPDATE mail_settings SET port = 2525, updated_at = now() WHERE host = 'smtp-relay.brevo.com' AND port IN (465, 587)");
+}
+
 // Runs a change to saved data once ever, so what staff later change in the dashboard is left alone.
 async function once(c, id, change) {
   const { rowCount } = await c.query('INSERT INTO data_changes (id) VALUES ($1) ON CONFLICT (id) DO NOTHING', [id]);
@@ -192,6 +197,7 @@ async function seed() {
     await once(c, 'feature-fried-chicken', featureFriedChicken);
     await once(c, 'service-area', addServiceArea);
     await once(c, 'fish-category-delivery-note', moveTunaAddNote);
+    await once(c, 'brevo-port-2525', brevoPort);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
     await firstAdministrator(c);

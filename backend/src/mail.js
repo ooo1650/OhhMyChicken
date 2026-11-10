@@ -9,7 +9,8 @@ const nodemailer = require('nodemailer');
 const { pool } = require('./db');
 
 const DEFAULT_SENDER = 'paperkite.contact@gmail.com';
-const DEFAULT_HOST = 'smtp-relay.brevo.com', DEFAULT_PORT = 587;
+// Brevo on 2525: hosts such as Render block the usual mail ports (25, 465, 587); 2525 gets through.
+const DEFAULT_HOST = 'smtp-relay.brevo.com', DEFAULT_PORT = 2525;
 const BREVO = /(^|\.)brevo\.com$|sendinblue\.com$/;
 const env = process.env;
 
@@ -28,7 +29,7 @@ function mailer(c) {
   const key = JSON.stringify([c.host, c.port, c.user, c.pass]);
   if (key !== transportKey) {
     transport = nodemailer.createTransport({
-      // 465 is encrypted from the start; on 587 and others the connection must switch to TLS
+      // 465 is encrypted from the start; on 2525, 587 and others the connection must switch to TLS
       // before the password is sent, or nothing is sent at all.
       host: c.host, port: c.port, secure: c.port === 465, requireTLS: c.port !== 465,
       auth: c.pass ? { user: c.user, pass: c.pass } : undefined,
@@ -64,7 +65,7 @@ async function save(b, fail) {
   const host = str(b.host || DEFAULT_HOST, 253, 'Email server').toLowerCase();
   if (!HOST_RE.test(host)) fail('Enter the email server, e.g. smtp-relay.brevo.com.');
   const port = Number(b.port) || DEFAULT_PORT;
-  if (![25, 465, 587, 2525].includes(port)) fail('The email port is usually 587 or 465.');
+  if (![25, 465, 587, 2525].includes(port)) fail('The email port is usually 2525, 587 or 465.');
   const user = str(b.user, 254, 'Login');
   if (/\s/.test(user)) fail('The login has no spaces.');
   if (BREVO.test(host) && !user) fail('Enter your Brevo SMTP login (Brevo → SMTP & API → SMTP). It is not the sender address.');

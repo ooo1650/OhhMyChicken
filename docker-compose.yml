@@ -53,7 +53,7 @@ services:
       ADMIN_PASSCODE: ${ADMIN_PASSCODE:-}
       # Email for sign-in codes (see .env.example).
       SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_PORT: ${SMTP_PORT:-2525}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       MAIL_FROM: ${MAIL_FROM:-}

@@ -192,7 +192,7 @@ function Features() {
 
 // Who sends the sign-in codes. The password is write-only: the server never sends it back.
 const PROVIDERS = {
-  brevo: { label: 'Brevo', host: 'smtp-relay.brevo.com', port: 587 },
+  brevo: { label: 'Brevo', host: 'smtp-relay.brevo.com', port: 2525 }, // 2525: not blocked by hosts like Render
   gmail: { label: 'Gmail', host: 'smtp.gmail.com', port: 465 },
   other: { label: 'Other', host: '', port: 587 }
 };
@@ -208,7 +208,9 @@ function EmailSender() {
   const choose = (provider) => setF((x) => ({ ...x, provider, ...(provider === 'other' ? {} : { host: PROVIDERS[provider].host, port: PROVIDERS[provider].port }) }));
   function submit(e) {
     e.preventDefault();
-    const { provider, ...body } = f; // eslint-disable-line no-unused-vars
+    const { provider, ...rest } = f;
+    // Brevo and Gmail always use their own server and port, whatever was saved before.
+    const body = provider === 'other' ? rest : { ...rest, host: PROVIDERS[provider].host, port: PROVIDERS[provider].port };
     admin.saveMail(body).then((s) => { fill(s); toast(s.ready ? 'Sender saved. Send yourself a test email below.' : 'Sender saved. Add its password to start sending.'); }, (err) => toast(err.message, 'error'));
   }
   if (!f) return <div className="panel-card"><h3>Email</h3><p className="muted">Loading…</p></div>;
@@ -231,7 +233,7 @@ function EmailSender() {
         <input type="password" autoComplete="new-password" maxLength="200" value={f.password} onChange={set('password')} placeholder={m.hasPassword ? '••••••••••••••••' : f.provider === 'brevo' ? 'xsmtpsib-…' : ''} />
       </label>
       {f.provider === 'brevo' && <p className="tiny muted"><Icon name="info" /> In Brevo: <b>SMTP & API → SMTP</b> shows the login and lets you generate an <b>SMTP key</b> (not the API key). Add the sender address under <b>Senders, domains & dedicated IPs</b> and verify it, or Brevo won't send from it.</p>}
-      {f.provider === 'gmail' && <p className="tiny muted"><Icon name="info" /> Not the Gmail password: an <b>app password</b>. Turn on 2-step verification for that Google account, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">myaccount.google.com/apppasswords</a>.</p>}
+      {f.provider === 'gmail' && <p className="tiny muted"><Icon name="info" /> Not the Gmail password: an <b>app password</b>. Turn on 2-step verification for that Google account, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">myaccount.google.com/apppasswords</a>. Gmail only works on ports 465/587, which some hosts (Render, for one) block: use Brevo there.</p>}
       {f.provider === 'other' && (
         <div className="field-row">
           <label className="field"><span>Server</span><input required maxLength="253" value={f.host} onChange={set('host')} placeholder="smtp.example.com" /></label>

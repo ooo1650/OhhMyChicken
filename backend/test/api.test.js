@@ -676,7 +676,7 @@ it('menu: tuna has its own category, and it still counts as a pizza', async () =
 
 it('email sender: the administrator sets it; the password is never shown, and stays with its login', async () => {
   const before = (await req('GET', '/api/admin/mail')).json;
-  assert.deepEqual(before, { from: 'paperkite.contact@gmail.com', host: 'smtp-relay.brevo.com', port: 587, user: '', hasPassword: false, ready: false, source: 'default' });
+  assert.deepEqual(before, { from: 'paperkite.contact@gmail.com', host: 'smtp-relay.brevo.com', port: 2525, user: '', hasPassword: false, ready: false, source: 'default' });
   assert.match((await req('PUT', '/api/admin/mail', { body: { from: 'paperkite.contact@gmail.com', password: 'xsmtpsib-1' } })).json.error, /Brevo SMTP login/, 'Brevo needs its own login');
   assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'not-an-email' } })).status, 400);
   assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'a@b.co', host: 'smtp.gmail.com; rm', port: 465 } })).status, 400);
@@ -854,6 +854,18 @@ it('forgot password: a code by email sets a new password; unknown emails get the
   const after = await signIn('forgetful@example.com', 'brand-new-door-55');
   assert.equal((await fetch(B + '/api/admin/session', { headers: { Cookie: after } }).then((r) => r.json())).user.mustChange, false);
   assert.ok((await req('GET', '/api/admin/audit')).json.some((r) => r.action === 'password.forgot' && r.actor === 'forgetful@example.com'));
+});
+
+it('email sender: a Brevo sender saved on 587 moves once to 2525 (not blocked by hosts like Render)', async () => {
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  await db.query("INSERT INTO mail_settings (id, sender, host, port, username, password) VALUES (1, 'codes@example.com', 'smtp-relay.brevo.com', 587, 'u@smtp-brevo.com', 'k') ON CONFLICT (id) DO UPDATE SET host = EXCLUDED.host, port = 587");
+  await db.query("DELETE FROM data_changes WHERE id = 'brevo-port-2525'");
+  spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'init'], { env: { ...process.env, ADMIN_PASSCODE: PASS } });
+  assert.equal((await req('GET', '/api/admin/mail')).json.port, 2525);
+  await db.query('DELETE FROM mail_settings');
+  await db.end();
 });
 
 it('logout ends the session', async () => {

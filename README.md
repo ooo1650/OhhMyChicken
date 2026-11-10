@@ -88,7 +88,7 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 | `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
 | `SUPER_ADMIN_EMAIL` | backend | Email of the first dashboard account, the site administrator (default `paperkite.contact@gmail.com`). Used on first start only |
 | `ADMIN_PASSCODE` | backend | That account's first password (10+ characters, not easy to guess). On a site that already had a dashboard passcode, the old passcode becomes the password instead |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | backend | Email for sign-in codes, only until the administrator saves a sender in *Team → Email* (default: Brevo, `smtp-relay.brevo.com:587`, sender `paperkite.contact@gmail.com`; Gmail and other services work too). If sending fails, the code is written to the backend log |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | backend | Email for sign-in codes, only until the administrator saves a sender in *Team → Email* (default: Brevo, `smtp-relay.brevo.com:2525`, a port hosts like Render don't block; sender `paperkite.contact@gmail.com`; Gmail and other services work too). If sending fails, the code is written to the backend log |
 | `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
 | `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
 | `TRUST_PROXY` | backend | Proxy hops in front of the API so rate limits see the real client IP. Compose sets `1` (the frontend server); use `2` if another proxy sits in front |

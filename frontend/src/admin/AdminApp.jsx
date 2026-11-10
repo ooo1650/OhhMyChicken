@@ -268,7 +268,8 @@ function Dashboard({ endsAt: sessionEnd, user, onLock }) {
         {may('outlets') && <OutletsPanel hidden={tab !== 'outlets'} />}
         <SettingsPanel hidden={tab !== 'settings'} canStore={may('store')} />
         {may('qr') && <QrPanel hidden={tab !== 'qr'} />}
-        {user.role === 'super' && <TeamPanel hidden={tab !== 'team'} me={user} />}
+        {/* Built each time it opens, so accounts, email and checks are always current. */}
+        {user.role === 'super' && tab === 'team' && <TeamPanel hidden={false} me={user} />}
       </div>
     </section>
   );
