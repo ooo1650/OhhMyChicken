@@ -124,35 +124,53 @@ function AddAccount({ onAdded }) {
 }
 
 // Who sends the sign-in codes. The password is write-only: the server never sends it back.
+const PROVIDERS = {
+  brevo: { label: 'Brevo', host: 'smtp-relay.brevo.com', port: 587 },
+  gmail: { label: 'Gmail', host: 'smtp.gmail.com', port: 465 },
+  other: { label: 'Other', host: '', port: 587 }
+};
+const providerOf = (host) => (/brevo\.com$|sendinblue\.com$/.test(host) ? 'brevo' : /gmail\.com$/.test(host) ? 'gmail' : 'other');
+
 function EmailSender() {
   const admin = useAdmin(), toast = useToast();
   const [m, setM] = useState(null);
   const [f, setF] = useState(null);
-  const fill = (s) => { setM(s); setF({ from: s.from, password: '', host: s.host, port: s.port, user: s.user }); };
+  const fill = (s) => { setM(s); setF({ from: s.from, password: '', host: s.host, port: s.port, user: s.user, provider: providerOf(s.host) }); };
   useEffect(() => { admin.mailSettings().then(fill, (e) => toast(e.message, 'error')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+  const choose = (provider) => setF((x) => ({ ...x, provider, ...(provider === 'other' ? {} : { host: PROVIDERS[provider].host, port: PROVIDERS[provider].port }) }));
   function submit(e) {
     e.preventDefault();
-    admin.saveMail(f).then((s) => { fill(s); toast(s.ready ? 'Sender saved. Send yourself a test email below.' : 'Sender saved. Add its password to start sending.'); }, (err) => toast(err.message, 'error'));
+    const { provider, ...body } = f; // eslint-disable-line no-unused-vars
+    admin.saveMail(body).then((s) => { fill(s); toast(s.ready ? 'Sender saved. Send yourself a test email below.' : 'Sender saved. Add its password to start sending.'); }, (err) => toast(err.message, 'error'));
   }
   if (!f) return <div className="panel-card"><h3>Email</h3><p className="muted">Loading…</p></div>;
-  const gmail = /gmail\.com$/.test(f.host);
+  const keep = m.hasPassword && <em>(saved: leave blank to keep it)</em>;
   return (
     <form className="panel-card team-mail" onSubmit={submit}>
       <h3>Email <small className={m.ready ? 'ok' : 'bad'}>{m.ready ? 'sending sign-in codes' : 'not sending yet: codes go to the server log'}</small></h3>
-      <label className="field"><span>Sender email</span><input type="email" required value={f.from} onChange={set('from')} /></label>
-      <label className="field"><span>{gmail ? 'Gmail app password' : 'Password'} {m.hasPassword && <em>(saved: leave blank to keep it)</em>}</span>
-        <input type="password" autoComplete="new-password" value={f.password} onChange={set('password')} placeholder={m.hasPassword ? '••••••••••••••••' : gmail ? '16 letters, from Google' : ''} />
+      <div className="seg-row" role="radiogroup" aria-label="Email service">
+        {Object.entries(PROVIDERS).map(([id, p]) => (
+          <button key={id} type="button" role="radio" aria-checked={f.provider === id} className={f.provider === id ? 'on' : ''} onClick={() => choose(id)}>{p.label}</button>
+        ))}
+      </div>
+      <label className="field"><span>Sender email {f.provider === 'brevo' && <em>(a sender verified in Brevo)</em>}</span><input type="email" required value={f.from} onChange={set('from')} /></label>
+      {f.provider !== 'gmail' && (
+        <label className="field"><span>{f.provider === 'brevo' ? 'SMTP login' : 'Login'} {f.provider === 'other' && <em>(if it isn't the sender email)</em>}</span>
+          <input value={f.user} onChange={set('user')} required={f.provider === 'brevo'} placeholder={f.provider === 'brevo' ? 'e.g. 8a1b2c001@smtp-brevo.com' : ''} />
+        </label>
+      )}
+      <label className="field"><span>{f.provider === 'brevo' ? 'SMTP key' : f.provider === 'gmail' ? 'Gmail app password' : 'Password'} {keep}</span>
+        <input type="password" autoComplete="new-password" value={f.password} onChange={set('password')} placeholder={m.hasPassword ? '••••••••••••••••' : f.provider === 'brevo' ? 'xsmtpsib-…' : ''} />
       </label>
-      {gmail && <p className="tiny muted"><Icon name="info" /> Not the Gmail password: an <b>app password</b>. Turn on 2-step verification for that Google account, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">myaccount.google.com/apppasswords</a>. Changing the sender address needs that account's app password.</p>}
-      <details className="team-mail-more">
-        <summary>Another email service</summary>
+      {f.provider === 'brevo' && <p className="tiny muted"><Icon name="info" /> In Brevo: <b>SMTP & API → SMTP</b> shows the login and lets you generate an <b>SMTP key</b> (not the API key). Add the sender address under <b>Senders, domains & dedicated IPs</b> and verify it, or Brevo won't send from it.</p>}
+      {f.provider === 'gmail' && <p className="tiny muted"><Icon name="info" /> Not the Gmail password: an <b>app password</b>. Turn on 2-step verification for that Google account, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">myaccount.google.com/apppasswords</a>.</p>}
+      {f.provider === 'other' && (
         <div className="field-row">
-          <label className="field"><span>Server</span><input value={f.host} onChange={set('host')} placeholder="smtp.gmail.com" /></label>
-          <label className="field"><span>Port</span><input type="number" value={f.port} onChange={set('port')} placeholder="465" /></label>
+          <label className="field"><span>Server</span><input required value={f.host} onChange={set('host')} placeholder="smtp.example.com" /></label>
+          <label className="field"><span>Port</span><input type="number" required value={f.port} onChange={set('port')} placeholder="587" /></label>
         </div>
-        <label className="field"><span>Login <em>(if it isn't the sender email)</em></span><input value={f.user} onChange={set('user')} /></label>
-      </details>
+      )}
       <button type="submit" className="btn btn-red btn-sm">Save sender</button>
     </form>
   );

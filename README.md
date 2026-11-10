@@ -88,7 +88,7 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 | `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
 | `SUPER_ADMIN_EMAIL` | backend | Email of the first dashboard account, the site administrator (default `paperkite.contact@gmail.com`). Used on first start only |
 | `ADMIN_PASSCODE` | backend | That account's first password (10+ characters, not easy to guess). On a site that already had a dashboard passcode, the old passcode becomes the password instead |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | backend | Email for sign-in codes, only until the administrator saves a sender in *Team → Email* (default sender `paperkite.contact@gmail.com` via Gmail, which needs an app password). If sending fails, the code is written to the backend log |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | backend | Email for sign-in codes, only until the administrator saves a sender in *Team → Email* (default: Brevo, `smtp-relay.brevo.com:587`, sender `paperkite.contact@gmail.com`; Gmail and other services work too). If sending fails, the code is written to the backend log |
 | `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
 | `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
 | `TRUST_PROXY` | backend | Proxy hops in front of the API so rate limits see the real client IP. Compose sets `1` (the frontend server); use `2` if another proxy sits in front |
@@ -102,7 +102,7 @@ Put the frontend behind a reverse proxy that terminates HTTPS. A tested Nginx co
 ### Deployment checklist (no leaks)
 
 1. Copy `.env.example` to `.env` on the server only, then `chmod 600 .env`. It's git-ignored, and both Dockerfiles' `.dockerignore` keep it out of images.
-2. Strong secrets: `POSTGRES_PASSWORD=$(openssl rand -hex 24)`, and a long `ADMIN_PASSCODE` that is not reused anywhere. Then sign in and add the sender's app password in *Team → Email* so sign-in codes arrive by email.
+2. Strong secrets: `POSTGRES_PASSWORD=$(openssl rand -hex 24)`, and a long `ADMIN_PASSCODE` that is not reused anywhere. Then sign in and add the Brevo SMTP login and key in *Team → Email* so sign-in codes arrive by email.
 3. Set `PUBLIC_URL=https://your-domain` and serve over HTTPS only (admin cookies are `Secure` in production).
 4. Only the frontend port is published. Postgres and the API stay on internal Docker networks; keep it that way.
 5. Pick an unguessable `ADMIN_PATH`. The dashboard sends `noindex` and isn't linked from the site.
@@ -146,7 +146,7 @@ Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped
 
 **Dashboard accounts:** everyone signs in with their own email and password, then a 6-digit code sent to that email (10 minutes, 5 tries; *Send a new code* once a minute). Two roles:
 
-- **Administrator** (whoever runs the site, e.g. PaperKite): everything, plus the **Team** tab to add accounts, reset a forgotten password (a temporary one, shown once, that the person must replace when they sign in), switch an account off, sign people out, choose who sends the sign-in codes (*Email*: sender address and app password, which never leaves the server), send a test email and see checks (email, database, backups, last order, wrong tries). Always sees Insights. The last administrator can't be removed.
+- **Administrator** (whoever runs the site, e.g. PaperKite): everything, plus the **Team** tab to add accounts, reset a forgotten password (a temporary one, shown once, that the person must replace when they sign in), switch an account off, sign people out, choose who sends the sign-in codes (*Email*: Brevo, Gmail or another service; sender, login and SMTP key, which never leaves the server), send a test email and see checks (email, database, backups, last order, wrong tries). Always sees Insights. The last administrator can't be removed.
 - **Staff**: menu, orders, photos, outlets, store settings and QR codes.
 
 The first administrator is created on first start from `SUPER_ADMIN_EMAIL` (default `paperkite.contact@gmail.com`); its password is the site's old dashboard passcode if there was one, otherwise `ADMIN_PASSCODE`. Passwords need 10+ characters and can't be built from the restaurant's name, place names, common words or number runs (`backend/src/password.js`). Change yours under *Store → Security* (your other devices are signed out). Without email set up, sign-in codes are written to the backend log, which is how development works.

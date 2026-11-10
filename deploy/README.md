@@ -57,7 +57,7 @@ Set these lines (leave the rest as they are):
 POSTGRES_PASSWORD=<the openssl value>
 ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # first password of the administrator account
 # The administrator account is paperkite.contact@gmail.com (set SUPER_ADMIN_EMAIL to use another).
-# After signing in, add the sender's Gmail app password in Team → Email (myaccount.google.com/apppasswords).
+# After signing in, add the Brevo SMTP login and SMTP key in Team → Email (Brevo → SMTP & API → SMTP).
 PUBLIC_URL=http://SERVER-IP
 APP_PORT=3000
 APP_BIND=127.0.0.1          # only Nginx (step 5) can reach the app

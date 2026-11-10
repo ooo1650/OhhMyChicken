@@ -668,17 +668,18 @@ it('menu: tuna has its own category, and it still counts as a pizza', async () =
 
 it('email sender: the administrator sets it; the password is never shown, and stays with its login', async () => {
   const before = (await req('GET', '/api/admin/mail')).json;
-  assert.deepEqual(before, { from: 'paperkite.contact@gmail.com', host: 'smtp.gmail.com', port: 465, user: '', hasPassword: false, ready: false, source: 'default' });
+  assert.deepEqual(before, { from: 'paperkite.contact@gmail.com', host: 'smtp-relay.brevo.com', port: 587, user: '', hasPassword: false, ready: false, source: 'default' });
+  assert.match((await req('PUT', '/api/admin/mail', { body: { from: 'paperkite.contact@gmail.com', password: 'xsmtpsib-1' } })).json.error, /Brevo SMTP login/, 'Brevo needs its own login');
   assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'not-an-email' } })).status, 400);
   assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'a@b.co', host: 'smtp.gmail.com; rm', port: 465 } })).status, 400);
-  const saved = (await req('PUT', '/api/admin/mail', { body: { from: 'Codes@PaperKite.com', password: 'abcd efgh ijkl mnop' } })).json;
+  const saved = (await req('PUT', '/api/admin/mail', { body: { from: 'Codes@PaperKite.com', user: '8a1b2c001@smtp-brevo.com', password: 'abcd efgh ijkl mnop' } })).json;
   assert.equal(saved.from, 'codes@paperkite.com');
   assert.equal(saved.hasPassword, true);
   assert.equal(saved.source, 'dashboard');
   assert.ok(!JSON.stringify(saved).includes('abcd'), 'the password never comes back');
   assert.ok(!JSON.stringify((await req('GET', '/api/settings')).json).includes('abcd'), 'nor appears in the public settings');
-  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'codes@paperkite.com', port: 587 } })).json.hasPassword, true, 'a blank password keeps it');
-  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'other@paperkite.com' } })).json.hasPassword, false, 'a new sender needs its own password');
+  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'other@paperkite.com', user: '8a1b2c001@smtp-brevo.com' } })).json.hasPassword, true, 'same login: a blank password keeps it, even with a new sender');
+  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'other@paperkite.com', user: 'someone-else@smtp-brevo.com' } })).json.hasPassword, false, 'a new login needs its own password');
   const staffTemp = (await req('POST', '/api/admin/users', { body: { email: 'mailtest@example.com' } })).json.tempPassword;
   const staff = await signIn('mailtest@example.com', staffTemp);
   assert.equal((await fetch(B + '/api/admin/mail', { headers: { Cookie: staff } })).status, 403);

@@ -387,6 +387,7 @@ body.admin-page { background: #F6F4EE; }
 .team-mail h3 small { display: block; margin-top: 2px; font-weight: 700; }
 .team-mail h3 small.ok { color: var(--green); }
 .team-mail h3 small.bad { color: var(--red); }
-.team-mail-more summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); }
-.team-mail-more[open] { display: grid; gap: 10px; }
+.seg-row { display: flex; gap: 6px; }
+.seg-row button { flex: 1; padding: 7px 10px; border: 2px solid var(--line); border-radius: 999px; background: var(--white); font-weight: 700; font-size: var(--fs-sm); }
+.seg-row button.on { background: var(--ink); border-color: var(--ink); color: var(--white); }
 .team-mail .btn { justify-self: start; }
