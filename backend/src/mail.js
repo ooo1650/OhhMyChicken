@@ -42,12 +42,13 @@ function mailer(c) {
 
 // Only ever emails dashboard accounts that are switched on: never an address typed into a
 // form, so no one can use the site to send mail (or bounces) to strangers.
-async function send(to, subject, text) {
+// message: { subject, text, html } (see emails.js).
+async function send(to, message) {
   const { rows } = await pool.query('SELECT 1 FROM admin_users WHERE email = $1 AND active', [String(to).toLowerCase()]);
   if (!rows.length) throw new Error('not sent: ' + to + ' is not a dashboard account');
   const c = await config();
   if (!c.pass) throw new Error('no password saved for ' + c.from + ' (Team → Email)');
-  await mailer(c).sendMail({ from: c.from, to, subject, text });
+  await mailer(c).sendMail({ from: { name: 'Ohh My Chicken Pizza Hub', address: c.from }, to, subject: message.subject, text: message.text, html: message.html });
 }
 
 // For the Team tab: everything except the password itself.

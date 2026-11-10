@@ -15,6 +15,7 @@ const { pool } = require('./db');
 const { hashPassword, verifyPassword, weakness, MAX_PASS } = require('./password');
 const { createBucket, clientKey, createGate } = require('./limit');
 const mail = require('./mail');
+const emails = require('./emails');
 
 const TTL_MS = 60 * 60 * 1000;   // a sign-in lasts one hour, however much the dashboard is used
 const CODE_MS = 10 * 60 * 1000;  // an emailed code works for 10 minutes…
@@ -167,21 +168,16 @@ async function passwordMatches(user, pass) {
 const newCode = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 const codeHash = (token, code) => sha(token + ':' + code);
 
-// Emails the code. If that fails, the code goes to the server log instead, so whoever
-// runs the server can still get in (they can read the database anyway).
-const MESSAGES = {
-  login: { log: 'Sign-in code', subject: 'Your dashboard sign-in code: ',
-    body: (code) => 'Your Ohh My Chicken Pizza Hub dashboard sign-in code is ' + code + '.\n\nIt works for 10 minutes. If you did not try to sign in, someone knows your password: change it in Store → Security.\n' },
-  reset: { log: 'Password reset code', subject: 'Your dashboard password reset code: ',
-    body: (code) => 'Someone asked to set a new password for your Ohh My Chicken Pizza Hub dashboard account. The code is ' + code + '.\n\nIt works for 10 minutes. If it wasn\'t you, ignore this email: your password stays as it is.\n' }
-};
-async function sendCode(email, code, purpose = 'login') {
-  const m = MESSAGES[purpose];
+// Emails the code (designs in emails.js), saying which device asked for it. If sending
+// fails, the code goes to the server log instead, so whoever runs the server can still get
+// in (they can read the database anyway).
+async function sendCode(email, code, purpose, req) {
+  const where = { device: deviceOf(req.headers['user-agent']), ip: maskIp(req.ip) };
   try {
-    await mail.send(email, m.subject + code, m.body(code));
+    await mail.send(email, purpose === 'reset' ? emails.resetCode(code, where) : emails.signInCode(code, where));
     return true;
   } catch (e) {
-    console.warn(m.log + ' for ' + email + ': ' + code + ' (not emailed: ' + e.message + ')');
+    console.warn((purpose === 'reset' ? 'Password reset code' : 'Sign-in code') + ' for ' + email + ': ' + code + ' (not emailed: ' + e.message + ')');
     return false;
   }
 }
@@ -203,7 +199,7 @@ async function login(req, res) {
   await pool.query('DELETE FROM admin_challenges WHERE expires_at < now()');
   await pool.query('INSERT INTO admin_challenges (token_hash, user_id, code_hash, expires_at) VALUES ($1, $2, $3, $4)',
     [sha(token), rows[0].id, codeHash(token, code), new Date(Date.now() + CODE_MS)]);
-  const emailed = await sendCode(email, code);
+  const emailed = await sendCode(email, code, 'login', req);
   res.json({ challenge: token, sentTo: maskEmail(email), emailed });
 }
 
@@ -258,7 +254,7 @@ async function resend(req, res) {
   const code = newCode();
   await pool.query('UPDATE admin_challenges SET code_hash = $1, tries = 0, sent_at = now(), expires_at = $2 WHERE token_hash = $3',
     [codeHash(req.body.challenge, code), new Date(Date.now() + CODE_MS), ch.token_hash]);
-  res.json({ emailed: await sendCode(ch.email, code) });
+  res.json({ emailed: await sendCode(ch.email, code, 'login', req) });
 }
 
 /* ---------- Forgot password: a code by email, then a new password ---------- */
@@ -277,7 +273,7 @@ async function forgot(req, res) {
     await pool.query('DELETE FROM admin_challenges WHERE expires_at < now()');
     await pool.query("INSERT INTO admin_challenges (token_hash, user_id, code_hash, expires_at, purpose) VALUES ($1, $2, $3, $4, 'reset')",
       [sha(token), rows[0].id, codeHash(token, code), new Date(Date.now() + CODE_MS)]);
-    await sendCode(email, code, 'reset');
+    await sendCode(email, code, 'reset', req);
   }
   res.json({ challenge: token, sentTo: maskEmail(email) });
 }

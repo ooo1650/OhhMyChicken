@@ -246,6 +246,7 @@ backend/                  Express JSON API (own Dockerfile, port 4000)
   src/auth.js             dashboard sign-in (password + emailed code), sessions, lockout, password change
   src/accounts.js         accounts and checks for the site administrator (Team tab)
   src/mail.js             sends sign-in codes over SMTP
+  src/emails.js           the emails' wording and design (sign-in code, reset code, test), HTML + plain text
   src/features.js         features the administrator switches on or off (Team → Features)
   src/media.js            photo upload & processing (sharp → WebP sizes), library queries
   src/analytics.js        anonymous analytics: event intake (POST /api/t), daily-salted visitor hash, insights queries

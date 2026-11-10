@@ -706,7 +706,7 @@ it('email: only dashboard accounts that are switched on can be sent anything', a
   // Point the sender at a closed local port: the account check must refuse before any connection.
   await db.query("INSERT INTO mail_settings (id, sender, host, port, password) VALUES (1, 'codes@example.com', '127.0.0.1', 2525, 'x')");
   await db.end();
-  const trySend = (to) => spawnSync(process.execPath, ['-e', `require('./src/mail').send(${JSON.stringify(to)}, 'Hi', 'x').then(() => console.log('SENT'), (e) => console.log(e.message)).finally(() => require('./src/db').pool.end())`],
+  const trySend = (to) => spawnSync(process.execPath, ['-e', `require('./src/mail').send(${JSON.stringify(to)}, { subject: 'Hi', text: 'x', html: '' }).then(() => console.log('SENT'), (e) => console.log(e.message)).finally(() => require('./src/db').pool.end())`],
     { cwd: path.join(__dirname, '..'), env: process.env, encoding: 'utf8' }).stdout;
   assert.match(trySend('stranger@example.com'), /not a dashboard account/);
   assert.doesNotMatch(trySend('cook@example.com'), /not a dashboard account/, 'an account passes the check (then fails to connect here)');

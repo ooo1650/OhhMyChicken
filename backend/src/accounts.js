@@ -109,7 +109,7 @@ async function testEmail(me) {
   const m = await mail.status();
   if (!m.ready) return { ok: false, error: 'No password saved for ' + m.from + ': add it in Email above.' };
   try {
-    await mail.send(me.email, 'Test email from your dashboard', 'This is a test. Sign-in codes will arrive like this.\n');
+    await mail.send(me.email, require('./emails').testEmail());
     return { ok: true, to: me.email };
   } catch (e) {
     return { ok: false, error: e.message };
