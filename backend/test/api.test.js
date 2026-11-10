@@ -60,7 +60,7 @@ test.before(async () => {
   B = 'http://127.0.0.1:' + port;
   uploads = fs.mkdtempSync(path.join(os.tmpdir(), 'omc-uploads-'));
   server = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'index.js')], {
-    env: { ...process.env, PORT: String(port), ADMIN_PASSCODE: PASS, SUPER_ADMIN_EMAIL: OWNER, UPLOAD_DIR: uploads, NODE_ENV: 'test', ORDER_LIMIT: '200', SIGNIN_LIMIT: '500', INSIGHTS_ENABLED: 'true' },
+    env: { ...process.env, PORT: String(port), ADMIN_PASSCODE: PASS, SUPER_ADMIN_EMAIL: OWNER, UPLOAD_DIR: uploads, NODE_ENV: 'test', ORDER_LIMIT: '200', SIGNIN_LIMIT: '500', CODE_LIMIT: '500', INSIGHTS_ENABLED: 'true' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   server.stdout.on('data', (d) => { log += d; });
@@ -111,11 +111,13 @@ it('cross-site and non-JSON writes are blocked', async () => {
 });
 
 it('sign-in: password, then the emailed code; wrong ones fail; the cookie is httpOnly', async () => {
+  const quiet = log.length;
   const wrongPass = await req('POST', '/api/admin/login', { body: { email: OWNER, password: 'wrong-guess-123' } });
   assert.equal(wrongPass.status, 401);
   assert.equal(wrongPass.json.error, 'Wrong email or password.');
   const noSuchUser = await req('POST', '/api/admin/login', { body: { email: 'nobody@example.com', password: PASS } });
   assert.equal(noSuchUser.json.error, 'Wrong email or password.', 'an unknown email looks the same');
+  assert.doesNotMatch(log.slice(quiet), /Sign-in code/, 'no code is made or sent without an account and its password');
 
   const since = log.length;
   const step1 = await req('POST', '/api/admin/login', { body: { email: ' Owner@Example.com ', password: PASS } });
@@ -497,7 +499,7 @@ it('insights: locked for staff unless the server switches it on; the administrat
   const { INSIGHTS_ENABLED, ...env } = process.env; // eslint-disable-line no-unused-vars
   let out = '';
   const locked = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'index.js')],
-    { env: { ...env, PORT: String(port), UPLOAD_DIR: uploads, NODE_ENV: 'test', SIGNIN_LIMIT: '500' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    { env: { ...env, PORT: String(port), UPLOAD_DIR: uploads, NODE_ENV: 'test', SIGNIN_LIMIT: '500', CODE_LIMIT: '3' }, stdio: ['ignore', 'pipe', 'pipe'] });
   locked.stdout.on('data', (d) => { out += d; });
   locked.stderr.on('data', (d) => { out += d; });
   try {
@@ -508,6 +510,12 @@ it('insights: locked for staff unless the server switches it on; the administrat
     assert.equal((await fetch(base + '/api/insights')).status, 401);
     const temp = (await req('POST', '/api/admin/users', { body: { email: 'viewer@example.com' } })).json.tempPassword;
     const viewer = await signIn('viewer@example.com', temp, base, () => out);
+    // At most CODE_LIMIT (3 here) codes an hour per account.
+    assert.equal((await postJson(base, '/api/admin/login', { email: 'viewer@example.com', password: temp })).status, 200);
+    assert.equal((await postJson(base, '/api/admin/login', { email: 'viewer@example.com', password: temp })).status, 200);
+    const flood = await postJson(base, '/api/admin/login', { email: 'viewer@example.com', password: temp });
+    assert.equal(flood.status, 429);
+    assert.match((await flood.json()).error, /Too many codes/);
     const changed = await fetch(base + '/api/admin/password', { method: 'PUT', headers: { 'Content-Type': 'application/json', Cookie: viewer }, body: JSON.stringify({ current: temp, password: 'garlic-naan-window-58' }) });
     assert.equal(changed.status, 200);
     const r = await fetch(base + '/api/insights', { headers: { Cookie: viewer } });
@@ -689,6 +697,23 @@ it('email sender: the administrator sets it; the password is never shown, and st
   await db.connect();
   await db.query('DELETE FROM mail_settings');
   await db.end();
+});
+
+it('email: only dashboard accounts that are switched on can be sent anything', async () => {
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  // Point the sender at a closed local port: the account check must refuse before any connection.
+  await db.query("INSERT INTO mail_settings (id, sender, host, port, password) VALUES (1, 'codes@example.com', '127.0.0.1', 2525, 'x')");
+  await db.end();
+  const trySend = (to) => spawnSync(process.execPath, ['-e', `require('./src/mail').send(${JSON.stringify(to)}, 'Hi', 'x').then(() => console.log('SENT'), (e) => console.log(e.message)).finally(() => require('./src/db').pool.end())`],
+    { cwd: path.join(__dirname, '..'), env: process.env, encoding: 'utf8' }).stdout;
+  assert.match(trySend('stranger@example.com'), /not a dashboard account/);
+  assert.doesNotMatch(trySend('cook@example.com'), /not a dashboard account/, 'an account passes the check (then fails to connect here)');
+  const db2 = new Client({ connectionString: DB });
+  await db2.connect();
+  await db2.query('DELETE FROM mail_settings');
+  await db2.end();
 });
 
 it('logout ends the session', async () => {

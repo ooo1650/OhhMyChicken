@@ -39,7 +39,11 @@ function mailer(c) {
   return transport;
 }
 
+// Only ever emails dashboard accounts that are switched on: never an address typed into a
+// form, so no one can use the site to send mail (or bounces) to strangers.
 async function send(to, subject, text) {
+  const { rows } = await pool.query('SELECT 1 FROM admin_users WHERE email = $1 AND active', [String(to).toLowerCase()]);
+  if (!rows.length) throw new Error('not sent: ' + to + ' is not a dashboard account');
   const c = await config();
   if (!c.pass) throw new Error('no password saved for ' + c.from + ' (Team → Email)');
   await mailer(c).sendMail({ from: c.from, to, subject, text });

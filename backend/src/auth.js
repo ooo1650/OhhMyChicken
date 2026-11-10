@@ -4,7 +4,8 @@
      2. a 6-digit code sent to that email, valid for 10 minutes and 5 tries.
    A session is a random token in an httpOnly cookie (only its SHA-256 is
    stored) that lasts one hour from sign-in. Wrong tries are limited per IP,
-   per account and overall, and every sign-in is logged.
+   per account and overall, and every sign-in is logged. Codes are emailed only
+   to active accounts, after the right password, at most 10 an hour each.
    ========================================================================== */
 'use strict';
 const crypto = require('crypto');
@@ -17,6 +18,7 @@ const TTL_MS = 60 * 60 * 1000;   // a sign-in lasts one hour, however much the d
 const CODE_MS = 10 * 60 * 1000;  // an emailed code works for 10 minutes…
 const CODE_TRIES = 5;            // …and for 5 tries
 const RESEND_MS = 60 * 1000;     // a new code at most once a minute
+const CODES_PER_HOUR = Number(process.env.CODE_LIMIT) || 10; // emails per account per hour (tests raise it)
 
 // Secure cookies by default in production. Set COOKIE_SECURE=false only when
 // serving plain HTTP on a private network (never on the public internet).
@@ -99,6 +101,9 @@ async function capSessions() {
 // wrong tries in 15 minutes from anywhere, sign-in pauses for everyone (signed-in devices keep working).
 const MAX_TRIES = 8, MAX_ACCOUNT = 10, MAX_GLOBAL = 60, ALL = 'all';
 const failures = createBucket(15 * 60 * 1000);
+// Codes emailed per account, so a known password can't be used to flood an inbox.
+const codesSent = createBucket(60 * 60 * 1000);
+const TOO_MANY_CODES = 'Too many codes were sent to this email in the last hour. Wait a while, or ask the site administrator.';
 const BUSY = 'Sign-in is paused for a few minutes because of many wrong tries. Devices already signed in keep working.';
 const TOO_MANY = 'Too many tries. Wait 15 minutes and try again.';
 
@@ -176,6 +181,8 @@ async function login(req, res) {
     await record(req, false, email);
     return res.status(401).json({ error: 'Wrong email or password.' });
   }
+  if (codesSent.count(email) >= CODES_PER_HOUR) return res.status(429).json({ error: TOO_MANY_CODES });
+  codesSent.hit(email, CODES_PER_HOUR);
   const token = crypto.randomBytes(32).toString('hex'), code = newCode();
   await pool.query('DELETE FROM admin_challenges WHERE expires_at < now()');
   await pool.query('INSERT INTO admin_challenges (token_hash, user_id, code_hash, expires_at) VALUES ($1, $2, $3, $4)',
@@ -230,6 +237,8 @@ async function resend(req, res) {
   const ch = await findChallenge((req.body || {}).challenge);
   if (!ch) return res.status(400).json({ error: EXPIRED, expired: true });
   if (Date.now() - new Date(ch.sent_at).getTime() < RESEND_MS) return res.status(429).json({ error: 'Wait a minute before asking for another code.' });
+  if (codesSent.count(ch.email) >= CODES_PER_HOUR) return res.status(429).json({ error: TOO_MANY_CODES });
+  codesSent.hit(ch.email, CODES_PER_HOUR);
   const code = newCode();
   await pool.query('UPDATE admin_challenges SET code_hash = $1, tries = 0, sent_at = now(), expires_at = $2 WHERE token_hash = $3',
     [codeHash(req.body.challenge, code), new Date(Date.now() + CODE_MS), ch.token_hash]);
