@@ -211,3 +211,14 @@ CREATE TABLE IF NOT EXISTS features (
   enabled    BOOLEAN     NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- v1.12: who changed what in the administrator's areas (accounts, access, features, email
+-- sender, store resets), shown in Team → Recent changes. Never holds passwords or codes.
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id     BIGSERIAL PRIMARY KEY,
+  at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actor  TEXT        NOT NULL,   -- the signed-in account's email
+  action TEXT        NOT NULL,   -- e.g. "account.create"
+  detail TEXT        NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS admin_audit_at_idx ON admin_audit (at DESC);

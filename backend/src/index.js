@@ -46,6 +46,9 @@ function sameOrigin(req, res, next) {
   next();
 }
 
+// A null byte in an address is never legitimate, and the database can't store one.
+app.use((req, res, next) => (/%00|\0/.test(req.originalUrl) ? res.status(400).json({ error: 'Bad address.' }) : next()));
+
 app.use('/api',
   limit(300, 60 * 1000),
   sameOrigin,

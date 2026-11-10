@@ -398,3 +398,10 @@ body.admin-page { background: #F6F4EE; }
 .team-access summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); }
 .team-access-list { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; }
 .team-access-list .check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); }
+.recent-changes summary { cursor: pointer; list-style: none; }
+.recent-changes summary::-webkit-details-marker { display: none; }
+.recent-changes summary h3 { margin: 0; }
+.recent-changes summary h3::after { content: ' +'; color: var(--muted); }
+.recent-changes[open] summary h3::after { content: ' –'; }
+.recent-changes .signins-list { margin-top: 10px; }
+.recent-changes .signins-list li { grid-template-columns: 8.5em 11em 1fr; }

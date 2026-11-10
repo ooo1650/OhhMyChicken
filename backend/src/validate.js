@@ -52,6 +52,25 @@ function str(v, max, field, { required = false, multiline = false } = {}) {
   if (v.length > max) fail(field + ' must be at most ' + max + ' characters.');
   return v;
 }
+// An email address as stored: lowercase, letters/digits/._%+- only, so nothing in it can
+// break an email header or a page (no spaces, line breaks, quotes or angle brackets).
+const EMAIL_RE = /^[a-z0-9._%+-]{1,64}@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+function email(v, field = 'Email') {
+  if (typeof v !== 'string') fail(field + ' must be text.');
+  const e = v.trim().toLowerCase();
+  if (e.length > 254 || !EMAIL_RE.test(e)) fail('Enter a valid email address.');
+  return e;
+}
+function bool(v, field) {
+  if (typeof v !== 'boolean') fail(field + ' must be true or false.');
+  return v;
+}
+// A row id in a URL: digits only.
+function rowId(v) {
+  if (!/^\d{1,9}$/.test(String(v))) fail('No such account.');
+  return Number(v);
+}
+
 function int(v, min, max, field) {
   const n = Number(v);
   if (v === '' || v == null || !Number.isFinite(n)) fail(field + ' must be a number.');
@@ -222,4 +241,4 @@ function socialLinks(v) {
 
 function isPizza(category) { return PIZZA_CATEGORIES.includes(category); }
 
-module.exports = { item, menu, settings, isPizza, fail, clean };
+module.exports = { item, menu, settings, isPizza, fail, clean, str, int, email, bool, rowId };

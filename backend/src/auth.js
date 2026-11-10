@@ -311,5 +311,5 @@ async function security(req, res) {
 
 module.exports = {
   PERMISSIONS, can, capSessions, signedIn, requireAdmin, requireSuper, status, login, verify, resend, logout,
-  changePassword, signOutOthers, security, lastBackup, normEmail, sha, myToken
+  changePassword, signOutOthers, security, lastBackup, sha, myToken
 };

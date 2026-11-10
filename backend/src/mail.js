@@ -55,21 +55,22 @@ async function status() {
   return { from: c.from, host: c.host, port: c.port, user: c.user === c.from ? '' : c.user, hasPassword: !!c.pass, ready: !!(c.from && c.host && c.pass), source: c.source };
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const HOST_RE = /^[a-z0-9.-]{1,253}$/i;
+const { email: validEmail, str } = require('./validate');
+const HOST_RE = /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/i;
 
 // Saves the sender. A blank password keeps the saved one.
 async function save(b, fail) {
-  const from = String(b.from || '').trim().toLowerCase();
-  if (!EMAIL_RE.test(from)) fail('Enter the sender\'s email address.');
-  const host = String(b.host || DEFAULT_HOST).trim().toLowerCase();
+  const from = validEmail(b.from, 'Sender email');
+  const host = str(b.host || DEFAULT_HOST, 253, 'Email server').toLowerCase();
   if (!HOST_RE.test(host)) fail('Enter the email server, e.g. smtp-relay.brevo.com.');
   const port = Number(b.port) || DEFAULT_PORT;
   if (![25, 465, 587, 2525].includes(port)) fail('The email port is usually 587 or 465.');
-  const user = String(b.user || '').trim().slice(0, 254);
+  const user = str(b.user, 254, 'Login');
+  if (/\s/.test(user)) fail('The login has no spaces.');
   if (BREVO.test(host) && !user) fail('Enter your Brevo SMTP login (Brevo → SMTP & API → SMTP). It is not the sender address.');
-  const pass = typeof b.password === 'string' ? b.password.replace(/\s+/g, '') : ''; // Gmail shows app passwords with spaces
-  if (pass.length > 200) fail('That password is too long.');
+  if (b.password != null && typeof b.password !== 'string') fail('The password must be text.');
+  const pass = (b.password || '').replace(/\s+/g, ''); // Gmail shows app passwords with spaces
+  if (pass.length > 200 || !/^[\x21-\x7e]*$/.test(pass)) fail('That password has characters an email service would not give out.');
   // A saved password belongs to the login it was saved for: changing the login drops it.
   const current = await config(), keep = (user || from) === current.user ? current.pass : '';
   await pool.query(

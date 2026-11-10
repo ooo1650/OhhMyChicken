@@ -77,8 +77,8 @@ function Login({ error: initialError, onUnlocked }) {
           <div className="lock-ico" aria-hidden="true"><Icon name="lock" /></div>
           <h1>Staff dashboard</h1>
           <p className="muted">Sign in to manage the menu and orders.</p>
-          <input type="email" ref={firstRef} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="username" aria-label="Email" required />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" aria-label="Password" required />
+          <input type="email" ref={firstRef} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="username" aria-label="Email" required maxLength="254" />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" aria-label="Password" required maxLength="128" />
           <p className="form-error" aria-live="assertive">{error}</p>
           <button type="submit" className="btn btn-red btn-block" disabled={busy}>{busy ? 'Checking…' : 'Continue'}</button>
           <details className="login-help">
@@ -128,9 +128,9 @@ function ChoosePassword({ user, onDone, onLock }) {
         <div className="lock-ico" aria-hidden="true"><Icon name="lock" /></div>
         <h1>Choose your password</h1>
         <p className="muted">Hi {user.name || user.email}. You signed in with a temporary password: choose your own to continue.</p>
-        <input type="password" ref={ref} value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Temporary password" autoComplete="current-password" aria-label="Temporary password" required />
-        <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (10+ characters)" autoComplete="new-password" aria-label="New password" minLength="10" required />
-        <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder="New password again" autoComplete="new-password" aria-label="New password again" minLength="10" required />
+        <input type="password" ref={ref} value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Temporary password" autoComplete="current-password" aria-label="Temporary password" required maxLength="128" />
+        <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (10+ characters)" autoComplete="new-password" aria-label="New password" minLength="10" maxLength="128" required />
+        <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder="New password again" autoComplete="new-password" aria-label="New password again" minLength="10" maxLength="128" required />
         <p className="form-error" aria-live="assertive">{error}</p>
         <button type="submit" className="btn btn-red btn-block">Save and continue</button>
         <div className="login-links"><button type="button" className="btn btn-link btn-sm" onClick={onLock}>Sign out</button></div>

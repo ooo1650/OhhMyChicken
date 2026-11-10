@@ -9,12 +9,11 @@
 const crypto = require('crypto');
 const { pool } = require('./db');
 const { hashPassword } = require('./password');
-const { lastBackup, normEmail, sha, myToken, PERMISSIONS } = require('./auth');
+const { lastBackup, sha, myToken, PERMISSIONS } = require('./auth');
 const features = require('./features');
 const mail = require('./mail');
-const { fail: refuse } = require('./validate'); // a 400 with this message
+const { fail: refuse, str, email: validEmail, bool, rowId } = require('./validate'); // refuse: a 400 with this message
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const ROLES = ['staff', 'super'];
 
 // 12 random letters and digits, grouped so it can be read out over the phone: "kq7m-2xfa-9pzt".
@@ -34,10 +33,10 @@ async function list() {
 }
 
 async function create(b) {
-  const email = normEmail(b.email);
-  if (!EMAIL_RE.test(email)) refuse('Enter a valid email address.');
-  const role = ROLES.includes(b.role) ? b.role : 'staff';
-  const name = String(b.name || '').trim().slice(0, 60);
+  const email = validEmail(b.email);
+  if (b.role !== undefined && !ROLES.includes(b.role)) refuse('Unknown role.');
+  const role = b.role || 'staff';
+  const name = str(b.name, 60, 'Name');
   const temp = tempPassword();
   try {
     await pool.query('INSERT INTO admin_users (email, name, role, pass_hash, must_change) VALUES ($1, $2, $3, $4, true)', [email, name, role, await hashPassword(temp)]);
@@ -49,7 +48,7 @@ async function create(b) {
 }
 
 async function findUser(id) {
-  const { rows } = await pool.query('SELECT id, email, role, active FROM admin_users WHERE id = $1', [Number(id) || 0]);
+  const { rows } = await pool.query('SELECT id, email, role, active FROM admin_users WHERE id = $1', [rowId(id)]);
   return rows[0] || refuse('No such account.');
 }
 // The site must always keep one working administrator account.
@@ -63,13 +62,13 @@ async function resetPassword(id) {
   const temp = tempPassword();
   await pool.query('UPDATE admin_users SET pass_hash = $1, must_change = true WHERE id = $2', [await hashPassword(temp), user.id]);
   await pool.query('DELETE FROM admin_sessions WHERE user_id = $1', [user.id]);
-  return { tempPassword: temp };
+  return { tempPassword: temp, email: user.email };
 }
 
 async function update(id, b, me) {
   const user = await findUser(id);
   const sets = [], vals = [];
-  if (typeof b.name === 'string') { vals.push(b.name.trim().slice(0, 60)); sets.push('name = $' + vals.length); }
+  if (b.name !== undefined) { vals.push(str(b.name, 60, 'Name')); sets.push('name = $' + vals.length); }
   if (b.role !== undefined) {
     if (!ROLES.includes(b.role)) refuse('Unknown role.');
     if (b.role !== 'super' && user.role === 'super') {
@@ -79,13 +78,14 @@ async function update(id, b, me) {
     vals.push(b.role); sets.push('role = $' + vals.length);
   }
   if (b.active !== undefined) {
+    bool(b.active, 'Active');
     if (!b.active && user.id === me.id) refuse('You can\'t switch off your own account.');
     if (!b.active && user.role === 'super') await keepOneSuper(user);
     vals.push(!!b.active); sets.push('active = $' + vals.length);
     if (!b.active) await pool.query('DELETE FROM admin_sessions WHERE user_id = $1', [user.id]);
   }
   if (b.permissions !== undefined) {
-    if (!Array.isArray(b.permissions) || b.permissions.some((p) => !PERMISSIONS.includes(p))) refuse('Unknown part of the dashboard.');
+    if (!Array.isArray(b.permissions) || b.permissions.length > PERMISSIONS.length * 2 || b.permissions.some((p) => !PERMISSIONS.includes(p))) refuse('Unknown part of the dashboard.');
     vals.push([...new Set(b.permissions)]); sets.push('permissions = $' + vals.length);
   }
   if (sets.length) { vals.push(user.id); await pool.query('UPDATE admin_users SET ' + sets.join(', ') + ' WHERE id = $' + vals.length, vals); }
@@ -95,7 +95,7 @@ async function update(id, b, me) {
 async function signOut(id, req) {
   const user = await findUser(id);
   const { rowCount } = await pool.query('DELETE FROM admin_sessions WHERE user_id = $1 AND token_hash <> $2', [user.id, sha(myToken(req))]);
-  return { signedOut: rowCount };
+  return { signedOut: rowCount, email: user.email };
 }
 
 async function signOutEveryone(req) {

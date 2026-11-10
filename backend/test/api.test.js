@@ -772,6 +772,54 @@ it('features: the administrator switches them without a restart; the website see
   await db.end();
 });
 
+it('validation: account, email-sender and feature inputs are checked on the server', async () => {
+  const bad = async (method, url, body, why) => assert.equal((await req(method, url, { body })).status, 400, why);
+  for (const email of ['a@b', 'x y@example.com', 'eve@example.com\r\nBcc: all@example.com', '"<script>"@example.com', 'a'.repeat(250) + '@x.com', 42]) {
+    await bad('POST', '/api/admin/users', { email }, 'email ' + JSON.stringify(email).slice(0, 40));
+  }
+  await bad('POST', '/api/admin/users', { email: 'ok@example.com', role: 'owner' }, 'unknown role');
+  const made = await req('POST', '/api/admin/users', { body: { email: 'hidden@example.com', name: 'Ri\u202Ehcs\u200Bnit\u0007a' } });
+  assert.equal(made.status, 201);
+  const hidden = (await req('GET', '/api/admin/users')).json.find((u) => u.email === 'hidden@example.com');
+  assert.equal(hidden.name, 'Rihcsnita', 'invisible and direction-flipping characters are removed');
+  await bad('PATCH', '/api/admin/users/' + hidden.id, { active: 'false' }, 'active must be a real boolean');
+  await bad('PATCH', '/api/admin/users/' + hidden.id, { permissions: 'orders' }, 'permissions must be a list');
+  await bad('PATCH', '/api/admin/users/' + hidden.id, { name: 'x'.repeat(61) }, 'name too long');
+  assert.equal((await req('PATCH', '/api/admin/users/1%20OR%201=1', { body: { active: false } })).status, 400, 'ids are digits only');
+  assert.equal((await req('POST', '/api/admin/users', { body: [{ email: 'list@example.com' }] })).status, 400, 'a list is not an object');
+  await bad('PUT', '/api/admin/features/constructor', { enabled: true }, 'built-in object names are not features');
+  await bad('PUT', '/api/admin/features/__proto__', { enabled: true }, '__proto__ is not a feature');
+  await bad('PUT', '/api/admin/features/chat', { enabled: 'yes' }, 'enabled must be a real boolean');
+  await bad('PUT', '/api/admin/mail', { from: 'codes@example.com\nBcc: x@y.z' }, 'no header injection in the sender');
+  await bad('PUT', '/api/admin/mail', { from: 'codes@example.com', host: '-evil.com' }, 'host must look like a host name');
+  await bad('PUT', '/api/admin/mail', { from: 'codes@example.com', user: 'two words', host: 'smtp.example.com', port: 587 }, 'login without spaces');
+  await bad('PUT', '/api/admin/mail', { from: 'codes@example.com', user: 'u', host: 'smtp.example.com', port: 587, password: 'p\u00e4ss' }, 'password in plain characters');
+  await bad('PUT', '/api/admin/mail', { from: 'codes@example.com', user: 'u', host: 'smtp.example.com', port: 22 }, 'mail ports only');
+  assert.equal((await req('DELETE', '/api/menu/%00')).status, 400, 'a null byte never reaches the database');
+  assert.equal((await req('DELETE', '/api/menu/' + encodeURIComponent("x' OR 1=1"))).status, 404);
+});
+
+it('change log: the administrator sees who changed what, never a password; staff can\'t read it', async () => {
+  await req('PUT', '/api/admin/mail', { body: { from: 'codes@example.com', user: 'u@x.io', host: 'smtp.example.com', port: 587, password: 'super-secret-key-123' } });
+  await req('PUT', '/api/admin/features/gallery', { body: { enabled: false } });
+  await req('PUT', '/api/admin/features/gallery', { body: { enabled: true } });
+  const log = (await req('GET', '/api/admin/audit')).json;
+  assert.ok(log.length >= 4);
+  assert.deepEqual(log.slice(0, 3).map((r) => r.action), ['feature', 'feature', 'email.sender']);
+  assert.equal(log[0].actor, OWNER);
+  assert.equal(log[2].detail, 'codes@example.com via smtp.example.com:587, new password');
+  assert.ok(log.some((r) => r.action === 'account.create'));
+  assert.ok(!JSON.stringify(log).includes('super-secret'), 'the password itself is never logged');
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  await db.query('DELETE FROM mail_settings');
+  await db.end();
+  const temp = (await req('POST', '/api/admin/users', { body: { email: 'peek@example.com' } })).json.tempPassword;
+  const peek = await signIn('peek@example.com', temp);
+  assert.equal((await fetch(B + '/api/admin/audit', { headers: { Cookie: peek } })).status, 403);
+});
+
 it('logout ends the session', async () => {
   assert.equal((await req('POST', '/api/admin/logout', { body: {} })).status, 200);
   assert.equal((await req('GET', '/api/orders')).status, 401);

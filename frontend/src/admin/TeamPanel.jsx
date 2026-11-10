@@ -106,6 +106,7 @@ export function TeamPanel({ hidden, me }) {
         </div>
         <div className="team-side">
           <Features />
+          <RecentChanges key={users ? users.length : 0} />
           <EmailSender />
           <Troubleshoot accounts={users} />
         </div>
@@ -139,6 +140,30 @@ function AddAccount({ onAdded }) {
         <button type="submit" className="btn btn-red btn-sm"><Icon name="plus" /> Add</button>
       </div>
     </form>
+  );
+}
+
+// The change log: who changed accounts, access, features or the email sender, and when.
+const ACTIONS = {
+  'account.create': 'added an account', 'account.change': 'changed an account', 'account.reset-password': 'reset a password',
+  'account.sign-out': 'signed someone out', 'sessions.sign-out-everyone': 'signed everyone out', feature: 'switched a feature',
+  'email.sender': 'changed the email sender', 'store.reset': 'reset the store settings', 'orders.clear': 'deleted all orders'
+};
+function RecentChanges() {
+  const admin = useAdmin();
+  const [list, setList] = useState(null);
+  useEffect(() => { admin.audit().then(setList, () => setList([])); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <details className="panel-card recent-changes">
+      <summary><h3>Recent changes</h3></summary>
+      {!list ? <p className="muted">Loading…</p> : !list.length ? <p className="muted tiny">Nothing yet.</p> : (
+        <ul className="signins-list">
+          {list.map((r, i) => (
+            <li key={i}><span>{when(r.at)}</span><span>{r.actor}</span><span><b>{ACTIONS[r.action] || r.action}</b>{r.detail && ': ' + r.detail}</span></li>
+          ))}
+        </ul>
+      )}
+    </details>
   );
 }
 
@@ -196,21 +221,21 @@ function EmailSender() {
           <button key={id} type="button" role="radio" aria-checked={f.provider === id} className={f.provider === id ? 'on' : ''} onClick={() => choose(id)}>{p.label}</button>
         ))}
       </div>
-      <label className="field"><span>Sender email {f.provider === 'brevo' && <em>(a sender verified in Brevo)</em>}</span><input type="email" required value={f.from} onChange={set('from')} /></label>
+      <label className="field"><span>Sender email {f.provider === 'brevo' && <em>(a sender verified in Brevo)</em>}</span><input type="email" required maxLength="254" value={f.from} onChange={set('from')} /></label>
       {f.provider !== 'gmail' && (
         <label className="field"><span>{f.provider === 'brevo' ? 'SMTP login' : 'Login'} {f.provider === 'other' && <em>(if it isn't the sender email)</em>}</span>
-          <input value={f.user} onChange={set('user')} required={f.provider === 'brevo'} placeholder={f.provider === 'brevo' ? 'e.g. 8a1b2c001@smtp-brevo.com' : ''} />
+          <input value={f.user} onChange={set('user')} required={f.provider === 'brevo'} maxLength="254" pattern="\\S+" title="No spaces" placeholder={f.provider === 'brevo' ? 'e.g. 8a1b2c001@smtp-brevo.com' : ''} />
         </label>
       )}
       <label className="field"><span>{f.provider === 'brevo' ? 'SMTP key' : f.provider === 'gmail' ? 'Gmail app password' : 'Password'} {keep}</span>
-        <input type="password" autoComplete="new-password" value={f.password} onChange={set('password')} placeholder={m.hasPassword ? '••••••••••••••••' : f.provider === 'brevo' ? 'xsmtpsib-…' : ''} />
+        <input type="password" autoComplete="new-password" maxLength="200" value={f.password} onChange={set('password')} placeholder={m.hasPassword ? '••••••••••••••••' : f.provider === 'brevo' ? 'xsmtpsib-…' : ''} />
       </label>
       {f.provider === 'brevo' && <p className="tiny muted"><Icon name="info" /> In Brevo: <b>SMTP & API → SMTP</b> shows the login and lets you generate an <b>SMTP key</b> (not the API key). Add the sender address under <b>Senders, domains & dedicated IPs</b> and verify it, or Brevo won't send from it.</p>}
       {f.provider === 'gmail' && <p className="tiny muted"><Icon name="info" /> Not the Gmail password: an <b>app password</b>. Turn on 2-step verification for that Google account, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">myaccount.google.com/apppasswords</a>.</p>}
       {f.provider === 'other' && (
         <div className="field-row">
-          <label className="field"><span>Server</span><input required value={f.host} onChange={set('host')} placeholder="smtp.example.com" /></label>
-          <label className="field"><span>Port</span><input type="number" required value={f.port} onChange={set('port')} placeholder="587" /></label>
+          <label className="field"><span>Server</span><input required maxLength="253" value={f.host} onChange={set('host')} placeholder="smtp.example.com" /></label>
+          <label className="field"><span>Port</span><input type="number" required min="1" max="65535" value={f.port} onChange={set('port')} placeholder="587" /></label>
         </div>
       )}
       <button type="submit" className="btn btn-red btn-sm">Save sender</button>

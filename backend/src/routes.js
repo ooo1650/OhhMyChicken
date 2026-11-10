@@ -11,6 +11,7 @@ const auth = require('./auth');
 const accounts = require('./accounts');
 const mail = require('./mail');
 const features = require('./features');
+const audit = require('./audit');
 const defaults = require('./defaults');
 const { totals } = require('./pricing');
 const validate = require('./validate');
@@ -34,6 +35,16 @@ function cached(key, load) {
   value.catch(() => cache.delete(key));
   return value;
 }
+// A JSON body is an object; only replacing the whole menu sends a list.
+router.use((req, res, next) => {
+  if (req.body === undefined || ['GET', 'HEAD'].includes(req.method)) return next();
+  const list = Array.isArray(req.body);
+  if (list ? !(req.method === 'PUT' && req.path === '/menu') : typeof req.body !== 'object' || req.body === null) {
+    return res.status(400).json({ error: 'Send a JSON object.' });
+  }
+  next();
+});
+
 router.use((req, res, next) => {
   // Only changes to what visitors see clear it (not orders or analytics beacons).
   if (req.method !== 'GET' && req.method !== 'HEAD' && /^\/(menu|settings|media|admin\/features)\b/.test(req.path)) {
@@ -57,7 +68,7 @@ router.put('/menu/:id', can('menu'), async (req, res) => {
   res.json(await models.upsertItem(Object.assign({}, req.body, { id: req.params.id })));
 });
 router.delete('/menu/:id', can('menu'), async (req, res) => {
-  if (!(await models.deleteItem(req.params.id))) return res.status(404).json({ error: 'Item not found.' });
+  if (!/^[\w-]{1,40}$/.test(req.params.id) || !(await models.deleteItem(req.params.id))) return res.status(404).json({ error: 'Item not found.' });
   res.json({ ok: true });
 });
 
@@ -102,7 +113,11 @@ router.put('/settings', can('store', 'outlets'), async (req, res) => {
   const next = req.user.permissions.includes('store') ? b : { ...(await models.getSettings()), outlets: b.outlets };
   res.json(await models.saveSettings(next));
 });
-router.post('/settings/reset', can('store'), async (req, res) => res.json(await models.resetSettings()));
+router.post('/settings/reset', can('store'), async (req, res) => {
+  const s = await models.resetSettings();
+  await audit.record(req, 'store.reset', 'store info and promo back to defaults');
+  res.json(s);
+});
 
 /* ---------- Orders ---------- */
 // Orders per IP per 10 minutes (ORDER_LIMIT; tests raise it).
@@ -192,7 +207,11 @@ router.get('/orders.csv', can('orders'), async (req, res) => {
   res.type('text/csv').attachment('ohh-my-chicken-orders-' + new Date().toISOString().slice(0, 10) + '.csv')
     .send('\ufeff' + [head].concat(rows).map((r) => r.map(cell).join(',')).join('\r\n'));
 });
-router.delete('/orders', can('orders'), async (req, res) => { await models.clearOrders(); res.json({ ok: true }); });
+router.delete('/orders', can('orders'), async (req, res) => {
+  await models.clearOrders();
+  await audit.record(req, 'orders.clear', 'all orders deleted');
+  res.json({ ok: true });
+});
 
 /* ---------- Signing in (see auth.js) ---------- */
 // Requests per IP per 15 minutes to the sign-in steps (SIGNIN_LIMIT; tests raise it).
@@ -208,17 +227,49 @@ router.get('/admin/security', admin, auth.security);
 
 /* ---------- Accounts and troubleshooting: site administrator only (see accounts.js) ---------- */
 const sup = auth.requireSuper;
+// Every change here goes into the change log (audit.js): who, what, when; never a password.
+const describe = (b) => Object.entries(b).filter(([k]) => ['name', 'role', 'active', 'permissions'].includes(k))
+  .map(([k, v]) => (k === 'permissions' ? 'can use ' + (v.length ? v.join(', ') : 'nothing') : k + ' ' + JSON.stringify(v))).join(', ');
 router.get('/admin/users', sup, async (req, res) => res.json(await accounts.list()));
-router.post('/admin/users', sup, async (req, res) => res.status(201).json(await accounts.create(req.body || {})));
-router.patch('/admin/users/:id', sup, async (req, res) => res.json(await accounts.update(req.params.id, req.body || {}, req.user)));
-router.post('/admin/users/:id/reset-password', sup, async (req, res) => res.json(await accounts.resetPassword(req.params.id)));
-router.post('/admin/users/:id/sign-out', sup, async (req, res) => res.json(await accounts.signOut(req.params.id, req)));
-router.post('/admin/sign-out-everyone', sup, async (req, res) => res.json(await accounts.signOutEveryone(req)));
+router.post('/admin/users', sup, async (req, res) => {
+  const r = await accounts.create(req.body || {});
+  await audit.record(req, 'account.create', String(req.body.email).trim().toLowerCase() + ' as ' + (req.body.role || 'staff'));
+  res.status(201).json(r);
+});
+router.patch('/admin/users/:id', sup, async (req, res) => {
+  const u = await accounts.update(req.params.id, req.body || {}, req.user);
+  await audit.record(req, 'account.change', u.email + ': ' + describe(req.body));
+  res.json(u);
+});
+router.post('/admin/users/:id/reset-password', sup, async (req, res) => {
+  const r = await accounts.resetPassword(req.params.id);
+  await audit.record(req, 'account.reset-password', r.email);
+  res.json({ tempPassword: r.tempPassword });
+});
+router.post('/admin/users/:id/sign-out', sup, async (req, res) => {
+  const r = await accounts.signOut(req.params.id, req);
+  await audit.record(req, 'account.sign-out', r.email + ' (' + r.signedOut + ' session' + (r.signedOut === 1 ? '' : 's') + ')');
+  res.json({ signedOut: r.signedOut });
+});
+router.post('/admin/sign-out-everyone', sup, async (req, res) => {
+  const r = await accounts.signOutEveryone(req);
+  await audit.record(req, 'sessions.sign-out-everyone', r.signedOut + ' session' + (r.signedOut === 1 ? '' : 's'));
+  res.json(r);
+});
 router.get('/admin/mail', sup, async (req, res) => res.json(await mail.status()));   // who sends sign-in codes
-router.put('/admin/mail', sup, async (req, res) => res.json(await mail.save(req.body || {}, fail)));
+router.put('/admin/mail', sup, async (req, res) => {
+  const s = await mail.save(req.body || {}, fail);
+  await audit.record(req, 'email.sender', s.from + ' via ' + s.host + ':' + s.port + (req.body.password ? ', new password' : ''));
+  res.json(s);
+});
+router.get('/admin/audit', sup, async (req, res) => res.json(await audit.recent(30)));
 router.post('/admin/test-email', sup, async (req, res) => res.json(await accounts.testEmail(req.user)));
 router.get('/admin/features', sup, async (req, res) => res.json(await features.describe()));
-router.put('/admin/features/:id', sup, async (req, res) => res.json(await features.set(req.params.id, (req.body || {}).enabled, fail)));
+router.put('/admin/features/:id', sup, async (req, res) => {
+  const list = await features.set(req.params.id, req.body.enabled, fail);
+  await audit.record(req, 'feature', req.params.id + ' ' + (req.body.enabled ? 'on' : 'off'));
+  res.json(list);
+});
 router.get('/admin/diagnostics', sup, async (req, res) => res.json(await accounts.diagnostics()));
 
 router.use((req, res) => res.status(404).json({ error: 'Not found.' }));

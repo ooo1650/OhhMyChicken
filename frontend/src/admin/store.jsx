@@ -107,6 +107,7 @@ export function AdminProvider({ boot, children }) {
     testEmail: () => api('POST', 'admin/test-email'),
     diagnostics: () => api('GET', 'admin/diagnostics'),
     features: () => api('GET', 'admin/features'),
+    audit: () => api('GET', 'admin/audit'),
     setFeature: (id, enabled) => api('PUT', 'admin/features/' + id, { enabled }),
 
     /* ---------- Orders ---------- */

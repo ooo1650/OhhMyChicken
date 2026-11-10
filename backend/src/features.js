@@ -38,7 +38,8 @@ async function describe() {
 }
 
 async function set(id, enabled, fail) {
-  if (!LIST[id]) fail('Unknown feature.');
+  if (!Object.hasOwn(LIST, id)) fail('Unknown feature.'); // not "constructor" and the like
+  if (typeof enabled !== 'boolean') fail('Say true or false.');
   await pool.query('INSERT INTO features (id, enabled) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET enabled = $2, updated_at = now()', [id, !!enabled]);
   return describe();
 }
