@@ -1,12 +1,16 @@
-/* Team — for the site administrator only: dashboard accounts (add, reset a
-   forgotten password, switch off, sign out), who sends the sign-in codes,
-   and checks for when something isn't working (email, database, backups).
+/* Team — for the site administrator only: dashboard accounts (add, choose
+   what each can use, reset a forgotten password, switch off, sign out),
+   features to switch on or off, who sends the sign-in codes, and checks for
+   when something isn't working (email, database, backups).
    The server enforces all of it. */
 import { useEffect, useState } from 'react';
 import { useAdmin } from './store.jsx';
 import { useConfirm } from './confirm.jsx';
 import { Icon } from '../shared/Icon.jsx';
 import { useToast } from '../shared/toast.jsx';
+
+// The parts of the dashboard a staff account can be given (the server has the same list).
+const PARTS = [['menu', 'Menu'], ['orders', 'Orders'], ['photos', 'Photos'], ['outlets', 'Outlets'], ['store', 'Store settings'], ['qr', 'QR codes'], ['insights', 'Insights']];
 
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { timeZone: 'Asia/Kathmandu', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never');
 
@@ -71,6 +75,20 @@ export function TeamPanel({ hidden, me }) {
                         {self && <em className="team-tag">You</em>}
                       </span>
                     </div>
+                    {u.role === 'staff' && (
+                      <details className="team-access">
+                        <summary>Can use: {u.permissions.length === PARTS.length ? 'everything' : u.permissions.length ? PARTS.filter(([id]) => u.permissions.includes(id)).map(([, l]) => l).join(', ') : 'only their own password'}</summary>
+                        <div className="team-access-list">
+                          {PARTS.map(([id, label]) => (
+                            <label key={id} className="check">
+                              <input type="checkbox" checked={u.permissions.includes(id)}
+                                onChange={(e) => act(() => admin.updateUser(u.id, { permissions: e.target.checked ? [...u.permissions, id] : u.permissions.filter((p) => p !== id) }))} />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                     {!self && (
                       <div className="team-actions">
                         <button type="button" className="btn btn-outline btn-sm" onClick={() => resetPassword(u)}>Reset password</button>
@@ -87,6 +105,7 @@ export function TeamPanel({ hidden, me }) {
           <AddAccount onAdded={(email, password) => { setTemp({ email, password }); load(); }} />
         </div>
         <div className="team-side">
+          <Features />
           <EmailSender />
           <Troubleshoot accounts={users} />
         </div>
@@ -113,13 +132,36 @@ function AddAccount({ onAdded }) {
       <div className="team-add-row">
         <label className="field"><span>Role</span>
           <select value={f.role} onChange={set('role')}>
-            <option value="staff">Staff: menu, orders, photos, outlets, store</option>
-            <option value="super">Administrator: also accounts, Insights and checks</option>
+            <option value="staff">Staff: the parts you tick (all, to start)</option>
+            <option value="super">Administrator: everything, plus this Team tab</option>
           </select>
         </label>
         <button type="submit" className="btn btn-red btn-sm"><Icon name="plus" /> Add</button>
       </div>
     </form>
+  );
+}
+
+// Switches for whole features. A new one appears here when it's added to backend/src/features.js.
+function Features() {
+  const admin = useAdmin(), toast = useToast();
+  const [list, setList] = useState(null);
+  useEffect(() => { admin.features().then(setList, (e) => toast(e.message, 'error')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const flip = (f) => admin.setFeature(f.id, !f.enabled).then((l) => { setList(l); toast(f.label + (f.enabled ? ' switched off' : ' switched on')); }, (e) => toast(e.message, 'error'));
+  return (
+    <div className="panel-card">
+      <h3>Features <small className="muted">changes apply at once</small></h3>
+      {!list ? <p className="muted">Loading…</p> : (
+        <ul className="feature-list">
+          {list.map((f) => (
+            <li key={f.id}>
+              <label className="switch switch-sm"><input type="checkbox" checked={f.enabled} onChange={() => flip(f)} aria-label={f.label} /><span /></label>
+              <div><b>{f.label}</b><span className="tiny muted">{f.help}{f.public && ' Visitors see the change on their next page load.'}</span></div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -203,7 +245,7 @@ function Troubleshoot({ accounts }) {
         {row('Signed in now', d.signedInNow + ' session' + (d.signedInNow === 1 ? '' : 's'))}
         {row('Wrong sign-in tries (24 h)', String(d.failedSignIns24h), d.failedSignIns24h >= 10)}
         {row('Accounts', d.accounts.active + ' active, ' + d.accounts.supers + ' administrator' + (d.accounts.supers === 1 ? '' : 's'))}
-        {row('Insights for staff', d.insightsForStaff ? 'on' : 'off (INSIGHTS_ENABLED)')}
+        {row('Features on', Object.keys(d.features).filter((id) => d.features[id]).join(', ') || 'none')}
         {row('Server', 'up ' + d.server.uptimeMin + ' min · ' + d.server.memoryMb + ' MB · Node ' + d.server.node)}
       </ul>
       <div className="checks-actions">

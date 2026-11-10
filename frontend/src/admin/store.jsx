@@ -106,6 +106,8 @@ export function AdminProvider({ boot, children }) {
     saveMail: (m) => api('PUT', 'admin/mail', m), // a blank password keeps the saved one
     testEmail: () => api('POST', 'admin/test-email'),
     diagnostics: () => api('GET', 'admin/diagnostics'),
+    features: () => api('GET', 'admin/features'),
+    setFeature: (id, enabled) => api('PUT', 'admin/features/' + id, { enabled }),
 
     /* ---------- Orders ---------- */
     loadOrders: () => api('GET', 'orders').then((list) => { setOrders(list); return list; }),

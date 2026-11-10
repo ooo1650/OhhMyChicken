@@ -43,7 +43,7 @@ export function Gallery() {
   // TODO(photos): the real kitchen photos go in Dashboard → Photos: upload them, describe
   // each one, and turn on "Gallery". 3–6 look right. One alone hides the section.
   const gallery = site.gallery.slice(0, 6);
-  if (gallery.length < 2) return null;
+  if (!site.features.gallery || gallery.length < 2) return null;
   return (
     <section className="section gallery" aria-labelledby="galleryTitle">
       <div className="wrap">

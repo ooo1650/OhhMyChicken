@@ -56,12 +56,14 @@ async function currentUser(req) {
   const token = myToken(req);
   if (!isToken(token)) return null;
   const { rows } = await pool.query(
-    `SELECT u.id, u.email, u.name, u.role, u.must_change, EXTRACT(EPOCH FROM s.expires_at - now()) * 1000 AS left_ms
+    `SELECT u.id, u.email, u.name, u.role, u.must_change, u.permissions, EXTRACT(EPOCH FROM s.expires_at - now()) * 1000 AS left_ms
      FROM admin_sessions s JOIN admin_users u ON u.id = s.user_id
      WHERE s.token_hash = $1 AND s.expires_at > now() AND u.active`, [sha(token)]);
   if (!rows.length) return null;
   const u = rows[0];
-  return { id: u.id, email: u.email, name: u.name, role: u.role, mustChange: u.must_change, leftMs: Math.ceil(Number(u.left_ms)) };
+  // The administrator can use every part of the dashboard, whatever is stored.
+  const permissions = u.role === 'super' ? PERMISSIONS.slice() : u.permissions.filter((p) => PERMISSIONS.includes(p));
+  return { id: u.id, email: u.email, name: u.name, role: u.role, mustChange: u.must_change, permissions, leftMs: Math.ceil(Number(u.left_ms)) };
 }
 
 // Any signed-in account: only for the session, sign-out and choosing a new password.
@@ -77,6 +79,13 @@ function requireAdmin(req, res, next) {
     next();
   });
 }
+// One part of the dashboard (or any of several), as allowed in Team → Accounts.
+const PERMISSIONS = ['menu', 'orders', 'photos', 'outlets', 'store', 'qr', 'insights'];
+const can = (...parts) => (req, res, next) => requireAdmin(req, res, () => {
+  if (parts.some((p) => req.user.permissions.includes(p))) return next();
+  res.status(403).json({ error: 'Your account can\'t use this part of the dashboard. Ask the site administrator.' });
+});
+
 // Account management and troubleshooting.
 function requireSuper(req, res, next) {
   requireAdmin(req, res, () => {
@@ -88,7 +97,7 @@ function requireSuper(req, res, next) {
 async function status(req) {
   const u = await currentUser(req);
   if (!u) return { authed: false };
-  return { authed: true, user: { email: u.email, name: u.name, role: u.role, mustChange: u.mustChange }, expiresInMs: u.leftMs };
+  return { authed: true, user: { email: u.email, name: u.name, role: u.role, mustChange: u.mustChange, permissions: u.permissions }, expiresInMs: u.leftMs };
 }
 
 // Sessions from before the one-hour limit (or a longer setting) don't get to outlive it.
@@ -301,6 +310,6 @@ async function security(req, res) {
 }
 
 module.exports = {
-  capSessions, signedIn, requireAdmin, requireSuper, status, login, verify, resend, logout,
+  PERMISSIONS, can, capSessions, signedIn, requireAdmin, requireSuper, status, login, verify, resend, logout,
   changePassword, signOutOthers, security, lastBackup, normEmail, sha, myToken
 };

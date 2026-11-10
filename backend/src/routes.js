@@ -10,6 +10,7 @@ const analytics = require('./analytics');
 const auth = require('./auth');
 const accounts = require('./accounts');
 const mail = require('./mail');
+const features = require('./features');
 const defaults = require('./defaults');
 const { totals } = require('./pricing');
 const validate = require('./validate');
@@ -18,6 +19,7 @@ const { limit } = require('./limit');
 
 const router = express.Router();
 const admin = auth.requireAdmin;
+const can = auth.can; // one part of the dashboard, as allowed per account (Team → Accounts)
 
 // Public reads (menu, settings, gallery) are the same for everyone: keep them
 // for 2 s so a flood of page loads can't turn into a flood of database queries.
@@ -34,7 +36,7 @@ function cached(key, load) {
 }
 router.use((req, res, next) => {
   // Only changes to what visitors see clear it (not orders or analytics beacons).
-  if (req.method !== 'GET' && req.method !== 'HEAD' && /^\/(menu|settings|media)\b/.test(req.path)) {
+  if (req.method !== 'GET' && req.method !== 'HEAD' && /^\/(menu|settings|media|admin\/features)\b/.test(req.path)) {
     res.on('finish', () => { if (res.statusCode < 400) cache.clear(); });
   }
   next();
@@ -42,19 +44,19 @@ router.use((req, res, next) => {
 
 // Everything a page needs for its first render, in one request.
 router.get('/bootstrap', async (req, res) => {
-  const [menu, settings, gallery, updatedAt] = await cached('bootstrap', () =>
-    Promise.all([models.listMenu(), models.getSettings(), media.listGallery(), models.contentUpdatedAt()]));
-  res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES, ORDER_DETAILS_DAYS: models.ORDER_DETAILS_DAYS }, menu, settings, gallery, updatedAt });
+  const [menu, settings, gallery, updatedAt, switches] = await cached('bootstrap', () =>
+    Promise.all([models.listMenu(), models.getSettings(), media.listGallery(), models.contentUpdatedAt(), features.publicOnes()]));
+  res.json({ defaults: { SIZES: defaults.SIZES, CATEGORIES: defaults.CATEGORIES, ORDER_DETAILS_DAYS: models.ORDER_DETAILS_DAYS }, menu, settings, gallery, updatedAt, features: switches });
 });
 
 /* ---------- Menu ---------- */
 router.get('/menu', async (req, res) => res.json(await cached('menu', () => models.listMenu())));
-router.put('/menu', admin, async (req, res) => res.json(await models.replaceMenu(req.body)));
-router.post('/menu/reset', admin, async (req, res) => res.json(await models.resetMenu()));
-router.put('/menu/:id', admin, async (req, res) => {
+router.put('/menu', can('menu'), async (req, res) => res.json(await models.replaceMenu(req.body)));
+router.post('/menu/reset', can('menu'), async (req, res) => res.json(await models.resetMenu()));
+router.put('/menu/:id', can('menu'), async (req, res) => {
   res.json(await models.upsertItem(Object.assign({}, req.body, { id: req.params.id })));
 });
-router.delete('/menu/:id', admin, async (req, res) => {
+router.delete('/menu/:id', can('menu'), async (req, res) => {
   if (!(await models.deleteItem(req.params.id))) return res.status(404).json({ error: 'Item not found.' });
   res.json({ ok: true });
 });
@@ -62,21 +64,22 @@ router.delete('/menu/:id', admin, async (req, res) => {
 /* ---------- Photos ---------- */
 // Upload: the raw image is the body (Content-Type image/*); the original
 // file name comes URL-encoded in X-File-Name.
-router.get('/media', admin, async (req, res) => res.json(await media.listAll()));
-router.post('/media', admin, limit(60, 10 * 60 * 1000, 'Too many uploads. Wait a few minutes.'),
+// The menu editor picks dishes' photos from the library (and can upload one), so Menu is enough for these two.
+router.get('/media', can('photos', 'menu'), async (req, res) => res.json(await media.listAll()));
+router.post('/media', can('photos', 'menu'), limit(60, 10 * 60 * 1000, 'Too many uploads. Wait a few minutes.'),
   express.raw({ type: 'image/*', limit: media.MAX_BYTES }),
   async (req, res) => {
     let name = '';
     try { name = decodeURIComponent(req.get('x-file-name') || ''); } catch (e) { /* keep empty */ }
     res.status(201).json(await media.create(req.body, name));
   });
-router.put('/media/order', admin, async (req, res) => res.json(await media.reorderGallery(req.body && req.body.ids)));
-router.patch('/media/:id', admin, async (req, res) => {
+router.put('/media/order', can('photos'), async (req, res) => res.json(await media.reorderGallery(req.body && req.body.ids)));
+router.patch('/media/:id', can('photos'), async (req, res) => {
   const m = await media.update(req.params.id, req.body);
   if (!m) return res.status(404).json({ error: 'Photo not found.' });
   res.json(m);
 });
-router.delete('/media/:id', admin, async (req, res) => {
+router.delete('/media/:id', can('photos'), async (req, res) => {
   if (!(await media.remove(req.params.id))) return res.status(404).json({ error: 'Photo not found.' });
   res.json({ ok: true });
 });
@@ -84,18 +87,22 @@ router.delete('/media/:id', admin, async (req, res) => {
 /* ---------- Analytics (anonymous; see analytics.js) ---------- */
 // Beacons from the site. 204 either way: a visitor's browser never needs to know.
 router.post('/t', limit(60, 60 * 1000), async (req, res) => { await analytics.collect(req); res.status(204).end(); });
-// Insights is a paid extra for the restaurant's staff: whoever runs the server switches it on
-// (INSIGHTS_ENABLED=true). The site administrator always sees it.
-const INSIGHTS_ENABLED = process.env.INSIGHTS_ENABLED === 'true';
-router.get('/insights', admin, async (req, res) => {
-  if (!INSIGHTS_ENABLED && req.user.role !== 'super') return res.status(402).json({ error: 'Insights is not included in this plan.' });
+// Insights is a paid extra for the restaurant's staff: the site administrator switches it on
+// in Team → Features (and per account). The administrator always sees it.
+router.get('/insights', can('insights'), async (req, res) => {
+  if (req.user.role !== 'super' && !(await features.on('insights'))) return res.status(402).json({ error: 'Insights is not included in this plan.' });
   res.json(await analytics.insights(req.query.days));
 });
 
 /* ---------- Settings ---------- */
 router.get('/settings', async (req, res) => res.json(await cached('settings', () => models.getSettings())));
-router.put('/settings', admin, async (req, res) => res.json(await models.saveSettings(req.body)));
-router.post('/settings/reset', admin, async (req, res) => res.json(await models.resetSettings()));
+// Outlets live in the settings too: an account with Outlets but not Store can change only those.
+router.put('/settings', can('store', 'outlets'), async (req, res) => {
+  const b = req.body || {};
+  const next = req.user.permissions.includes('store') ? b : { ...(await models.getSettings()), outlets: b.outlets };
+  res.json(await models.saveSettings(next));
+});
+router.post('/settings/reset', can('store'), async (req, res) => res.json(await models.resetSettings()));
 
 /* ---------- Orders ---------- */
 // Orders per IP per 10 minutes (ORDER_LIMIT; tests raise it).
@@ -161,8 +168,8 @@ router.post('/promo/check', limit(30, 10 * 60 * 1000), async (req, res) => {
   if (typeof b.code !== 'string' || typeof b.phone !== 'string' || b.code.length > 20 || b.phone.length > 30) fail('Invalid request.');
   res.json({ used: await models.promoUsedBy(b.phone, b.code) });
 });
-router.get('/orders', admin, async (req, res) => res.json(await models.listOrders(200)));
-router.patch('/orders/:id', admin, async (req, res) => {
+router.get('/orders', can('orders'), async (req, res) => res.json(await models.listOrders(200)));
+router.patch('/orders/:id', can('orders'), async (req, res) => {
   const order = await models.setOrderStatus(req.params.id, req.body && req.body.status);
   if (!order) return res.status(404).json({ error: 'Order not found.' });
   res.json(order);
@@ -170,7 +177,7 @@ router.patch('/orders/:id', admin, async (req, res) => {
 
 // Spreadsheet export. Cells that start with = + - @ are prefixed with ' so
 // a customer can't smuggle a formula into Excel through their name or address.
-router.get('/orders.csv', admin, async (req, res) => {
+router.get('/orders.csv', can('orders'), async (req, res) => {
   const cell = (v) => {
     let s = v == null ? '' : String(v);
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
@@ -185,7 +192,7 @@ router.get('/orders.csv', admin, async (req, res) => {
   res.type('text/csv').attachment('ohh-my-chicken-orders-' + new Date().toISOString().slice(0, 10) + '.csv')
     .send('\ufeff' + [head].concat(rows).map((r) => r.map(cell).join(',')).join('\r\n'));
 });
-router.delete('/orders', admin, async (req, res) => { await models.clearOrders(); res.json({ ok: true }); });
+router.delete('/orders', can('orders'), async (req, res) => { await models.clearOrders(); res.json({ ok: true }); });
 
 /* ---------- Signing in (see auth.js) ---------- */
 // Requests per IP per 15 minutes to the sign-in steps (SIGNIN_LIMIT; tests raise it).
@@ -210,6 +217,8 @@ router.post('/admin/sign-out-everyone', sup, async (req, res) => res.json(await 
 router.get('/admin/mail', sup, async (req, res) => res.json(await mail.status()));   // who sends sign-in codes
 router.put('/admin/mail', sup, async (req, res) => res.json(await mail.save(req.body || {}, fail)));
 router.post('/admin/test-email', sup, async (req, res) => res.json(await accounts.testEmail(req.user)));
+router.get('/admin/features', sup, async (req, res) => res.json(await features.describe()));
+router.put('/admin/features/:id', sup, async (req, res) => res.json(await features.set(req.params.id, (req.body || {}).enabled, fail)));
 router.get('/admin/diagnostics', sup, async (req, res) => res.json(await accounts.diagnostics()));
 
 router.use((req, res) => res.status(404).json({ error: 'Not found.' }));

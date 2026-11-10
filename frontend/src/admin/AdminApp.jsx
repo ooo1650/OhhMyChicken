@@ -19,16 +19,20 @@ import { useToast } from '../shared/toast.jsx';
 import { setUnauthorizedHandler } from '../shared/api.js';
 
 const POLL_MS = 20000;
+// `need`: the permission an account must have for the tab (Team → Accounts). The Store tab
+// is always there, as it holds your own password; without Store it shows only that.
 const TABS = [
-  { id: 'menu', icon: 'utensils', label: 'Menu' },
-  { id: 'orders', icon: 'chart', label: 'Orders' },
-  { id: 'insights', icon: 'sparkles', label: 'Insights' },
-  { id: 'photos', icon: 'image', label: 'Photos' },
-  { id: 'outlets', icon: 'store', label: 'Outlets' },
+  { id: 'menu', icon: 'utensils', label: 'Menu', need: 'menu' },
+  { id: 'orders', icon: 'chart', label: 'Orders', need: 'orders' },
+  { id: 'insights', icon: 'sparkles', label: 'Insights', need: 'insights' },
+  { id: 'photos', icon: 'image', label: 'Photos', need: 'photos' },
+  { id: 'outlets', icon: 'store', label: 'Outlets', need: 'outlets' },
   { id: 'settings', icon: 'sliders', label: 'Store' },
-  { id: 'qr', icon: 'qr', label: 'QR', more: ' codes' },
+  { id: 'qr', icon: 'qr', label: 'QR', more: ' codes', need: 'qr' },
   { id: 'team', icon: 'users', label: 'Team', superOnly: true }
 ];
+const tabsFor = (user) => TABS.filter((t) => (t.superOnly ? user.role === 'super' : !t.need || user.permissions.includes(t.need)))
+  .map((t) => (t.id === 'settings' && !user.permissions.includes('store') ? { ...t, label: 'Account' } : t));
 
 // Step 1: email and password. Step 2: the 6-digit code emailed to that address.
 function Login({ error: initialError, onUnlocked }) {
@@ -137,17 +141,20 @@ function ChoosePassword({ user, onDone, onLock }) {
 
 function Dashboard({ endsAt: sessionEnd, user, onLock }) {
   const admin = useAdmin(), toast = useToast();
-  const [tab, setTab] = useState('menu');
+  const tabs = tabsFor(user), may = (part) => user.permissions.includes(part);
+  const [tab, setTab] = useState(tabs[0].id);
   const [live, setLive] = useState(true);
   const [flash, setFlash] = useState(new Set());
   const searchRef = useRef(null);
   const loadRef = useRef(admin.loadOrders);
   loadRef.current = admin.loadOrders;
 
-  useEffect(() => { window.scrollTo(0, 0); searchRef.current.focus({ preventScroll: true }); }, []);
+  useEffect(() => { window.scrollTo(0, 0); if (searchRef.current) searchRef.current.focus({ preventScroll: true }); }, []);
 
   // Live orders: poll while the dashboard is open; skip rounds while the tab is hidden.
+  const watchOrders = may('orders');
   useEffect(() => {
+    if (!watchOrders) return undefined;
     let timer, known = null, stopped = false;
     const poll = () => {
       clearTimeout(timer);
@@ -168,7 +175,7 @@ function Dashboard({ endsAt: sessionEnd, user, onLock }) {
     poll();
     document.addEventListener('visibilitychange', onVisible);
     return () => { stopped = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
-  }, [toast]);
+  }, [toast, watchOrders]);
 
   const fresh = admin.orders.filter((o) => o.status === 'new').length;
 
@@ -185,7 +192,7 @@ function Dashboard({ endsAt: sessionEnd, user, onLock }) {
           </div>
         </div>
         <nav className="wrap admin-tabs" role="tablist" aria-label="Admin sections">
-          {TABS.filter((t) => !t.superOnly || user.role === 'super').map((t) => (
+          {tabs.map((t) => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
               <Icon name={t.icon} /><span>{t.label}{t.more && <span className="hide-xs">{t.more}</span>}</span>
               {t.id === 'orders' && <span className="tab-badge" hidden={!fresh}>{fresh}</span>}
@@ -195,13 +202,13 @@ function Dashboard({ endsAt: sessionEnd, user, onLock }) {
       </header>
 
       <div className="wrap admin-body">
-        <MenuPanel hidden={tab !== 'menu'} searchRef={searchRef} />
-        <OrdersPanel hidden={tab !== 'orders'} live={live} flash={flash} />
-        <InsightsPanel hidden={tab !== 'insights'} />
-        <PhotosPanel hidden={tab !== 'photos'} />
-        <OutletsPanel hidden={tab !== 'outlets'} />
-        <SettingsPanel hidden={tab !== 'settings'} />
-        <QrPanel hidden={tab !== 'qr'} />
+        {may('menu') && <MenuPanel hidden={tab !== 'menu'} searchRef={searchRef} />}
+        {may('orders') && <OrdersPanel hidden={tab !== 'orders'} live={live} flash={flash} />}
+        {may('insights') && <InsightsPanel hidden={tab !== 'insights'} />}
+        {may('photos') && <PhotosPanel hidden={tab !== 'photos'} />}
+        {may('outlets') && <OutletsPanel hidden={tab !== 'outlets'} />}
+        <SettingsPanel hidden={tab !== 'settings'} canStore={may('store')} />
+        {may('qr') && <QrPanel hidden={tab !== 'qr'} />}
         {user.role === 'super' && <TeamPanel hidden={tab !== 'team'} me={user} />}
       </div>
     </section>

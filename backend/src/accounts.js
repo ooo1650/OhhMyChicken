@@ -9,7 +9,8 @@
 const crypto = require('crypto');
 const { pool } = require('./db');
 const { hashPassword } = require('./password');
-const { lastBackup, normEmail, sha, myToken } = require('./auth');
+const { lastBackup, normEmail, sha, myToken, PERMISSIONS } = require('./auth');
+const features = require('./features');
 const mail = require('./mail');
 const { fail: refuse } = require('./validate'); // a 400 with this message
 
@@ -23,7 +24,7 @@ function tempPassword() {
   return [0, 1, 2].map(() => pick() + pick() + pick() + pick()).join('-');
 }
 
-const PUBLIC = 'id, email, name, role, active, must_change AS "mustChange", last_login AS "lastLogin", created_at AS "createdAt"';
+const PUBLIC = 'id, email, name, role, active, permissions, must_change AS "mustChange", last_login AS "lastLogin", created_at AS "createdAt"';
 
 async function list() {
   const { rows } = await pool.query(`SELECT ${PUBLIC},
@@ -83,6 +84,10 @@ async function update(id, b, me) {
     vals.push(!!b.active); sets.push('active = $' + vals.length);
     if (!b.active) await pool.query('DELETE FROM admin_sessions WHERE user_id = $1', [user.id]);
   }
+  if (b.permissions !== undefined) {
+    if (!Array.isArray(b.permissions) || b.permissions.some((p) => !PERMISSIONS.includes(p))) refuse('Unknown part of the dashboard.');
+    vals.push([...new Set(b.permissions)]); sets.push('permissions = $' + vals.length);
+  }
   if (sets.length) { vals.push(user.id); await pool.query('UPDATE admin_users SET ' + sets.join(', ') + ' WHERE id = $' + vals.length, vals); }
   return (await pool.query(`SELECT ${PUBLIC} FROM admin_users WHERE id = $1`, [user.id])).rows[0];
 }
@@ -128,7 +133,7 @@ async function diagnostics() {
     failedSignIns24h: failed.rows[0].n,
     lastOrder: orders.rows[0].last,
     lastBackup: lastBackup() === undefined ? 'not set up' : lastBackup(),
-    insightsForStaff: process.env.INSIGHTS_ENABLED === 'true',
+    features: await features.all(),
     server: { node: process.version, uptimeMin: Math.round(process.uptime() / 60), memoryMb: Math.round(process.memoryUsage().rss / 1048576) }
   };
 }

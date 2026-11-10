@@ -141,7 +141,7 @@ it('sign-in: password, then the emailed code; wrong ones fail; the cookie is htt
   assert.equal((await req('POST', '/api/admin/verify', { body: { challenge: step1.json.challenge, code } })).status, 400, 'a code works once');
   const s = await req('GET', '/api/admin/session');
   assert.equal(s.json.authed, true);
-  assert.deepEqual(s.json.user, { email: OWNER, name: 'Site administrator', role: 'super', mustChange: false });
+  assert.deepEqual(s.json.user, { email: OWNER, name: 'Site administrator', role: 'super', mustChange: false, permissions: ['menu', 'orders', 'photos', 'outlets', 'store', 'qr', 'insights'] });
   assert.ok(s.json.expiresInMs > 3590000 && s.json.expiresInMs <= 3600000, 'one hour: ' + s.json.expiresInMs);
 });
 
@@ -714,6 +714,62 @@ it('email: only dashboard accounts that are switched on can be sent anything', a
   await db2.connect();
   await db2.query('DELETE FROM mail_settings');
   await db2.end();
+});
+
+it('access: each staff account uses only the parts of the dashboard it was given', async () => {
+  const temp = (await req('POST', '/api/admin/users', { body: { email: 'cashier@example.com' } })).json.tempPassword;
+  const cashier = (await req('GET', '/api/admin/users')).json.find((u) => u.email === 'cashier@example.com');
+  assert.deepEqual(cashier.permissions, ['menu', 'orders', 'photos', 'outlets', 'store', 'qr', 'insights'], 'new staff start with everything');
+  assert.equal((await req('PATCH', '/api/admin/users/' + cashier.id, { body: { permissions: ['orders', 'nuclear'] } })).status, 400);
+  assert.deepEqual((await req('PATCH', '/api/admin/users/' + cashier.id, { body: { permissions: ['orders', 'outlets'] } })).json.permissions, ['orders', 'outlets']);
+
+  let c = await signIn('cashier@example.com', temp);
+  await fetch(B + '/api/admin/password', { method: 'PUT', headers: { 'Content-Type': 'application/json', Cookie: c }, body: JSON.stringify({ current: temp, password: 'cash-drawer-lime-31' }) });
+  const as = (method, url, body) => fetch(B + url, { method, headers: { 'Content-Type': 'application/json', Cookie: c }, body: body && JSON.stringify(body) });
+  assert.deepEqual((await (await as('GET', '/api/admin/session')).json()).user.permissions, ['orders', 'outlets']);
+  assert.equal((await as('GET', '/api/orders')).status, 200);
+  const menu = (await req('GET', '/api/menu')).json;
+  assert.equal((await as('PUT', '/api/menu/' + menu[0].id, menu[0])).status, 403);
+  assert.equal((await as('GET', '/api/media')).status, 403);
+  assert.equal((await as('GET', '/api/insights')).status, 403);
+  assert.equal((await as('POST', '/api/settings/reset', {})).status, 403);
+  // Outlets without Store: only the outlets change, even if more is sent.
+  const s = (await req('GET', '/api/settings')).json;
+  const sent = { ...s, name: 'Hacked name', outlets: s.outlets.map((o, i) => (i === 0 ? { ...o, landmark: 'Next to the big tree' } : o)) };
+  const saved = await (await as('PUT', '/api/settings', sent)).json();
+  assert.equal(saved.name, s.name);
+  assert.equal(saved.outlets[0].landmark, 'Next to the big tree');
+  await req('PUT', '/api/settings', { body: s });
+  // Taking a part away works straight away.
+  await req('PATCH', '/api/admin/users/' + cashier.id, { body: { permissions: [] } });
+  assert.equal((await as('GET', '/api/orders')).status, 403);
+  assert.equal((await as('GET', '/api/admin/security')).status, 200, 'their own account page always works');
+  c = '';
+});
+
+it('features: the administrator switches them without a restart; the website sees the public ones', async () => {
+  const list = (await req('GET', '/api/admin/features')).json;
+  assert.deepEqual(list.map((f) => f.id), ['insights', 'chat', 'gallery']);
+  assert.equal(list.find((f) => f.id === 'insights').enabled, true, 'starts from INSIGHTS_ENABLED (true here)');
+  assert.deepEqual((await req('GET', '/api/bootstrap')).json.features, { chat: true, gallery: true }, 'only public switches, never insights');
+  assert.equal((await req('PUT', '/api/admin/features/chat', { body: { enabled: false } })).status, 200);
+  assert.equal((await req('GET', '/api/bootstrap')).json.features.chat, false);
+  assert.equal((await req('PUT', '/api/admin/features/nope', { body: { enabled: true } })).status, 400);
+
+  const temp = (await req('POST', '/api/admin/users', { body: { email: 'analyst@example.com' } })).json.tempPassword;
+  const a = await signIn('analyst@example.com', temp);
+  await fetch(B + '/api/admin/password', { method: 'PUT', headers: { 'Content-Type': 'application/json', Cookie: a }, body: JSON.stringify({ current: temp, password: 'momo-steam-cloud-77' }) });
+  const insights = () => fetch(B + '/api/insights', { headers: { Cookie: a } }).then((r) => r.status);
+  assert.equal(await insights(), 200);
+  await req('PUT', '/api/admin/features/insights', { body: { enabled: false } });
+  assert.equal(await insights(), 402, 'switched off for staff at once');
+  assert.equal((await req('GET', '/api/insights')).status, 200, 'the administrator still sees it');
+  assert.equal((await fetch(B + '/api/admin/features', { headers: { Cookie: a } })).status, 403);
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  await db.query('DELETE FROM features');
+  await db.end();
 });
 
 it('logout ends the session', async () => {

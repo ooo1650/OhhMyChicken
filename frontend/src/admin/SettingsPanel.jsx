@@ -10,7 +10,8 @@ const toForm = (s) => ({
   lat: s.lat == null ? '' : s.lat, lng: s.lng == null ? '' : s.lng, socialLinks: (s.socialLinks || []).join('\n')
 });
 
-export function SettingsPanel({ hidden }) {
+// Without the Store permission (canStore), only the Security part shows: your own password.
+export function SettingsPanel({ hidden, canStore }) {
   const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
   const [f, setF] = useState(() => toForm(admin.settings));
   const formRef = useRef(null);
@@ -48,6 +49,7 @@ export function SettingsPanel({ hidden }) {
         await admin.setPassword(current, pass);
         setF((x) => ({ ...x, newPass: '', currentPass: '' }));
       }
+      if (!canStore) { if (pass) toast('Password changed'); return; }
       if (await admin.saveSettings(s)) toast(pass ? 'Settings and password saved' : 'Settings saved');
     } catch (err) { toast(err.message, 'error'); }
   }
@@ -61,6 +63,7 @@ export function SettingsPanel({ hidden }) {
   return (
     <div className="admin-panel" hidden={hidden}>
       <form ref={formRef} className="settings-grid" onSubmit={submit}>
+        {canStore && <>
         <fieldset>
           <legend>Store info</legend>
           {(admin.settings.outlets || []).some((o) => o.active) && <p className="tiny muted">Main contact, used by Google and as a fallback. Each branch's own phone and WhatsApp are set in <b>Outlets</b>.</p>}
@@ -123,6 +126,7 @@ export function SettingsPanel({ hidden }) {
           <label className="field"><span>Delay before showing (seconds)</span><input type="number" min="0" max="60" {...promo('delaySec')} /></label>
           <a href="/?offer=1" target="_blank" rel="noopener" className="btn btn-outline btn-sm"><Icon name="external" /> Preview pop-up</a>
         </fieldset>
+        </>}
         <fieldset>
           <legend>Security</legend>
           <label className="field"><span>Current password</span><input type="password" autoComplete="current-password" {...field('currentPass')} /></label>
@@ -131,8 +135,8 @@ export function SettingsPanel({ hidden }) {
           <SignIns visible={!hidden} />
         </fieldset>
         <div className="settings-actions">
-          <button type="submit" className="btn btn-red">Save settings</button>
-          <button type="button" className="btn btn-link danger" onClick={reset}>Reset to defaults</button>
+          <button type="submit" className="btn btn-red">{canStore ? 'Save settings' : 'Change password'}</button>
+          {canStore && <button type="button" className="btn btn-link danger" onClick={reset}>Reset to defaults</button>}
         </div>
       </form>
     </div>

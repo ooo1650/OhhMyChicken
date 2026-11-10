@@ -149,7 +149,7 @@ function Footer() {
           <Link to="/sizes">Pizza sizes</Link>
           <Link to="/find">Find us</Link>
           {s.mapsUrl && <a href={s.mapsUrl} target="_blank" rel="noopener">Directions</a>}
-          <button type="button" onClick={() => site.setChatOpen(true)}>Chat</button>
+          {site.features.chat && <button type="button" onClick={() => site.setChatOpen(true)}>Chat</button>}
         </nav>
       </div>
       <p className="wrap copyright">© {new Date().getFullYear()} {s.name.replace(/[.!]+$/, '')}. All rights reserved.
@@ -257,7 +257,7 @@ export function App() {
       <Footer />
       <CartDrawer />
       <PromoModal />
-      <Chat />
+      {site.features.chat && <Chat />}
     </>
   );
 }

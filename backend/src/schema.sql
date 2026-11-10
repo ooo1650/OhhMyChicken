@@ -202,3 +202,12 @@ CREATE TABLE IF NOT EXISTS mail_settings (
   password   TEXT        NOT NULL DEFAULT '', -- e.g. a Gmail app password
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- v1.11: what each staff account may use (the administrator can use everything), and
+-- features the administrator switches on or off (see features.js; a missing row = its default).
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS permissions TEXT[] NOT NULL DEFAULT '{menu,orders,photos,outlets,store,qr,insights}';
+CREATE TABLE IF NOT EXISTS features (
+  id         TEXT PRIMARY KEY,
+  enabled    BOOLEAN     NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
