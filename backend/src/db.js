@@ -3,14 +3,14 @@
    CLI:  node src/db.js init        → create tables + seed defaults if empty
          node src/db.js reset-menu  → replace only the menu with defaults.js (keeps orders, settings, photos)
          node src/db.js reset       → wipe everything and re-seed defaults
+         node src/db.js set-password <email>, add-admin <email> [--super], customers, forget-customer <phone>
    ========================================================================== */
 'use strict';
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const defaults = require('./defaults');
-const { hashPasscode, weakness } = require('./passcode');
+const { hashPassword, weakness } = require('./password');
 
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is not set. Copy .env.example to .env and fill it in.');
@@ -153,11 +153,35 @@ async function once(c, id, change) {
   if (rowCount) await change(c);
 }
 
-async function seed() {
+// The first dashboard account: the site administrator, from SUPER_ADMIN_EMAIL. Its password is
+// the shared passcode the dashboard used before accounts existed (so nobody is locked out by an
+// upgrade), or else ADMIN_PASSCODE. Once an administrator exists, neither setting is used again.
+async function firstAdministrator(c) {
+  const { rows } = await c.query("SELECT count(*)::int AS n FROM admin_users WHERE role = 'super' AND active");
+  if (rows[0].n) return;
+  const email = String(process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!email) {
+    console.warn('No dashboard account yet. Set SUPER_ADMIN_EMAIL and ADMIN_PASSCODE, or run: node src/db.js add-admin you@example.com --super');
+    return;
+  }
+  const old = await c.query('SELECT pass_hash FROM admin_auth WHERE id = 1');
+  let hash = old.rows.length ? old.rows[0].pass_hash : '';
   const envPass = process.env.ADMIN_PASSCODE || '';
-  // Strength is checked only when ADMIN_PASSCODE is about to be used (new database, or
-  // still on a start-up passcode); once staff set their own, it is ignored, so old values don't block start-up.
-  const envWeak = envPass ? weakness(envPass) : '';
+  if (!hash && envPass) {
+    const weak = weakness(envPass);
+    if (weak) throw new Error('ADMIN_PASSCODE is too weak: ' + weak);
+    hash = await hashPassword(envPass);
+  }
+  if (!hash) {
+    console.warn('SUPER_ADMIN_EMAIL is set but there is no password for it: set ADMIN_PASSCODE too.');
+    return;
+  }
+  await c.query(`INSERT INTO admin_users (email, name, role, pass_hash) VALUES ($1, 'Site administrator', 'super', $2)
+    ON CONFLICT (email) DO UPDATE SET role = 'super', active = true`, [email, hash]);
+  console.log('Dashboard administrator account created for ' + email + '.');
+}
+
+async function seed() {
   await tx(async (c) => {
     const { rows } = await c.query('SELECT count(*)::int AS n FROM menu_items');
     if (!rows[0].n) await insertMenu(c, defaults.MENU);
@@ -174,56 +198,48 @@ async function seed() {
     await once(c, 'fish-category-delivery-note', moveTunaAddNote);
     // The restaurant's full name replaces the old default (a name chosen in the dashboard stays).
     await c.query("UPDATE settings SET data = jsonb_set(data, '{name}', to_jsonb($1::text)) WHERE data->>'name' = 'Ohh My Chicken!'", [defaults.SETTINGS.name]);
-    const existing = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');
-    if (envWeak && (!existing.rows.length || existing.rows[0].is_default)) throw new Error('ADMIN_PASSCODE is too weak: ' + envWeak);
-    // No built-in passcode: a new database without ADMIN_PASSCODE gets a random one,
-    // shown once in the log (development only) until staff choose their own.
-    const generated = !envPass && !existing.rows.length ? crypto.randomBytes(9).toString('base64url') : '';
-    if (envPass || generated) {
-      await c.query('INSERT INTO admin_auth (id, pass_hash, is_default) VALUES (1, $1, $2) ON CONFLICT (id) DO NOTHING',
-        [await hashPasscode(envPass || generated), !envPass]);
-    }
-    if (generated && process.env.NODE_ENV !== 'production') {
-      console.log('No ADMIN_PASSCODE set: the dashboard passcode is ' + generated + ' (shown once; change it in Store → Security).');
-    }
-
-    // A start-up passcode (generated, or from an older version) must never guard a live site.
-    const auth = await c.query('SELECT is_default FROM admin_auth WHERE id = 1');
-    if (!auth.rows.length) throw new Error('No admin passcode has been chosen yet. Set ADMIN_PASSCODE (10+ characters, not easy to guess) and start again.');
-    if (auth.rows[0].is_default) {
-      if (envPass) {
-        // ADMIN_PASSCODE replaces a start-up passcode; it never overwrites one changed in the dashboard.
-        await c.query('UPDATE admin_auth SET pass_hash = $1, is_default = false, updated_at = now() WHERE id = 1', [await hashPasscode(envPass)]);
-        await c.query('DELETE FROM admin_sessions');
-      } else if (process.env.NODE_ENV === 'production') {
-        throw new Error('No admin passcode has been chosen yet. Set ADMIN_PASSCODE (10+ characters, not easy to guess) and start again.');
-      }
-    }
+    await firstAdministrator(c);
   });
 }
 
 async function reset() {
-  await pool.query('TRUNCATE menu_items, settings, admin_auth, admin_sessions, admin_logins, orders, customers, events, analytics_salt RESTART IDENTITY');
+  await pool.query('TRUNCATE menu_items, settings, admin_auth, admin_users, admin_challenges, admin_sessions, admin_logins, orders, customers, events, analytics_salt RESTART IDENTITY');
   await seed();
 }
 
 module.exports = { pool, tx, migrate, seed, insertMenu };
 
-// Forgotten passcode: whoever can run commands on the server sets a new one.
-// Nothing else changes; every device is signed out.
-//   docker compose exec backend node src/db.js set-passcode
-// It asks for the passcode (typing stays hidden). Without a terminal, set NEW_PASSCODE.
-async function setPasscode() {
-  const pass = process.env.NEW_PASSCODE || await askHidden();
+// For whoever runs the server, when the dashboard can't be used to fix it:
+//   docker compose exec backend node src/db.js set-password owner@example.com
+//     a new password for an account (also switches it back on and signs it out everywhere);
+//   docker compose exec backend node src/db.js add-admin owner@example.com [--super]
+//     a new account (--super: the site administrator, who manages the others).
+// Both ask for the password (typing stays hidden). Without a terminal, set NEW_PASSWORD.
+async function askPassword() {
+  const pass = process.env.NEW_PASSWORD || await askHidden();
   const weak = weakness(pass);
-  if (weak) throw new Error('Passcode not changed. ' + weak);
-  const hash = await hashPasscode(pass);
-  await tx(async (c) => {
-    await c.query(`INSERT INTO admin_auth (id, pass_hash, is_default) VALUES (1, $1, false)
-      ON CONFLICT (id) DO UPDATE SET pass_hash = EXCLUDED.pass_hash, is_default = false, updated_at = now()`, [hash]);
-    await c.query('DELETE FROM admin_sessions');
-  });
-  console.log('Passcode changed. Every device has been signed out; sign in with the new passcode.');
+  if (weak) throw new Error('Nothing changed. ' + weak);
+  return hashPassword(pass);
+}
+const emailArg = () => {
+  const email = String(process.argv[3] || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Give the email address, e.g. node src/db.js ' + process.argv[2] + ' owner@example.com');
+  return email;
+};
+
+async function setPassword() {
+  const email = emailArg(), hash = await askPassword();
+  const { rows } = await pool.query('UPDATE admin_users SET pass_hash = $1, must_change = false, active = true WHERE email = $2 RETURNING id', [hash, email]);
+  if (!rows.length) throw new Error('No account for ' + email + '. Create it with: node src/db.js add-admin ' + email);
+  await pool.query('DELETE FROM admin_sessions WHERE user_id = $1', [rows[0].id]);
+  console.log('Password changed for ' + email + '. It is signed out everywhere; sign in with the new password.');
+}
+
+async function addAdmin() {
+  const email = emailArg(), role = process.argv.includes('--super') ? 'super' : 'staff', hash = await askPassword();
+  const { rowCount } = await pool.query('INSERT INTO admin_users (email, role, pass_hash) VALUES ($1, $2, $3) ON CONFLICT (email) DO NOTHING', [email, role, hash]);
+  if (!rowCount) throw new Error('There is already an account for ' + email + '. To change its password: node src/db.js set-password ' + email);
+  console.log((role === 'super' ? 'Administrator' : 'Staff') + ' account created for ' + email + '.');
 }
 
 // Opt-in customer list, for the site operator only (never in the dashboard):
@@ -245,15 +261,15 @@ async function forgetCustomerCli(phone) {
 }
 
 function askHidden() {
-  if (!process.stdin.isTTY) return Promise.reject(new Error('No terminal: run with -it, or pass the passcode as NEW_PASSCODE.'));
+  if (!process.stdin.isTTY) return Promise.reject(new Error('No terminal: run with -it, or pass the password as NEW_PASSWORD.'));
   const readline = require('readline');
   const ask = (q) => new Promise((resolve) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
     rl._writeToOutput = (s) => { if (s.startsWith(q)) rl.output.write(q); }; // echo the question, not the typing
     rl.question(q, (a) => { rl.close(); process.stdout.write('\n'); resolve(a); });
   });
-  return ask('New passcode (10+ characters): ').then((a) => ask('Type it again: ').then((b) => {
-    if (a !== b) throw new Error('The two passcodes did not match. Nothing changed.');
+  return ask('New password (10+ characters): ').then((a) => ask('Type it again: ').then((b) => {
+    if (a !== b) throw new Error('The two passwords did not match. Nothing changed.');
     return a;
   }));
 }
@@ -268,7 +284,8 @@ if (require.main === module) {
       await tx(async (c) => { await c.query('DELETE FROM menu_items'); await insertMenu(c, defaults.MENU); });
       console.log('Menu replaced: ' + defaults.MENU.length + ' items from defaults.js.');
     }
-    else if (cmd === 'set-passcode') await setPasscode();
+    else if (cmd === 'set-password') await setPassword();
+    else if (cmd === 'add-admin') await addAdmin();
     else if (cmd === 'customers') await exportCustomers();
     else if (cmd === 'forget-customer') await forgetCustomerCli(process.argv[3]);
     else { await seed(); console.log('Database ready.'); }

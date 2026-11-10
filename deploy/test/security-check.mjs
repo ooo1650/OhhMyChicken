@@ -5,19 +5,21 @@
      node deploy/test/security-check.mjs http://SERVER-IP
 
    Optional (env):
-     ADMIN_PASSCODE=…   also test photo uploads and admin input validation
+     ADMIN_EMAIL=… ADMIN_PASSCODE=…   also test photo uploads and admin input
+                        validation (asks for the sign-in code emailed to you)
      ADMIN_PATH=admin   dashboard path, if you changed it
      ORDERS=1           also flood the order form (creates ~25 test orders;
                         clear them in Dashboard → Orders afterwards)
-     BRUTE=1            also guess passcodes. This LOCKS YOUR IP out of the
+     BRUTE=1            also guess passwords. This LOCKS YOUR IP out of the
                         dashboard for 15 minutes, so run it last.
    Exit code 1 if anything failed.
    ========================================================================== */
 import zlib from 'node:zlib';
+import readline from 'node:readline/promises';
 
 const BASE = (process.argv[2] || process.env.TARGET || '').replace(/\/$/, '');
 if (!/^https?:\/\//.test(BASE)) { console.error('Usage: node deploy/test/security-check.mjs http://VM-IP'); process.exit(2); }
-const PASS = process.env.ADMIN_PASSCODE || '';
+const PASS = process.env.ADMIN_PASSCODE || '', EMAIL = process.env.ADMIN_EMAIL || '';
 const ADMIN = '/' + (process.env.ADMIN_PATH || 'admin').replace(/^\/+|\/+$/g, '') + '/';
 const HTTPS = BASE.startsWith('https://');
 const ORIGIN = new URL(BASE).origin;
@@ -104,25 +106,33 @@ check('Settings never expose internal fields', !/pass_hash|passcode|token/i.test
 
 section('Access control');
 for (const [m, p] of [['GET', '/api/orders'], ['GET', '/api/orders.csv'], ['GET', '/api/media'], ['PUT', '/api/settings'], ['DELETE', '/api/orders'], ['PUT', '/api/menu/m1'],
-  ['GET', '/api/admin/security'], ['POST', '/api/admin/sign-out-others'], ['PUT', '/api/admin/passcode'], ['GET', '/api/insights']]) {
+  ['GET', '/api/admin/security'], ['POST', '/api/admin/sign-out-others'], ['PUT', '/api/admin/password'], ['GET', '/api/insights'],
+  ['GET', '/api/admin/users'], ['POST', '/api/admin/users'], ['GET', '/api/admin/diagnostics']]) {
   const r = await req(m, p, m === 'GET' ? {} : { json: {} });
   check('Anonymous ' + m + ' ' + p + ' refused', r.status === 401 || r.status === 429, 'status ' + r.status);
 }
 const sess = await req('GET', '/api/admin/session');
-check('Login status doesn\'t reveal if the default passcode is in use', !/defaultPass/.test(sess.text), sess.text.slice(0, 60));
-const cross = await req('POST', '/api/admin/login', { json: { passcode: 'x' }, headers: { Origin: 'https://evil.example' } });
+check('Login status says nothing when signed out', sess.text.trim() === '{"authed":false}', sess.text.slice(0, 60));
+const unknown = await req('POST', '/api/admin/login', { json: { email: 'nobody@example.com', password: 'wrong-guess-123' } });
+check('Unknown email gets the same answer as a wrong password', unknown.status === 429 || /Wrong email or password/.test(unknown.text), unknown.text.slice(0, 60));
+const cross = await req('POST', '/api/admin/login', { json: { email: 'x' }, headers: { Origin: 'https://evil.example' } });
 check('Cross-site request (CSRF) blocked', cross.status === 403, 'status ' + cross.status);
-const form = await req('POST', '/api/admin/login', { body: 'passcode=x', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+const form = await req('POST', '/api/admin/login', { body: 'email=x', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 check('Form-encoded write refused (JSON only)', form.status === 415 || form.status === 429, 'status ' + form.status);
 
-section('Photo uploads (needs ADMIN_PASSCODE)');
-if (!PASS) {
-  skipped('Photo upload checks', 'set ADMIN_PASSCODE to run');
+section('Photo uploads (needs ADMIN_EMAIL and ADMIN_PASSCODE)');
+if (!PASS || !EMAIL) {
+  skipped('Photo upload checks', 'set ADMIN_EMAIL and ADMIN_PASSCODE to run');
 } else {
-  const login = await req('POST', '/api/admin/login', { json: { passcode: PASS } });
+  const step1 = await req('POST', '/api/admin/login', { json: { email: EMAIL, password: PASS } });
+  check('Password step works and sets no cookie yet', step1.status === 200 && !step1.headers.get('set-cookie'), 'status ' + step1.status);
+  const ask = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const code = step1.status === 200 ? (await ask.question('Sign-in code emailed to ' + EMAIL + ': ')).trim() : '';
+  ask.close();
+  const login = await req('POST', '/api/admin/verify', { json: { challenge: step1.status === 200 ? JSON.parse(step1.text).challenge : '', code } });
   cookie = (login.headers.get('set-cookie') || '').split(';')[0];
   const sc = login.headers.get('set-cookie') || '';
-  check('Admin login works', login.status === 200 && !!cookie, 'status ' + login.status);
+  check('Admin sign-in with the code works', login.status === 200 && !!cookie, 'status ' + login.status);
   check('Session cookie is HttpOnly + SameSite=Strict', /HttpOnly/i.test(sc) && /SameSite=Strict/i.test(sc));
   if (HTTPS) check('Session cookie is Secure', /Secure/.test(sc)); else skipped('Session cookie is Secure', 'site is plain http');
   if (cookie) {
@@ -160,15 +170,15 @@ if (!process.env.ORDERS) {
   check('Order flood is rate-limited', codes.includes(429), 'first 429 after ' + (codes.indexOf(429) + 1) + ' more');
 }
 
-section('Passcode guessing (BRUTE=1, locks your IP for 15 min)');
+section('Password guessing (BRUTE=1, locks your IP for 15 min)');
 if (!process.env.BRUTE) {
-  skipped('Passcode guessing is locked out', 'set BRUTE=1 (run last)');
+  skipped('Password guessing is locked out', 'set BRUTE=1 (run last)');
 } else {
   const codes = [];
-  for (let i = 0; i < 14; i++) codes.push((await req('POST', '/api/admin/login', { json: { passcode: 'guess-' + i } })).status);
-  check('Passcode guessing is locked out', codes.includes(429), codes.join(','));
+  for (let i = 0; i < 14; i++) codes.push((await req('POST', '/api/admin/login', { json: { email: 'guess@example.com', password: 'guess-' + i } })).status);
+  check('Password guessing is locked out', codes.includes(429), codes.join(','));
   const spoof = [];
-  for (let i = 0; i < 4; i++) spoof.push((await req('POST', '/api/admin/login', { json: { passcode: 'g' + i }, headers: { 'X-Forwarded-For': '10.9.8.' + i } })).status);
+  for (let i = 0; i < 4; i++) spoof.push((await req('POST', '/api/admin/login', { json: { email: 'guess@example.com', password: 'g' + i }, headers: { 'X-Forwarded-For': '10.9.8.' + i } })).status);
   check('Faked X-Forwarded-For doesn\'t bypass the lockout', spoof.every((c) => c === 429), spoof.join(','));
 }
 

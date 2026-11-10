@@ -351,3 +351,34 @@ body.admin-page { background: #F6F4EE; }
 .session-end { display: inline-flex; align-items: center; gap: 6px; margin-right: 4px; font-size: var(--fs-xs); color: #BDB7B0; white-space: nowrap; }
 .session-end .i { width: 14px; height: 14px; }
 .no-del-chip { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #F1EFEA; color: #5F5A52; font-size: 11px; font-style: normal; font-weight: 700; white-space: nowrap; }
+
+/* ---------- Signing in: code step, and who is signed in ---------- */
+.code-input { text-align: center; font-size: 1.6rem; font-weight: 800; letter-spacing: .35em; }
+.code-input::placeholder { font-size: 1rem; font-weight: 400; letter-spacing: normal; }
+.login-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; }
+.admin-user { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 700; color: var(--white); white-space: nowrap; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; }
+.admin-user .i { width: 14px; height: 14px; color: var(--yellow); }
+
+/* ---------- Team: accounts and checks (site administrator only) ---------- */
+.team-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); align-items: start; }
+.temp-pass code { font-size: 1.1rem; font-weight: 800; background: var(--white); border: 2px solid var(--ink); border-radius: 8px; padding: 2px 8px; user-select: all; }
+.team-list { list-style: none; padding: 0; margin: 0 0 6px; display: grid; }
+.team-list li { display: grid; gap: 8px; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.team-list li.off .team-who > b { color: var(--muted); text-decoration: line-through; }
+.team-who { display: grid; gap: 2px; min-width: 0; }
+.team-who > b { overflow-wrap: anywhere; }
+.team-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.team-tags em { font-style: normal; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #F1EFEA; color: var(--ink-2); }
+.team-role.super { background: var(--ink); color: var(--yellow); }
+.team-tag.ok { background: #E8F6EC; color: #145C2B; }
+.team-tag.bad { background: #FFE5E5; color: #8A0E12; }
+.team-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.team-add { display: grid; gap: 10px; padding-top: 14px; }
+.team-add h4 { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
+.team-add-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.team-add-row .field { flex: 1 1 240px; }
+.checks { list-style: none; padding: 0; margin: 0 0 12px; display: grid; font-size: var(--fs-sm); }
+.checks li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.checks li b { text-align: right; font-weight: 700; }
+.checks li.bad b { color: var(--red); }
+.checks-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }

@@ -22,7 +22,7 @@ The frontend builds two separate pages:
 Requirements: Docker with Compose v2.
 
 ```bash
-cp .env.example .env              # set POSTGRES_PASSWORD (and ADMIN_PASSCODE)
+cp .env.example .env              # set POSTGRES_PASSWORD, SUPER_ADMIN_EMAIL and ADMIN_PASSCODE
 docker compose up -d --build      # builds frontend + backend, starts them with Postgres
 open http://localhost:3000
 ```
@@ -67,7 +67,7 @@ npm run build && BACKEND_URL=http://localhost:4000 npm start
 
 The Vite dev server skips the server-rendered `<head>` and inlined data (the app fetches them instead). Use `npm start` to check SEO output.
 
-`npm run db:reset-menu` (in `backend/`) replaces only the menu with the one in `backend/src/defaults.js`, keeping orders, settings and photos. `npm run db:reset` wipes everything (menu, settings, orders, passcode) and re-seeds the defaults. Schema changes are applied automatically on start-up, so existing databases upgrade in place.
+`npm run db:reset-menu` (in `backend/`) replaces only the menu with the one in `backend/src/defaults.js`, keeping orders, settings and photos. `npm run db:reset` wipes everything (menu, settings, orders, dashboard accounts) and re-seeds the defaults. Schema changes are applied automatically on start-up, so existing databases upgrade in place.
 
 > Host it online before you print QR stickers. The QR code links to the page's own URL, so a `localhost` link won't open on customers' phones.
 
@@ -86,7 +86,9 @@ Docker Compose reads the root `.env` ([.env.example](.env.example)). Running the
 | `DATABASE_URL` | backend | Postgres connection string (set by compose) |
 | `PORT` | backend | API port (default `4000`) |
 | `PGSSL` | backend | `true` for hosted Postgres that needs SSL (Neon, Supabase, Render…) |
-| `ADMIN_PASSCODE` | backend | Admin passcode (10+ characters, not easy to guess). **Required in production**: the backend won't start until a passcode is chosen. It replaces the default once; after that, change it in the dashboard |
+| `SUPER_ADMIN_EMAIL` | backend | Email of the first dashboard account, the site administrator. Used on first start only |
+| `ADMIN_PASSCODE` | backend | That account's first password (10+ characters, not easy to guess). On a site that already had a dashboard passcode, the old passcode becomes the password instead |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | backend | Email for sign-in codes (any SMTP service; Gmail needs an app password). If sending fails, the code is written to the backend log |
 | `NODE_ENV` | backend | `production` enables Secure cookies and HSTS |
 | `COOKIE_SECURE` | backend | Override Secure cookies. Set `false` only for plain HTTP on a private LAN address |
 | `TRUST_PROXY` | backend | Proxy hops in front of the API so rate limits see the real client IP. Compose sets `1` (the frontend server); use `2` if another proxy sits in front |
@@ -100,7 +102,7 @@ Put the frontend behind a reverse proxy that terminates HTTPS. A tested Nginx co
 ### Deployment checklist (no leaks)
 
 1. Copy `.env.example` to `.env` on the server only, then `chmod 600 .env`. It's git-ignored, and both Dockerfiles' `.dockerignore` keep it out of images.
-2. Strong secrets: `POSTGRES_PASSWORD=$(openssl rand -hex 24)`, and a long `ADMIN_PASSCODE` that is not reused anywhere.
+2. Strong secrets: `POSTGRES_PASSWORD=$(openssl rand -hex 24)`, and a long `ADMIN_PASSCODE` that is not reused anywhere. Set `SUPER_ADMIN_EMAIL` and the `SMTP_*` lines so sign-in codes arrive by email.
 3. Set `PUBLIC_URL=https://your-domain` and serve over HTTPS only (admin cookies are `Secure` in production).
 4. Only the frontend port is published. Postgres and the API stay on internal Docker networks; keep it that way.
 5. Pick an unguessable `ADMIN_PATH`. The dashboard sends `noindex` and isn't linked from the site.
@@ -138,11 +140,16 @@ Without `DATABASE_URL` / `BACKEND_URL` the database and server tests are skipped
 | **Menu** | Full-width menu with a sticky category bar that jumps to each section and highlights the one you're reading, instant search (name, description, type or category), diet filters with veg / non-veg marks, a size / option picker, and an Add button that turns into a quantity stepper. A floating "View order" bar shows the item count and subtotal. Opening `/menu?table=7` (from a table QR sticker) shows a table banner and pre-fills the table at checkout. |
 | **Cart** | Quantities, promo code (`OHH22` takes 15% off one 22" pizza, once per phone number: the server checks earlier orders, and the cart says so as soon as the phone is typed), delivery fee with a free-delivery threshold, and checkout through a pre-filled WhatsApp message. Outside opening hours it tells customers when their order will be handled. Each order is saved in the database; the server recalculates prices and the discount itself. |
 | **Chatbot "Chicky"** | Built-in knowledge base covering greetings, opening hours with live open/closed status, size advice ("size for 12 people"), diet options, MoMo, prices for any dish (with add-to-cart buttons), delivery, ordering, deals and contact details. It reads the live menu, so Admin edits show up right away. |
-| **Staff dashboard** (`/admin/`) | Separate page with its own login screen, and a warning until the default passcode is changed. **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and passcode. **Orders**: live list (checks every 20 s, with a "new order" alert and a badge on the tab), status workflow *New → Preparing → Out for delivery → Done / Cancelled*, open/done/cancelled filters, tap-to-call phone numbers, KPIs, top sellers, and CSV export for Excel/Sheets. **QR codes**: a scannable code that opens the menu, with an optional table number; print a sheet of branded stickers or download a PNG. The offer pop-up can be previewed on the live site (`/?offer=1`). |
+| **Staff dashboard** (`/admin/`) | Separate page with its own sign-in (see *Dashboard accounts* below). **Menu Manager**: live search by text, price (`650`), comparison (`<500`, `>=1000`) or range (`500-800`); category filter; sortable columns; add, edit, duplicate and delete items; availability and featured toggles; JSON import/export; reset. **Store & Promo**: phone, WhatsApp, address, hours, delivery settings, offer pop-up settings and your password. **Orders**: live list (checks every 20 s, with a "new order" alert and a badge on the tab), status workflow *New → Preparing → Out for delivery → Done / Cancelled*, open/done/cancelled filters, tap-to-call phone numbers, KPIs, top sellers, and CSV export for Excel/Sheets. **QR codes**: a scannable code that opens the menu, with an optional table number; print a sheet of branded stickers or download a PNG. The offer pop-up can be previewed on the live site (`/?offer=1`). |
 | **Photos** | Dashboard → **Photos**: drag-and-drop or pick several photos at once (JPG, PNG, WebP, AVIF, up to 10 MB; iPhones convert their HEIC photos to JPG when uploading from the browser). Each is checked as a real image, turned upright, stripped of EXIF/GPS data and saved as WebP in up to four widths (320–1600 px) with a blurred preview. Write a description per photo (used as alt text and in Google's data), tick **Gallery** to show it in the home-page gallery (with a lightbox) and reorder it there, and see which dishes use it. Add a photo to a dish from the **+ Photo** slot in its menu row (or Menu → Edit); it then shows on the menu, in the cart and in Google's data, and a dish without one shows its drawing. Deleting a photo unlinks it from its dishes. Each file is kept in Postgres as well as on disk: served from disk, and restored from the database on first request if the disk was wiped. |
-| **Insights** (dashboard) | A paid extra, locked until `INSIGHTS_ENABLED=true` is set on the backend; the tab otherwise shows an upgrade message and the API answers 402. Visits keep being counted while locked. Anonymous usage analytics built in, with no third parties. **Covers:** visits and orders per day, the visit-to-order funnel (menu → cart → checkout → order), dishes added to the cart but rarely ordered, searches that found nothing, busy hours, where visitors come from, devices, first pages, table-QR scans and orders, offer pop-up performance, and chatbot topics (including questions it couldn't answer). 7/30/90-day ranges. **Privacy:** no cookies, IP addresses or user-agent strings are stored. A visitor is a hash of IP + browser with a salt that changes daily and is then deleted, so nobody can recognise a person or follow them across days. "Do Not Track" and Global Privacy Control turn tracking off, bots are ignored, digits typed into the chatbot are masked, and raw events are deleted after 180 days (`ANALYTICS_RETENTION_DAYS`). |
+| **Insights** (dashboard) | A paid extra for staff, locked until `INSIGHTS_ENABLED=true` is set on the backend; the tab otherwise shows an upgrade message and the API answers 402. The site administrator always sees it. Visits keep being counted while locked. Anonymous usage analytics built in, with no third parties. **Covers:** visits and orders per day, the visit-to-order funnel (menu → cart → checkout → order), dishes added to the cart but rarely ordered, searches that found nothing, busy hours, where visitors come from, devices, first pages, table-QR scans and orders, offer pop-up performance, and chatbot topics (including questions it couldn't answer). 7/30/90-day ranges. **Privacy:** no cookies, IP addresses or user-agent strings are stored. A visitor is a hash of IP + browser with a salt that changes daily and is then deleted, so nobody can recognise a person or follow them across days. "Do Not Track" and Global Privacy Control turn tracking off, bots are ignored, digits typed into the chatbot are masked, and raw events are deleted after 180 days (`ANALYTICS_RETENTION_DAYS`). |
 
-There is no built-in admin passcode. In development, a new database without `ADMIN_PASSCODE` gets a random one, printed once in the backend log; production (`NODE_ENV=production`, as in Docker) refuses to start until `ADMIN_PASSCODE` is set. The dashboard keeps asking for a passcode of your own until one is chosen. Change the passcode under *Store → Security*: you'll need the current one, and every other device is signed out. New passcodes need 10+ characters and can't be built from the restaurant's name, place names, common words or number runs (`backend/src/passcode.js`). The login page never reveals whether the default is still in use.
+**Dashboard accounts:** everyone signs in with their own email and password, then a 6-digit code sent to that email (10 minutes, 5 tries; *Send a new code* once a minute). Two roles:
+
+- **Administrator** (whoever runs the site, e.g. PaperKite): everything, plus the **Team** tab to add accounts, reset a forgotten password (a temporary one, shown once, that the person must replace when they sign in), switch an account off, sign people out, send a test email and see checks (email, database, backups, last order, wrong tries). Always sees Insights. The last administrator can't be removed.
+- **Staff**: menu, orders, photos, outlets, store settings and QR codes.
+
+The first administrator is created on first start from `SUPER_ADMIN_EMAIL`; its password is the site's old dashboard passcode if there was one, otherwise `ADMIN_PASSCODE`. Passwords need 10+ characters and can't be built from the restaurant's name, place names, common words or number runs (`backend/src/password.js`). Change yours under *Store → Security* (your other devices are signed out). Without email set up, sign-in codes are written to the backend log, which is how development works.
 
 **Customer privacy:** checkout asks only what the order needs: an address for delivery, a table number at a table (pre-filled from table QR codes, no delivery fee), nothing for pickup (when *Takeaway* is on). Name and phone are optional; the promo code needs both (once per number). Names, phones and addresses are blanked on orders older than `ORDER_DETAILS_DAYS` (90); items and totals stay for reports.
 
@@ -155,13 +162,15 @@ docker compose exec backend node src/db.js forget-customer 9841234567       # so
 
 **Sessions:** a dashboard sign-in lasts one hour from login, whatever the staff do in that time. The dashboard warns 5 minutes before the end, then locks itself, and the server refuses the session from then on.
 
-**Forgotten passcode:** whoever runs the server sets a new one; menu, orders and settings are untouched and every device is signed out:
+**Forgotten password:** the administrator resets it in the Team tab. If the administrator is locked out, whoever runs the server sets a new one (the account is switched back on and signed out everywhere), or adds an account:
 
 ```bash
-docker compose exec backend node src/db.js set-passcode     # asks twice, typing stays hidden
+docker compose exec backend node src/db.js set-password owner@example.com         # asks twice, typing stays hidden
+docker compose exec backend node src/db.js add-admin someone@example.com --super  # a new administrator
+docker compose logs backend | grep "Sign-in code"                                 # codes, if email isn't working
 ```
 
-**Security panel** (Store → Security): devices signed in now, *Sign out all other devices* (lost phone, staff who left: change the passcode too), wrong-passcode tries in the last 24 hours, the last 10 sign-ins with device and masked IP (kept 90 days), and the last automatic backup. Sign-in locks for 15 minutes after 8 wrong tries from one IP, and pauses for everyone after 60 wrong tries in 15 minutes from all IPs together (devices already signed in keep working).
+**Security panel** (Store → Security): your devices signed in now, *Sign out my other devices*, wrong password or code tries in the last 24 hours, and the last 10 sign-ins with email, device and masked IP (kept 90 days; staff see their own, the administrator sees everyone's), and the last automatic backup. Sign-in locks for 15 minutes after 8 wrong tries from one IP or 10 against one account, and pauses for everyone after 60 wrong tries in 15 minutes from all IPs together (devices already signed in keep working).
 
 ## SEO
 
@@ -191,13 +200,13 @@ No meta keywords tag: Google and Bing ignore it.
 
 ## Security
 
-- **Admin auth is server-side.** The passcode is stored as a scrypt hash. Sessions are random 256-bit tokens in an `HttpOnly`, `SameSite=Strict` cookie (`__Host-` prefixed and `Secure` in production); only their SHA-256 is stored. 8 wrong passcodes lock that IP out for 15 minutes.
+- **Admin auth is server-side, in two steps.** Passwords are stored as scrypt hashes; the emailed code is stored only as a hash and never sent back in a response. A wrong email and a wrong password get the same answer after the same delay, so accounts can't be discovered. Sessions are random 256-bit tokens in an `HttpOnly`, `SameSite=Strict` cookie (`__Host-` prefixed and `Secure` in production); only their SHA-256 is stored. 8 wrong tries lock that IP out for 15 minutes, 10 lock that account.
 - **The dashboard is a separate app** served only at `ADMIN_PATH`, with `X-Robots-Tag: noindex` and `Cache-Control: no-store`. The customer site ships none of its markup, code or styles.
 - **Every write endpoint** requires a session, a JSON body and a same-origin `Origin` header, which blocks cross-site request forgery.
 - **Inputs are validated on the server** (menu items, settings, orders). Order totals and discounts are recalculated server-side, so a tampered browser can't change prices.
 - **Headers**: the frontend server sends HSTS (when `PUBLIC_URL` is https), a `Permissions-Policy` that turns off camera, microphone and location, and a strict Content-Security-Policy for the pages (scripts only from this origin; the QR library is bundled, no CDN), `X-Frame-Options`, `nosniff` and `Referrer-Policy`. The API adds Helmet's headers with `default-src 'none'`, and HSTS in production.
-- **Rate limits**: 300 API requests/min per client, 20 orders per 10 min, 60 photo uploads per 10 min, 30 login attempts per 15 min, and a 15-minute lockout after 8 wrong passcodes. A client is one IPv4 address or one IPv6 /64, so rotating IPv6 addresses doesn't get around it. Faked `X-Forwarded-For` headers are ignored, since only the configured proxy hops are trusted.
-- **Flood protection**: at most 2 passcode checks run at once (40 queued; more get a quick `503 busy`), so a many-IP guessing flood can't starve the server. Photos are processed one at a time. Public menu data is cached for 2 s, so page-load floods don't reach the database. Slow-sending clients (slowloris) are disconnected, and proxied requests time out. Containers have memory and process limits.
+- **Rate limits**: 300 API requests/min per client, 20 orders per 10 min, 60 photo uploads per 10 min, 30 sign-in requests per 15 min, and a 15-minute lockout after 8 wrong passwords or codes. A client is one IPv4 address or one IPv6 /64, so rotating IPv6 addresses doesn't get around it. Faked `X-Forwarded-For` headers are ignored, since only the configured proxy hops are trusted.
+- **Flood protection**: at most 2 password checks run at once (40 queued; more get a quick `503 busy`), so a many-IP guessing flood can't starve the server. Photos are processed one at a time. Public menu data is cached for 2 s, so page-load floods don't reach the database. Slow-sending clients (slowloris) are disconnected, and proxied requests time out. Containers have memory and process limits.
 - **Size limits**: JSON bodies 1 MB, photos 10 MB and 50 megapixels (refusing image "bombs" that are tiny files but huge in memory), URLs and headers 16 KB. SVG and other non-photo formats are refused. Order fields are trimmed (name 80, address 200), up to 50 lines, quantity 1–99.
 - **No open redirects**: the clean-URL redirect never sends visitors to `//other-site` or `/\other-site`.
 - **Restaurant Wi-Fi note**: everyone on one Wi-Fi shares a public IP. 20 orders per 10 minutes per IP is plenty for table ordering; raise it in `backend/src/routes.js` if a busy dining room ever hits it.
@@ -227,13 +236,15 @@ deploy/                   server setup guide + remote-deploy.sh (pull, rebuild, 
 
 backend/                  Express JSON API (own Dockerfile, port 4000)
   src/index.js            app: security headers, same-origin check, /api, /healthz
-  src/routes.js           JSON API (public: bootstrap, menu, settings, orders; admin: CMS, orders, CSV)
+  src/routes.js           JSON API (public: bootstrap, menu, settings, orders; admin: CMS, orders, CSV, accounts)
   src/models.js           Postgres queries for menu, settings, orders
-  src/auth.js             admin login, session cookies, lockout, passcode change
+  src/auth.js             dashboard sign-in (password + emailed code), sessions, lockout, password change
+  src/accounts.js         accounts and checks for the site administrator (Team tab)
+  src/mail.js             sends sign-in codes over SMTP
   src/media.js            photo upload & processing (sharp → WebP sizes), library queries
   src/analytics.js        anonymous analytics: event intake (POST /api/t), daily-salted visitor hash, insights queries
   src/limit.js            in-memory rate limiting
-  src/passcode.js         scrypt hashing
+  src/password.js         scrypt hashing and password rules
   src/validate.js         input validation for items & settings
   src/pricing.js          cart totals & promo maths (same rules as the browser)
   src/db.js               pool, migrations, seeding, db:init / db:reset CLI
@@ -273,6 +284,7 @@ frontend/                 React app + SEO page server (own Dockerfile, port 8080
     store.jsx             CMS, auth and order calls
     PhotosPanel.jsx       photo library (upload, describe, gallery, delete) + picker for dishes
     InsightsPanel.jsx     analytics dashboard (KPIs, charts, funnel, tables)
+    TeamPanel.jsx         accounts and checks (site administrator only)
     MenuPanel.jsx, ItemEditor.jsx, OrdersPanel.jsx, OutletsPanel.jsx, SettingsPanel.jsx, QrPanel.jsx, Kpi.jsx, confirm.jsx
 ```
 

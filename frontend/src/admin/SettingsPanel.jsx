@@ -1,4 +1,4 @@
-/* Store info, offer pop-up, passcode change and recent sign-ins. */
+/* Store info, offer pop-up, your password and recent sign-ins. */
 import { useEffect, useRef, useState } from 'react';
 import { useAdmin } from './store.jsx';
 import { useConfirm } from './confirm.jsx';
@@ -10,13 +10,12 @@ const toForm = (s) => ({
   lat: s.lat == null ? '' : s.lat, lng: s.lng == null ? '' : s.lng, socialLinks: (s.socialLinks || []).join('\n')
 });
 
-export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
+export function SettingsPanel({ hidden }) {
   const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
   const [f, setF] = useState(() => toForm(admin.settings));
   const formRef = useRef(null);
 
   useEffect(() => { setF(toForm(admin.settings)); }, [admin.settings]);
-  useEffect(() => { if (focusPass) formRef.current.currentPass.focus(); }, [focusPass]);
 
   const field = (name, props = {}) => ({
     name, value: f[name] == null ? '' : f[name],
@@ -42,15 +41,14 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
       promo: { enabled: !!f.promo.enabled, popup: !!f.promo.popup, headline: f.promo.headline.trim(), code: String(f.promo.code).trim().toUpperCase(), percent: num(f.promo.percent), delaySec: num(f.promo.delaySec) }
     };
     const pass = f.newPass, current = f.currentPass;
-    if (pass && pass.length < 10) { toast('New passcode must be at least 10 characters', 'error'); form.newPass.focus(); return; }
-    if (pass && !current) { toast('Enter your current passcode to change it', 'error'); form.currentPass.focus(); return; }
+    if (pass && pass.length < 10) { toast('New password must be at least 10 characters', 'error'); form.newPass.focus(); return; }
+    if (pass && !current) { toast('Enter your current password to change it', 'error'); form.currentPass.focus(); return; }
     try {
       if (pass) {
-        await admin.setPass(current, pass);
+        await admin.setPassword(current, pass);
         setF((x) => ({ ...x, newPass: '', currentPass: '' }));
-        onPassChanged();
       }
-      if (await admin.saveSettings(s)) toast(pass ? 'Settings and passcode saved' : 'Settings saved');
+      if (await admin.saveSettings(s)) toast(pass ? 'Settings and password saved' : 'Settings saved');
     } catch (err) { toast(err.message, 'error'); }
   }
 
@@ -127,9 +125,9 @@ export function SettingsPanel({ hidden, onPassChanged, focusPass }) {
         </fieldset>
         <fieldset>
           <legend>Security</legend>
-          <label className="field"><span>Current passcode</span><input type="password" autoComplete="current-password" {...field('currentPass')} /></label>
-          <label className="field"><span>New passcode <em>(10+ characters)</em></span><input type="password" minLength="10" maxLength="128" autoComplete="new-password" {...field('newPass')} /></label>
-          <p className="tiny muted"><Icon name="shield" /> Leave both blank to keep the current passcode. Changing it signs out every other device. Avoid the restaurant's name, place names and number runs; a short phrase like <i>red-door-momo-42</i> is easy to remember and hard to guess.</p>
+          <label className="field"><span>Current password</span><input type="password" autoComplete="current-password" {...field('currentPass')} /></label>
+          <label className="field"><span>New password <em>(10+ characters)</em></span><input type="password" minLength="10" maxLength="128" autoComplete="new-password" {...field('newPass')} /></label>
+          <p className="tiny muted"><Icon name="shield" /> Leave both blank to keep your password. Changing it signs out your other devices. Every sign-in also needs a code sent to your email. Avoid the restaurant's name, place names and number runs.</p>
           <SignIns visible={!hidden} />
         </fieldset>
         <div className="settings-actions">
@@ -149,7 +147,7 @@ function SignIns({ visible }) {
   useEffect(() => { if (visible) load(); }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function signOutOthers() {
-    if (!(await confirm('Sign out every other phone and computer? Anyone using the dashboard elsewhere will need the passcode again.', 'Sign out others'))) return;
+    if (!(await confirm('Sign out your account on every other phone and computer?', 'Sign out others'))) return;
     try { const r = await admin.signOutOthers(); toast(r.signedOut ? 'Signed out ' + r.signedOut + ' other device' + (r.signedOut === 1 ? '' : 's') : 'No other devices were signed in'); load(); }
     catch (err) { toast(err.message, 'error'); }
   }
@@ -158,8 +156,8 @@ function SignIns({ visible }) {
   return (
     <div className="signins">
       <div className="signins-head">
-        <p><b>{info.sessions}</b> device{info.sessions === 1 ? '' : 's'} signed in now</p>
-        <button type="button" className="btn btn-outline btn-sm" onClick={signOutOthers}>Sign out all other devices</button>
+        <p>You're signed in on <b>{info.sessions}</b> device{info.sessions === 1 ? '' : 's'}</p>
+        <button type="button" className="btn btn-outline btn-sm" onClick={signOutOthers}>Sign out my other devices</button>
       </div>
       {info.lastBackup !== undefined && (
         <p className={'signins-warn' + (!info.lastBackup || Date.now() - Date.parse(info.lastBackup) > 2 * 86400000 ? ' bad' : ' ok')}>
@@ -168,14 +166,14 @@ function SignIns({ visible }) {
         </p>
       )}
       {info.failed24h > 0 && (
-        <p className={'signins-warn' + (info.failed24h >= 5 ? ' bad' : '')}><Icon name="alert" /> {info.failed24h} wrong passcode tr{info.failed24h === 1 ? 'y' : 'ies'} in the last 24 hours.
-          {info.failed24h >= 5 && ' If that wasn\'t your staff, change the passcode.'}{info.paused && ' Sign-in is paused for a few minutes.'}</p>
+        <p className={'signins-warn' + (info.failed24h >= 5 ? ' bad' : '')}><Icon name="alert" /> {info.failed24h} wrong password or code tr{info.failed24h === 1 ? 'y' : 'ies'} in the last 24 hours.
+          {info.failed24h >= 5 && ' If that wasn\'t you or your staff, change your password.'}{info.paused && ' Sign-in is paused for a few minutes.'}</p>
       )}
       {info.recent.length > 0 && (
         <ul className="signins-list" aria-label="Recent sign-ins">
           {info.recent.map((r, i) => (
             <li key={i} className={r.ok ? '' : 'fail'}>
-              <span>{when(r.at)}</span><span>{r.ok ? 'Signed in' : 'Wrong passcode'}</span><span>{r.device}{r.ip && <em> · {r.ip}</em>}</span>
+              <span>{when(r.at)}</span><span>{r.ok ? 'Signed in' : 'Wrong try'}</span><span>{r.email && <b>{r.email} · </b>}{r.device}{r.ip && <em> · {r.ip}</em>}</span>
             </li>
           ))}
         </ul>

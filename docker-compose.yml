@@ -4,7 +4,7 @@
 #   db        PostgreSQL 16 (internal only)
 #   backup    nightly database backup into ./backups (deploy/backup.sh)
 #
-#   cp .env.example .env      # set POSTGRES_PASSWORD (and ADMIN_PASSCODE)
+#   cp .env.example .env      # set POSTGRES_PASSWORD, SUPER_ADMIN_EMAIL and ADMIN_PASSCODE
 #   docker compose up -d --build
 #   open http://localhost:3000
 
@@ -48,7 +48,15 @@ services:
       PORT: 4000
       # Requests arrive through the frontend server.
       TRUST_PROXY: ${TRUST_PROXY:-1}
+      # The first dashboard account (site administrator) and its first password.
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
       ADMIN_PASSCODE: ${ADMIN_PASSCODE:-}
+      # Email for sign-in codes (see .env.example).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       UPLOAD_DIR: /app/uploads

@@ -85,13 +85,25 @@ export function AdminProvider({ boot, children }) {
     saveSettings: (s) => api('PUT', 'settings', s).then(applied(setSettings), syncFailed),
     resetSettings: () => api('POST', 'settings/reset').then(applied(setSettings), syncFailed),
 
-    /* ---------- Auth (server session cookie) ---------- */
+    /* ---------- Signing in (server session cookie): password, then the emailed code ---------- */
     session: () => api('GET', 'admin/session'),
-    login: (p) => api('POST', 'admin/login', { passcode: p }),
+    login: (email, password) => api('POST', 'admin/login', { email, password }), // → { challenge, sentTo, emailed }
+    verify: (challenge, code) => api('POST', 'admin/verify', { challenge, code }),
+    resendCode: (challenge) => api('POST', 'admin/resend', { challenge }),
     logout: () => api('POST', 'admin/logout').catch(() => {}),
-    setPass: (current, p) => api('PUT', 'admin/passcode', { current, passcode: p }),
+    setPassword: (current, password) => api('PUT', 'admin/password', { current, password }),
     security: () => api('GET', 'admin/security'),
     signOutOthers: () => api('POST', 'admin/sign-out-others'),
+
+    /* ---------- Accounts and troubleshooting (site administrator only) ---------- */
+    users: () => api('GET', 'admin/users'),
+    addUser: (u) => api('POST', 'admin/users', u), // → { tempPassword }
+    updateUser: (id, patch) => api('PATCH', 'admin/users/' + id, patch),
+    resetPassword: (id) => api('POST', 'admin/users/' + id + '/reset-password'), // → { tempPassword }
+    signOutUser: (id) => api('POST', 'admin/users/' + id + '/sign-out'),
+    signOutEveryone: () => api('POST', 'admin/sign-out-everyone'),
+    testEmail: () => api('POST', 'admin/test-email'),
+    diagnostics: () => api('GET', 'admin/diagnostics'),
 
     /* ---------- Orders ---------- */
     loadOrders: () => api('GET', 'orders').then((list) => { setOrders(list); return list; }),

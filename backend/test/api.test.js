@@ -12,7 +12,31 @@ const path = require('node:path');
 
 const DB = process.env.DATABASE_URL;
 const PASS = 'ci-test-passcode-1';
-let B, server, uploads, cookie = '';
+const OWNER = 'owner@example.com'; // the site administrator, created at start from SUPER_ADMIN_EMAIL
+let B, server, uploads, cookie = '', log = '';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Without email set up, the server writes each sign-in code to its log: read it from there.
+async function codeFrom(readLog, email, since) {
+  const re = new RegExp('Sign-in code for ' + email.replace(/[.+]/g, '\\$&') + ': (\\d{6})', 'g');
+  for (let i = 0; i < 60; i++) {
+    const found = [...readLog().slice(since).matchAll(re)];
+    if (found.length) return found[found.length - 1][1];
+    await sleep(50);
+  }
+  throw new Error('no sign-in code for ' + email + ' in the log');
+}
+const postJson = (base, url, body, Cookie) => fetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(Cookie ? { Cookie } : {}) }, body: JSON.stringify(body) });
+// Both steps; returns the session cookie ("omc_admin=…").
+async function signIn(email = OWNER, password = PASS, base = B, readLog = () => log) {
+  const since = readLog().length;
+  const step1 = await postJson(base, '/api/admin/login', { email, password });
+  assert.equal(step1.status, 200, 'password step for ' + email);
+  const { challenge } = await step1.json();
+  const step2 = await postJson(base, '/api/admin/verify', { challenge, code: await codeFrom(readLog, email, since) });
+  assert.equal(step2.status, 200, 'code step for ' + email);
+  return step2.headers.get('set-cookie').split(';')[0];
+}
 
 function freePort() {
   return new Promise((ok) => { const s = net.createServer().listen(0, () => { const p = s.address().port; s.close(() => ok(p)); }); });
@@ -36,10 +60,9 @@ test.before(async () => {
   B = 'http://127.0.0.1:' + port;
   uploads = fs.mkdtempSync(path.join(os.tmpdir(), 'omc-uploads-'));
   server = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'index.js')], {
-    env: { ...process.env, PORT: String(port), ADMIN_PASSCODE: PASS, UPLOAD_DIR: uploads, NODE_ENV: 'test', ORDER_LIMIT: '200', INSIGHTS_ENABLED: 'true' },
+    env: { ...process.env, PORT: String(port), ADMIN_PASSCODE: PASS, SUPER_ADMIN_EMAIL: OWNER, UPLOAD_DIR: uploads, NODE_ENV: 'test', ORDER_LIMIT: '200', SIGNIN_LIMIT: '500', INSIGHTS_ENABLED: 'true' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
-  let log = '';
   server.stdout.on('data', (d) => { log += d; });
   server.stderr.on('data', (d) => { log += d; });
   for (let i = 0; i < 100; i++) {
@@ -75,7 +98,7 @@ it('admin endpoints refuse anonymous requests', async () => {
   }
 });
 
-it('anonymous session does not reveal whether the default passcode is in use', async () => {
+it('anonymous session says only that it is not signed in', async () => {
   const s = await req('GET', '/api/admin/session');
   assert.deepEqual(s.json, { authed: false });
 });
@@ -83,23 +106,52 @@ it('anonymous session does not reveal whether the default passcode is in use', a
 it('cross-site and non-JSON writes are blocked', async () => {
   const cross = await req('POST', '/api/orders', { body: {}, headers: { Origin: 'https://evil.example' } });
   assert.equal(cross.status, 403);
-  const form = await req('POST', '/api/admin/login', { raw: 'passcode=x', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+  const form = await req('POST', '/api/admin/login', { raw: 'email=x', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
   assert.equal(form.status, 415);
 });
 
-it('login: wrong passcode fails, right one sets an httpOnly cookie', async () => {
-  const bad = await req('POST', '/api/admin/login', { body: { passcode: 'wrong-guess-123' } });
-  assert.equal(bad.status, 401);
-  const ok = await req('POST', '/api/admin/login', { body: { passcode: PASS } });
+it('sign-in: password, then the emailed code; wrong ones fail; the cookie is httpOnly', async () => {
+  const wrongPass = await req('POST', '/api/admin/login', { body: { email: OWNER, password: 'wrong-guess-123' } });
+  assert.equal(wrongPass.status, 401);
+  assert.equal(wrongPass.json.error, 'Wrong email or password.');
+  const noSuchUser = await req('POST', '/api/admin/login', { body: { email: 'nobody@example.com', password: PASS } });
+  assert.equal(noSuchUser.json.error, 'Wrong email or password.', 'an unknown email looks the same');
+
+  const since = log.length;
+  const step1 = await req('POST', '/api/admin/login', { body: { email: ' Owner@Example.com ', password: PASS } });
+  assert.equal(step1.status, 200);
+  assert.equal(step1.json.sentTo, 'o•••@example.com');
+  assert.equal(step1.json.emailed, false, 'no email set up here');
+  assert.ok(!('code' in step1.json), 'the code never travels in the response');
+  assert.equal(step1.headers.get('set-cookie'), null, 'no session until the code is right');
+  const code = await codeFrom(() => log, OWNER, since);
+  const wrong = await req('POST', '/api/admin/verify', { body: { challenge: step1.json.challenge, code: code === '000000' ? '111111' : '000000' } });
+  assert.equal(wrong.status, 401);
+  assert.match(wrong.json.error, /4 tries left/);
+  assert.equal((await req('POST', '/api/admin/resend', { body: { challenge: step1.json.challenge } })).status, 429, 'a new code at most once a minute');
+
+  const ok = await req('POST', '/api/admin/verify', { body: { challenge: step1.json.challenge, code } });
   assert.equal(ok.status, 200);
   const set = ok.headers.get('set-cookie');
   assert.match(set, /HttpOnly/);
   assert.match(set, /SameSite=Strict/);
   cookie = set.split(';')[0];
+  assert.equal((await req('POST', '/api/admin/verify', { body: { challenge: step1.json.challenge, code } })).status, 400, 'a code works once');
   const s = await req('GET', '/api/admin/session');
   assert.equal(s.json.authed, true);
-  assert.equal(s.json.defaultPass, false);
+  assert.deepEqual(s.json.user, { email: OWNER, name: 'Site administrator', role: 'super', mustChange: false });
   assert.ok(s.json.expiresInMs > 3590000 && s.json.expiresInMs <= 3600000, 'one hour: ' + s.json.expiresInMs);
+});
+
+it('sign-in: five wrong codes end the attempt', async () => {
+  const since = log.length;
+  const { challenge } = (await req('POST', '/api/admin/login', { body: { email: OWNER, password: PASS } })).json;
+  const code = await codeFrom(() => log, OWNER, since), bad = code === '000000' ? '111111' : '000000';
+  for (let i = 0; i < 4; i++) assert.equal((await req('POST', '/api/admin/verify', { body: { challenge, code: bad } })).status, 401);
+  const fifth = await req('POST', '/api/admin/verify', { body: { challenge, code: bad } });
+  assert.equal(fifth.status, 400);
+  assert.equal(fifth.json.expired, true);
+  assert.equal((await req('POST', '/api/admin/verify', { body: { challenge, code } })).status, 400, 'even the right code is too late');
 });
 
 it('orders: totals are recalculated on the server', async () => {
@@ -350,61 +402,128 @@ it('promo: once per phone number, checked before ordering and enforced by the se
   assert.equal((await req('POST', '/api/promo/check', { body: { code: 'OHH22', phone: '9812345678' } })).json.used, false);
 });
 
-it('security: weak passcodes refused, sign-ins logged, other devices can be signed out', async () => {
-  const weak = await req('PUT', '/api/admin/passcode', { body: { current: PASS, passcode: 'pizza12345' } });
+it('security: weak passwords refused, sign-ins logged, other devices can be signed out', async () => {
+  const weak = await req('PUT', '/api/admin/password', { body: { current: PASS, password: 'pizza12345' } });
   assert.equal(weak.status, 400);
   assert.match(weak.json.error, /Too easy to guess/);
+  assert.equal((await req('PUT', '/api/admin/password', { body: { current: 'not-my-password', password: 'kitchen-door-blue-77' } })).status, 400);
   const sec = (await req('GET', '/api/admin/security')).json;
-  assert.ok(sec.recent.some((r) => r.ok) && sec.recent.some((r) => !r.ok));
+  assert.ok(sec.recent.some((r) => r.ok && r.email === OWNER) && sec.recent.some((r) => !r.ok));
   assert.ok(sec.failed24h >= 1);
   assert.ok(!('lastBackup' in sec)); // no BACKUP_DIR here
-  const other = await fetch(B + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: PASS }) });
-  const otherCookie = other.headers.get('set-cookie').split(';')[0];
+  const otherCookie = await signIn();
   assert.ok((await req('POST', '/api/admin/sign-out-others', { body: {} })).json.signedOut >= 1);
   assert.equal((await fetch(B + '/api/orders', { headers: { Cookie: otherCookie } })).status, 401);
   assert.equal((await req('GET', '/api/orders')).status, 200);
 });
 
-it('forgotten passcode: set-passcode on the server replaces it and signs everyone out', async () => {
-  const { spawnSync } = require('node:child_process');
-  const run = (pass) => spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'set-passcode'],
-    { env: { ...process.env, NEW_PASSCODE: pass }, encoding: 'utf8' });
+it('forgotten password: set-password on the server replaces it and signs that account out', async () => {
+  const run = (pass, email = OWNER) => spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'db.js'), 'set-password', email],
+    { env: { ...process.env, NEW_PASSWORD: pass }, encoding: 'utf8' });
   assert.notEqual(run('short1').status, 0);
+  assert.notEqual(run('kitchen-door-blue-77', 'nobody@example.com').status, 0);
   const ok = run('kitchen-door-blue-77');
   assert.equal(ok.status, 0, ok.stderr);
   assert.equal((await req('GET', '/api/orders')).status, 401);
-  assert.equal((await req('POST', '/api/admin/login', { body: { passcode: PASS } })).status, 401);
-  assert.equal((await req('POST', '/api/admin/login', { body: { passcode: 'kitchen-door-blue-77' } })).status, 200);
-  // Put the test passcode back and sign in again for the remaining tests.
+  assert.equal((await req('POST', '/api/admin/login', { body: { email: OWNER, password: PASS } })).status, 401);
+  await signIn(OWNER, 'kitchen-door-blue-77');
+  // Put the test password back and sign in again for the remaining tests.
   assert.equal(run(PASS).status, 0);
-  const again = await req('POST', '/api/admin/login', { body: { passcode: PASS } });
-  cookie = again.headers.get('set-cookie').split(';')[0];
+  cookie = await signIn();
   assert.equal((await req('GET', '/api/orders')).status, 200);
 });
 
-it('insights: locked unless the server switches it on, even for a signed-in admin', async () => {
+it('accounts: the administrator adds staff, who must choose their own password first', async () => {
+  const add = await req('POST', '/api/admin/users', { body: { email: 'Cook@Example.com', name: 'Cook', role: 'staff' } });
+  assert.equal(add.status, 201);
+  assert.match(add.json.tempPassword, /^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/);
+  assert.equal((await req('POST', '/api/admin/users', { body: { email: 'cook@example.com' } })).status, 400, 'one account per email');
+  assert.equal((await req('POST', '/api/admin/users', { body: { email: 'not-an-email' } })).status, 400);
+
+  const staff = await signIn('cook@example.com', add.json.tempPassword);
+  const as = (url, opts = {}) => fetch(B + url, { ...opts, headers: { 'Content-Type': 'application/json', Cookie: staff, ...(opts.headers || {}) } });
+  assert.equal((await (await as('/api/admin/session')).json()).user.mustChange, true);
+  assert.equal((await as('/api/orders')).status, 403, 'nothing else until the temporary password is replaced');
+  const changed = await as('/api/admin/password', { method: 'PUT', body: JSON.stringify({ current: add.json.tempPassword, password: 'tandoori-oven-river-42' }) });
+  assert.equal(changed.status, 200);
+  assert.equal((await as('/api/orders')).status, 200);
+  assert.equal((await as('/api/admin/users')).status, 403, 'staff can\'t manage accounts');
+  assert.equal((await as('/api/admin/diagnostics')).status, 403);
+  const staffSec = await (await as('/api/admin/security')).json();
+  assert.ok(staffSec.recent.every((r) => r.email === 'cook@example.com'), 'staff see only their own sign-ins');
+
+  const list = (await req('GET', '/api/admin/users')).json, cook = list.find((u) => u.email === 'cook@example.com');
+  assert.equal(cook.role, 'staff');
+  assert.equal(cook.sessions, 1);
+  assert.ok(!('pass_hash' in cook) && !('passHash' in cook));
+
+  // A forgotten password: a new temporary one, and every device signed out.
+  const reset = await req('POST', '/api/admin/users/' + cook.id + '/reset-password', { body: {} });
+  assert.match(reset.json.tempPassword, /^[a-z2-9-]{14}$/);
+  assert.equal((await as('/api/orders')).status, 401);
+  // Switched off: can't sign in at all.
+  assert.equal((await req('PATCH', '/api/admin/users/' + cook.id, { body: { active: false } })).json.active, false);
+  assert.equal((await postJson(B, '/api/admin/login', { email: 'cook@example.com', password: reset.json.tempPassword })).status, 401);
+  assert.equal((await req('PATCH', '/api/admin/users/' + cook.id, { body: { active: true } })).json.active, true);
+});
+
+it('accounts: the last administrator can\'t be removed, and you can\'t lock yourself out', async () => {
+  const me = (await req('GET', '/api/admin/users')).json.find((u) => u.email === OWNER);
+  assert.match((await req('PATCH', '/api/admin/users/' + me.id, { body: { active: false } })).json.error, /your own account/);
+  assert.match((await req('PATCH', '/api/admin/users/' + me.id, { body: { role: 'staff' } })).json.error, /your own administrator role/);
+  const second = (await req('POST', '/api/admin/users', { body: { email: 'help@example.com', role: 'super' } })).json;
+  const helper = (await req('GET', '/api/admin/users')).json.find((u) => u.email === 'help@example.com');
+  assert.equal(helper.role, 'super');
+  assert.ok(second.tempPassword);
+  assert.equal((await req('PATCH', '/api/admin/users/' + helper.id, { body: { role: 'staff' } })).json.role, 'staff', 'another administrator remains');
+});
+
+it('troubleshooting: email check, health check, sign out everyone else', async () => {
+  const mail = (await req('POST', '/api/admin/test-email', { body: {} })).json;
+  assert.equal(mail.ok, false);
+  assert.match(mail.error, /not set up/);
+  const d = (await req('GET', '/api/admin/diagnostics')).json;
+  assert.equal(d.email.configured, false);
+  assert.equal(d.database.ok, true);
+  assert.ok(d.accounts.supers >= 1);
+  const other = await signIn();
+  assert.ok((await req('POST', '/api/admin/sign-out-everyone', { body: {} })).json.signedOut >= 1);
+  assert.equal((await fetch(B + '/api/orders', { headers: { Cookie: other } })).status, 401);
+  assert.equal((await req('GET', '/api/orders')).status, 200, 'except this device');
+});
+
+it('insights: locked for staff unless the server switches it on; the administrator always sees it', async () => {
   const port = await freePort(), base = 'http://127.0.0.1:' + port;
   const { INSIGHTS_ENABLED, ...env } = process.env; // eslint-disable-line no-unused-vars
+  let out = '';
   const locked = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'index.js')],
-    { env: { ...env, PORT: String(port), ADMIN_PASSCODE: PASS, UPLOAD_DIR: uploads, NODE_ENV: 'test' }, stdio: 'ignore' });
+    { env: { ...env, PORT: String(port), UPLOAD_DIR: uploads, NODE_ENV: 'test', SIGNIN_LIMIT: '500' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  locked.stdout.on('data', (d) => { out += d; });
+  locked.stderr.on('data', (d) => { out += d; });
   try {
     for (let i = 0; i < 100; i++) {
       try { if ((await fetch(base + '/healthz')).ok) break; } catch (e) { /* not up yet */ }
-      await new Promise((r) => setTimeout(r, 200));
+      await sleep(200);
     }
     assert.equal((await fetch(base + '/api/insights')).status, 401);
-    const login = await fetch(base + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: PASS }) });
-    const Cookie = login.headers.get('set-cookie').split(';')[0];
-    const r = await fetch(base + '/api/insights', { headers: { Cookie } });
+    const temp = (await req('POST', '/api/admin/users', { body: { email: 'viewer@example.com' } })).json.tempPassword;
+    const viewer = await signIn('viewer@example.com', temp, base, () => out);
+    const changed = await fetch(base + '/api/admin/password', { method: 'PUT', headers: { 'Content-Type': 'application/json', Cookie: viewer }, body: JSON.stringify({ current: temp, password: 'garlic-naan-window-58' }) });
+    assert.equal(changed.status, 200);
+    const r = await fetch(base + '/api/insights', { headers: { Cookie: viewer } });
     assert.equal(r.status, 402);
     assert.ok(!('totals' in await r.json()));
+    const owner = await signIn(OWNER, PASS, base, () => out);
+    assert.equal((await fetch(base + '/api/insights', { headers: { Cookie: owner } })).status, 200);
   } finally { locked.kill(); }
 });
 
 it('sessions: one hour from login, not extended by use, refused once over', async () => {
   const { Client } = require('pg');
-  const login = await fetch(B + '/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ passcode: PASS }) });
-  const header = login.headers.get('set-cookie');
+  const since = log.length;
+  const { challenge } = await (await postJson(B, '/api/admin/login', { email: OWNER, password: PASS })).json();
+  const verified = await postJson(B, '/api/admin/verify', { challenge, code: await codeFrom(() => log, OWNER, since) });
+  const header = verified.headers.get('set-cookie');
   assert.match(header, /Max-Age=3600\b/);
   assert.match(header, /HttpOnly/);
   const mine = header.split(';')[0], get = (u) => fetch(B + u, { headers: { Cookie: mine } });

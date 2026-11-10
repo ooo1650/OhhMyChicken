@@ -1,17 +1,23 @@
 /* ==========================================================================
-   Admin auth — scrypt-hashed passcode in Postgres, random session tokens
-   in an httpOnly cookie (only a SHA-256 of the token is stored), a per-IP
-   lockout against passcode guessing plus an overall cap (many IPs guessing
-   together), and a log of sign-ins shown on the dashboard.
+   Dashboard sign-in, in two steps:
+     1. email + password (scrypt hash in admin_users), then
+     2. a 6-digit code sent to that email, valid for 10 minutes and 5 tries.
+   A session is a random token in an httpOnly cookie (only its SHA-256 is
+   stored) that lasts one hour from sign-in. Wrong tries are limited per IP,
+   per account and overall, and every sign-in is logged.
    ========================================================================== */
 'use strict';
 const crypto = require('crypto');
 const { pool } = require('./db');
-const { hashPasscode, verifyPasscode, weakness, MIN_PASS, MAX_PASS } = require('./passcode');
+const { hashPassword, verifyPassword, weakness, MAX_PASS } = require('./password');
 const { createBucket, clientKey, createGate } = require('./limit');
+const mail = require('./mail');
 
-// A sign-in lasts one hour from the moment of login: using the dashboard doesn't extend it.
-const TTL_MS = 60 * 60 * 1000;
+const TTL_MS = 60 * 60 * 1000;   // a sign-in lasts one hour, however much the dashboard is used
+const CODE_MS = 10 * 60 * 1000;  // an emailed code works for 10 minutes…
+const CODE_TRIES = 5;            // …and for 5 tries
+const RESEND_MS = 60 * 1000;     // a new code at most once a minute
+
 // Secure cookies by default in production. Set COOKIE_SECURE=false only when
 // serving plain HTTP on a private network (never on the public internet).
 const SECURE = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production';
@@ -20,6 +26,10 @@ const SECURE = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' 
 const COOKIE = SECURE ? '__Host-omc_admin' : 'omc_admin';
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+const normEmail = (e) => (typeof e === 'string' ? e.trim().toLowerCase().slice(0, 254) : '');
+const isToken = (t) => typeof t === 'string' && /^[a-f0-9]{64}$/.test(t);
+// "s•••@gmail.com": enough to recognise your own address on the code screen.
+const maskEmail = (e) => e.replace(/^(.)[^@]*/, (m, first) => first + '•••');
 
 function readCookie(req, name) {
   const header = req.headers.cookie || '';
@@ -31,40 +41,78 @@ function readCookie(req, name) {
   }
   return null;
 }
+const myToken = (req) => readCookie(req, COOKIE) || '';
 
 function setCookie(res, value, maxAgeMs) {
   res.append('Set-Cookie', COOKIE + '=' + encodeURIComponent(value) + '; Path=/; HttpOnly; SameSite=Strict' +
     (SECURE ? '; Secure' : '') + '; Max-Age=' + Math.floor(maxAgeMs / 1000));
 }
 
-// Milliseconds left in this request's session; 0 when there isn't a valid one.
-async function sessionLeft(req) {
-  const token = readCookie(req, COOKIE);
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return 0;
-  const { rows } = await pool.query('SELECT EXTRACT(EPOCH FROM expires_at - now()) * 1000 AS left_ms FROM admin_sessions WHERE token_hash = $1 AND expires_at > now()', [sha(token)]);
-  return rows.length ? Math.ceil(Number(rows[0].left_ms)) : 0;
+/* ---------- Who is signed in ---------- */
+// The account behind this request's session, with the time left; null without a valid one.
+async function currentUser(req) {
+  const token = myToken(req);
+  if (!isToken(token)) return null;
+  const { rows } = await pool.query(
+    `SELECT u.id, u.email, u.name, u.role, u.must_change, EXTRACT(EPOCH FROM s.expires_at - now()) * 1000 AS left_ms
+     FROM admin_sessions s JOIN admin_users u ON u.id = s.user_id
+     WHERE s.token_hash = $1 AND s.expires_at > now() AND u.active`, [sha(token)]);
+  if (!rows.length) return null;
+  const u = rows[0];
+  return { id: u.id, email: u.email, name: u.name, role: u.role, mustChange: u.must_change, leftMs: Math.ceil(Number(u.left_ms)) };
 }
-const sessionValid = async (req) => (await sessionLeft(req)) > 0;
+
+// Any signed-in account: only for the session, sign-out and choosing a new password.
+async function signedIn(req, res, next) {
+  req.user = await currentUser(req);
+  if (req.user) return next();
+  res.status(401).json({ error: 'Please sign in again.' });
+}
+// Everything else in the dashboard. A temporary password must be replaced first.
+function requireAdmin(req, res, next) {
+  signedIn(req, res, () => {
+    if (req.user.mustChange) return res.status(403).json({ error: 'Choose a new password first.' });
+    next();
+  });
+}
+// Account management and troubleshooting.
+function requireSuper(req, res, next) {
+  requireAdmin(req, res, () => {
+    if (req.user.role !== 'super') return res.status(403).json({ error: 'Only the site administrator can do that.' });
+    next();
+  });
+}
+
+async function status(req) {
+  const u = await currentUser(req);
+  if (!u) return { authed: false };
+  return { authed: true, user: { email: u.email, name: u.name, role: u.role, mustChange: u.mustChange }, expiresInMs: u.leftMs };
+}
 
 // Sessions from before the one-hour limit (or a longer setting) don't get to outlive it.
 async function capSessions() {
   await pool.query('UPDATE admin_sessions SET expires_at = now() + make_interval(secs => $1) WHERE expires_at > now() + make_interval(secs => $1)', [TTL_MS / 1000]);
 }
 
-async function requireAdmin(req, res, next) {
-  if (await sessionValid(req)) return next();
-  res.status(401).json({ error: 'Please unlock the dashboard again.' });
-}
-
-/* ---------- Brute-force guard: 8 wrong tries per IP → 15 min lockout ---------- */
-const MAX_TRIES = 8;
+/* ---------- Guessing limits ---------- */
+// 8 wrong tries per IP, or 10 against one account, lock that out for 15 minutes. Past 60
+// wrong tries in 15 minutes from anywhere, sign-in pauses for everyone (signed-in devices keep working).
+const MAX_TRIES = 8, MAX_ACCOUNT = 10, MAX_GLOBAL = 60, ALL = 'all';
 const failures = createBucket(15 * 60 * 1000);
-// Across all IPs: past this many wrong tries in 15 minutes, sign-in pauses for
-// everyone. Devices that are already signed in keep working.
-const MAX_GLOBAL = 60;
-const ALL = 'all';
-
 const BUSY = 'Sign-in is paused for a few minutes because of many wrong tries. Devices already signed in keep working.';
+const TOO_MANY = 'Too many tries. Wait 15 minutes and try again.';
+
+function blocked(req, email) {
+  if (failures.count(clientKey(req.ip)) >= MAX_TRIES) return TOO_MANY;
+  if (email && failures.count('acct:' + email) >= MAX_ACCOUNT) return TOO_MANY;
+  if (failures.count(ALL) >= MAX_GLOBAL) return BUSY;
+  return '';
+}
+function countFailure(req, email) {
+  failures.hit(clientKey(req.ip), MAX_TRIES);
+  if (email) failures.hit('acct:' + email, MAX_ACCOUNT);
+  failures.hit(ALL, MAX_GLOBAL);
+}
 
 // "Chrome on Android" and 203.0.113.x: enough to recognise your own devices, not to track anyone.
 function deviceOf(ua) {
@@ -78,76 +126,146 @@ function maskIp(ip) {
   if (/^\d+\.\d+\.\d+\.\d+$/.test(v)) return v.replace(/\.\d+$/, '.x');
   return v.includes(':') ? v.split(':').slice(0, 3).join(':') + ':…' : '';
 }
-async function record(req, ok) {
-  await pool.query('INSERT INTO admin_logins (ok, device, ip) VALUES ($1, $2, $3)', [ok, deviceOf(req.headers['user-agent']), maskIp(req.ip)]);
+async function record(req, ok, email) {
+  await pool.query('INSERT INTO admin_logins (ok, device, ip, email) VALUES ($1, $2, $3, $4)', [ok, deviceOf(req.headers['user-agent']), maskIp(req.ip), email || '']);
   await pool.query("DELETE FROM admin_logins WHERE at < now() - interval '90 days'");
-}
-
-// Whether the default passcode is still in use is only told to a signed-in
-// user: to anyone else it would say "the published passcode works here".
-async function status(req) {
-  const expiresInMs = await sessionLeft(req);
-  if (!expiresInMs) return { authed: false };
-  const { rows } = await pool.query('SELECT is_default FROM admin_auth WHERE id = 1');
-  return { authed: true, defaultPass: !!(rows[0] && rows[0].is_default), expiresInMs };
 }
 
 // scrypt is slow and memory-hungry on purpose. Cap how many run at once so a
 // flood of guesses from many IPs can't starve the rest of the server.
 const hashGate = createGate(2, 40);
+// Checked against when the email is unknown, so a wrong email takes as long as a wrong password.
+let decoy = null;
 
-async function checkPass(pass) {
+async function passwordMatches(user, pass) {
   if (typeof pass !== 'string' || !pass || pass.length > MAX_PASS) return false;
-  const { rows } = await pool.query('SELECT pass_hash FROM admin_auth WHERE id = 1');
-  return rows.length > 0 && hashGate.run(() => verifyPasscode(pass, rows[0].pass_hash));
+  if (!user) {
+    decoy = decoy || await hashPassword(crypto.randomBytes(16).toString('hex'));
+    await hashGate.run(() => verifyPassword(pass, decoy));
+    return false;
+  }
+  return hashGate.run(() => verifyPassword(pass, user.pass_hash));
+}
+
+/* ---------- Step 1: password, then a code by email ---------- */
+const newCode = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+const codeHash = (token, code) => sha(token + ':' + code);
+
+// Emails the code. If that fails, the code goes to the server log instead, so whoever
+// runs the server can still sign in (they can read the database anyway).
+async function sendCode(email, code) {
+  try {
+    await mail.send(email, 'Your dashboard sign-in code: ' + code,
+      'Your Ohh My Chicken Pizza Hub dashboard sign-in code is ' + code + '.\n\n' +
+      'It works for 10 minutes. If you did not try to sign in, someone knows your password: change it in Store → Security.\n');
+    return true;
+  } catch (e) {
+    console.warn('Sign-in code for ' + email + ': ' + code + ' (not emailed: ' + e.message + ')');
+    return false;
+  }
 }
 
 async function login(req, res) {
-  if (failures.count(clientKey(req.ip)) >= MAX_TRIES) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes and try again.' });
-  if (failures.count(ALL) >= MAX_GLOBAL) return res.status(429).json({ error: BUSY });
-  if (!(await checkPass(req.body && req.body.passcode))) {
-    failures.hit(clientKey(req.ip), MAX_TRIES);
-    failures.hit(ALL, MAX_GLOBAL);
-    await record(req, false);
-    const left = MAX_TRIES - failures.count(clientKey(req.ip));
-    return res.status(401).json({ error: left > 0 && left <= 3 ? 'Wrong passcode. ' + left + (left === 1 ? ' try' : ' tries') + ' left.' : 'Wrong passcode. Try again.' });
+  const b = req.body || {};
+  const email = normEmail(b.email);
+  const stop = blocked(req, email);
+  if (stop) return res.status(429).json({ error: stop });
+  const { rows } = await pool.query('SELECT id, email, pass_hash FROM admin_users WHERE email = $1 AND active', [email]);
+  if (!(await passwordMatches(rows[0], b.password))) {
+    countFailure(req, email);
+    await record(req, false, email);
+    return res.status(401).json({ error: 'Wrong email or password.' });
+  }
+  const token = crypto.randomBytes(32).toString('hex'), code = newCode();
+  await pool.query('DELETE FROM admin_challenges WHERE expires_at < now()');
+  await pool.query('INSERT INTO admin_challenges (token_hash, user_id, code_hash, expires_at) VALUES ($1, $2, $3, $4)',
+    [sha(token), rows[0].id, codeHash(token, code), new Date(Date.now() + CODE_MS)]);
+  const emailed = await sendCode(email, code);
+  res.json({ challenge: token, sentTo: maskEmail(email), emailed });
+}
+
+async function findChallenge(token) {
+  if (!isToken(token)) return null;
+  const { rows } = await pool.query(
+    `SELECT c.token_hash, c.code_hash, c.tries, c.sent_at, u.id AS user_id, u.email
+     FROM admin_challenges c JOIN admin_users u ON u.id = c.user_id
+     WHERE c.token_hash = $1 AND c.expires_at > now() AND u.active`, [sha(token)]);
+  return rows[0] || null;
+}
+const EXPIRED = 'That code has expired. Sign in again to get a new one.';
+
+/* ---------- Step 2: the code ---------- */
+async function verify(req, res) {
+  const b = req.body || {};
+  const stop = blocked(req);
+  if (stop) return res.status(429).json({ error: stop });
+  const ch = await findChallenge(b.challenge);
+  if (!ch || ch.tries >= CODE_TRIES) return res.status(400).json({ error: EXPIRED, expired: true });
+  const code = String(b.code || '').replace(/\D/g, '');
+  const right = code.length === 6 && crypto.timingSafeEqual(Buffer.from(codeHash(b.challenge, code)), Buffer.from(ch.code_hash));
+  if (!right) {
+    countFailure(req, ch.email);
+    await record(req, false, ch.email);
+    const left = CODE_TRIES - ch.tries - 1;
+    if (left <= 0) {
+      await pool.query('DELETE FROM admin_challenges WHERE token_hash = $1', [ch.token_hash]);
+      return res.status(400).json({ error: 'Too many wrong codes. Sign in again to get a new one.', expired: true });
+    }
+    await pool.query('UPDATE admin_challenges SET tries = tries + 1 WHERE token_hash = $1', [ch.token_hash]);
+    return res.status(401).json({ error: 'Wrong code. ' + left + (left === 1 ? ' try' : ' tries') + ' left.' });
   }
   failures.reset(clientKey(req.ip));
-  await record(req, true);
+  failures.reset('acct:' + ch.email);
+  await pool.query('DELETE FROM admin_challenges WHERE token_hash = $1', [ch.token_hash]);
   const token = crypto.randomBytes(32).toString('hex');
   await pool.query('DELETE FROM admin_sessions WHERE expires_at < now()');
-  await pool.query('INSERT INTO admin_sessions (token_hash, expires_at) VALUES ($1, $2)', [sha(token), new Date(Date.now() + TTL_MS)]);
+  await pool.query('INSERT INTO admin_sessions (token_hash, expires_at, user_id) VALUES ($1, $2, $3)', [sha(token), new Date(Date.now() + TTL_MS), ch.user_id]);
+  await pool.query('UPDATE admin_users SET last_login = now() WHERE id = $1', [ch.user_id]);
+  await record(req, true, ch.email);
   setCookie(res, token, TTL_MS);
   res.json({ ok: true });
 }
 
+async function resend(req, res) {
+  const ch = await findChallenge((req.body || {}).challenge);
+  if (!ch) return res.status(400).json({ error: EXPIRED, expired: true });
+  if (Date.now() - new Date(ch.sent_at).getTime() < RESEND_MS) return res.status(429).json({ error: 'Wait a minute before asking for another code.' });
+  const code = newCode();
+  await pool.query('UPDATE admin_challenges SET code_hash = $1, tries = 0, sent_at = now(), expires_at = $2 WHERE token_hash = $3',
+    [codeHash(req.body.challenge, code), new Date(Date.now() + CODE_MS), ch.token_hash]);
+  res.json({ emailed: await sendCode(ch.email, code) });
+}
+
 async function logout(req, res) {
-  const token = readCookie(req, COOKIE);
+  const token = myToken(req);
   if (token) await pool.query('DELETE FROM admin_sessions WHERE token_hash = $1', [sha(token)]);
   setCookie(res, '', 0);
   res.json({ ok: true });
 }
 
-// Needs the current passcode too, so an unlocked, unattended dashboard can't be
-// taken over. Changing it signs out every other session.
-async function changePasscode(req, res) {
+/* ---------- Your own account ---------- */
+// Needs the current password too, so an unlocked, unattended dashboard can't be taken
+// over. Signs out your other devices.
+async function changePassword(req, res) {
   const b = req.body || {};
-  const pass = typeof b.passcode === 'string' ? b.passcode : '';
-  const weak = weakness(pass);
-  if (weak) return res.status(400).json({ error: 'New passcode: ' + weak });
-  if (failures.count(clientKey(req.ip)) >= MAX_TRIES) return res.status(429).json({ error: 'Too many tries. Wait 15 minutes and try again.' });
-  if (!(await checkPass(b.current))) {
-    failures.hit(clientKey(req.ip), MAX_TRIES);
-    return res.status(400).json({ error: 'Current passcode is wrong.' });
+  const weak = weakness(b.password);
+  if (weak) return res.status(400).json({ error: 'New password: ' + weak });
+  const stop = blocked(req, req.user.email);
+  if (stop) return res.status(429).json({ error: stop });
+  const { rows } = await pool.query('SELECT pass_hash FROM admin_users WHERE id = $1', [req.user.id]);
+  if (!(await passwordMatches(rows[0], b.current))) {
+    countFailure(req, req.user.email);
+    return res.status(400).json({ error: 'Current password is wrong.' });
   }
-  await pool.query('UPDATE admin_auth SET pass_hash = $1, is_default = false, updated_at = now() WHERE id = 1', [await hashPasscode(pass)]);
-  await pool.query('DELETE FROM admin_sessions WHERE token_hash <> $1', [sha(readCookie(req, COOKIE) || '')]);
+  if (b.current === b.password) return res.status(400).json({ error: 'Choose a password different from the current one.' });
+  await pool.query('UPDATE admin_users SET pass_hash = $1, must_change = false WHERE id = $2', [await hashPassword(b.password), req.user.id]);
+  await pool.query('DELETE FROM admin_sessions WHERE user_id = $1 AND token_hash <> $2', [req.user.id, sha(myToken(req))]);
   res.json({ ok: true });
 }
 
-// "Sign out all other devices" (a lost phone, a staff member who left).
+// "Sign out my other devices" (a lost phone, a forgotten laptop).
 async function signOutOthers(req, res) {
-  const { rowCount } = await pool.query('DELETE FROM admin_sessions WHERE token_hash <> $1', [sha(readCookie(req, COOKIE) || '')]);
+  const { rowCount } = await pool.query('DELETE FROM admin_sessions WHERE user_id = $1 AND token_hash <> $2', [req.user.id, sha(myToken(req))]);
   res.json({ ok: true, signedOut: rowCount });
 }
 
@@ -161,14 +279,19 @@ function lastBackup() {
   } catch (e) { return null; }
 }
 
-// For the dashboard: recent sign-ins, wrong tries today, devices signed in now.
+// Recent sign-ins and wrong tries: staff see their own, the site administrator sees everyone's.
 async function security(req, res) {
+  const all = req.user.role === 'super';
+  const mine = all ? '' : ' AND email = $1', args = all ? [] : [req.user.email];
   const [recent, failed, sessions] = await Promise.all([
-    pool.query('SELECT at, ok, device, ip FROM admin_logins ORDER BY at DESC LIMIT 10'),
-    pool.query("SELECT count(*)::int AS n FROM admin_logins WHERE NOT ok AND at > now() - interval '24 hours'"),
-    pool.query('SELECT count(*)::int AS n FROM admin_sessions WHERE expires_at > now()')
+    pool.query('SELECT at, ok, device, ip, email FROM admin_logins WHERE true' + mine + ' ORDER BY at DESC LIMIT 10', args),
+    pool.query("SELECT count(*)::int AS n FROM admin_logins WHERE NOT ok AND at > now() - interval '24 hours'" + mine, args),
+    pool.query('SELECT count(*)::int AS n FROM admin_sessions WHERE expires_at > now() AND user_id = $1', [req.user.id])
   ]);
   res.json({ recent: recent.rows, failed24h: failed.rows[0].n, sessions: sessions.rows[0].n, paused: failures.count(ALL) >= MAX_GLOBAL, lastBackup: lastBackup() });
 }
 
-module.exports = { capSessions, requireAdmin, status, login, logout, changePasscode, signOutOthers, security, MIN_PASS, MAX_PASS };
+module.exports = {
+  capSessions, signedIn, requireAdmin, requireSuper, status, login, verify, resend, logout,
+  changePassword, signOutOthers, security, lastBackup, normEmail, sha, myToken
+};

@@ -1,6 +1,6 @@
 /* ==========================================================================
    JSON API. Public: bootstrap, menu, settings, placing orders.
-   Admin (session cookie): menu CMS, settings, passcode, orders log.
+   Admin (session cookie): menu CMS, settings, accounts, orders log.
    ========================================================================== */
 'use strict';
 const express = require('express');
@@ -8,6 +8,7 @@ const models = require('./models');
 const media = require('./media');
 const analytics = require('./analytics');
 const auth = require('./auth');
+const accounts = require('./accounts');
 const defaults = require('./defaults');
 const { totals } = require('./pricing');
 const validate = require('./validate');
@@ -82,10 +83,11 @@ router.delete('/media/:id', admin, async (req, res) => {
 /* ---------- Analytics (anonymous; see analytics.js) ---------- */
 // Beacons from the site. 204 either way: a visitor's browser never needs to know.
 router.post('/t', limit(60, 60 * 1000), async (req, res) => { await analytics.collect(req); res.status(204).end(); });
-// Insights is a paid extra: only whoever runs the server can switch it on (INSIGHTS_ENABLED=true).
+// Insights is a paid extra for the restaurant's staff: whoever runs the server switches it on
+// (INSIGHTS_ENABLED=true). The site administrator always sees it.
 const INSIGHTS_ENABLED = process.env.INSIGHTS_ENABLED === 'true';
 router.get('/insights', admin, async (req, res) => {
-  if (!INSIGHTS_ENABLED) return res.status(402).json({ error: 'Insights is not included in this plan.' });
+  if (!INSIGHTS_ENABLED && req.user.role !== 'super') return res.status(402).json({ error: 'Insights is not included in this plan.' });
   res.json(await analytics.insights(req.query.days));
 });
 
@@ -184,13 +186,28 @@ router.get('/orders.csv', admin, async (req, res) => {
 });
 router.delete('/orders', admin, async (req, res) => { await models.clearOrders(); res.json({ ok: true }); });
 
-/* ---------- Admin session ---------- */
+/* ---------- Signing in (see auth.js) ---------- */
+// Requests per IP per 15 minutes to the sign-in steps (SIGNIN_LIMIT; tests raise it).
+const signInLimit = limit(Number(process.env.SIGNIN_LIMIT) || 30, 15 * 60 * 1000, 'Too many tries. Wait a few minutes and try again.');
 router.get('/admin/session', async (req, res) => res.json(await auth.status(req)));
-router.post('/admin/login', limit(30, 15 * 60 * 1000, 'Too many tries. Wait a few minutes and try again.'), auth.login);
+router.post('/admin/login', signInLimit, auth.login);   // email + password → a code by email
+router.post('/admin/verify', signInLimit, auth.verify); // the code → signed in
+router.post('/admin/resend', signInLimit, auth.resend);
 router.post('/admin/logout', auth.logout);
-router.put('/admin/passcode', admin, auth.changePasscode);
+router.put('/admin/password', auth.signedIn, auth.changePassword);
 router.post('/admin/sign-out-others', admin, auth.signOutOthers);
 router.get('/admin/security', admin, auth.security);
+
+/* ---------- Accounts and troubleshooting: site administrator only (see accounts.js) ---------- */
+const sup = auth.requireSuper;
+router.get('/admin/users', sup, async (req, res) => res.json(await accounts.list()));
+router.post('/admin/users', sup, async (req, res) => res.status(201).json(await accounts.create(req.body || {})));
+router.patch('/admin/users/:id', sup, async (req, res) => res.json(await accounts.update(req.params.id, req.body || {}, req.user)));
+router.post('/admin/users/:id/reset-password', sup, async (req, res) => res.json(await accounts.resetPassword(req.params.id)));
+router.post('/admin/users/:id/sign-out', sup, async (req, res) => res.json(await accounts.signOut(req.params.id, req)));
+router.post('/admin/sign-out-everyone', sup, async (req, res) => res.json(await accounts.signOutEveryone(req)));
+router.post('/admin/test-email', sup, async (req, res) => res.json(await accounts.testEmail(req.user)));
+router.get('/admin/diagnostics', sup, async (req, res) => res.json(await accounts.diagnostics()));
 
 router.use((req, res) => res.status(404).json({ error: 'Not found.' }));
 

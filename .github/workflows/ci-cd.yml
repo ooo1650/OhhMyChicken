@@ -71,7 +71,7 @@ jobs:
       - name: Start the API for the end-to-end tests
         working-directory: backend
         run: |
-          PORT=4000 ADMIN_PASSCODE=ci-e2e-passcode UPLOAD_DIR="$RUNNER_TEMP/uploads" node src/index.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          PORT=4000 SUPER_ADMIN_EMAIL=ci@example.com ADMIN_PASSCODE=ci-e2e-passcode UPLOAD_DIR="$RUNNER_TEMP/uploads" node src/index.js > "$RUNNER_TEMP/api.log" 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4000/healthz && exit 0; sleep 1; done
           cat "$RUNNER_TEMP/api.log"; exit 1
 
@@ -92,6 +92,7 @@ jobs:
     timeout-minutes: 20
     env:
       POSTGRES_PASSWORD: ci-only-password
+      SUPER_ADMIN_EMAIL: ci@example.com
       ADMIN_PASSCODE: ci-docker-passcode
       PUBLIC_URL: http://localhost:3000
     steps:
@@ -116,7 +117,11 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/menu/nope)" = 404
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/orders)" = 401
           # A photo upload exercises sharp inside the Alpine image and the uploads volume.
-          curl -fsS -c jar -H 'Content-Type: application/json' -d "{\"passcode\":\"$ADMIN_PASSCODE\"}" http://127.0.0.1:3000/api/admin/login
+          # Sign in: password, then the code (no email here, so the backend logs it).
+          CHALLENGE=$(curl -fsS -H 'Content-Type: application/json' -d "{\"email\":\"$SUPER_ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSCODE\"}" http://127.0.0.1:3000/api/admin/login | python3 -c 'import json,sys;print(json.load(sys.stdin)["challenge"])')
+          sleep 1
+          CODE=$(docker compose logs backend | grep -o "Sign-in code for $SUPER_ADMIN_EMAIL: [0-9]\{6\}" | tail -1 | grep -o '[0-9]\{6\}$')
+          curl -fsS -c jar -H 'Content-Type: application/json' -d "{\"challenge\":\"$CHALLENGE\",\"code\":\"$CODE\"}" http://127.0.0.1:3000/api/admin/verify
           python3 -c "import zlib,struct;w=h=300;raw=b''.join(b'\x00'+b'\xd9\x82\x2b'*w for _ in range(h));c=lambda t,d:struct.pack('>I',len(d))+t+d+struct.pack('>I',zlib.crc32(t+d));open('t.png','wb').write(b'\x89PNG\r\n\x1a\n'+c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))+c(b'IDAT',zlib.compress(raw))+c(b'IEND',b''))"
           curl -fsS -b jar -H 'Content-Type: image/png' --data-binary @t.png http://127.0.0.1:3000/api/media | grep -q '"sizes"'
 

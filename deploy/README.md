@@ -55,7 +55,13 @@ Set these lines (leave the rest as they are):
 
 ```ini
 POSTGRES_PASSWORD=<the openssl value>
-ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # required: the app won't start without it
+SUPER_ADMIN_EMAIL=<your email: the dashboard administrator account>
+ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # that account's first password
+SMTP_HOST=smtp.gmail.com     # email for sign-in codes; Gmail needs an app password:
+SMTP_PORT=465                #   myaccount.google.com/apppasswords
+SMTP_USER=<the sending Gmail address>
+SMTP_PASS=<the 16-letter app password>
+MAIL_FROM=<the same address>
 PUBLIC_URL=http://SERVER-IP
 APP_PORT=3000
 APP_BIND=127.0.0.1          # only Nginx (step 5) can reach the app
@@ -76,7 +82,7 @@ docker compose ps                     # db, backend, frontend → "healthy"
 curl -fsS http://127.0.0.1:3000/healthz && curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/menu   # ok, 200
 ```
 
-If the backend keeps restarting, run `docker compose logs backend`. The most common cause is an empty or too-short `ADMIN_PASSCODE`.
+If the backend keeps restarting, run `docker compose logs backend`. The most common cause is a too-short `ADMIN_PASSCODE`. If sign-in codes don't arrive, use **Team → Send me a test email** in the dashboard: it shows the exact error. Until email works, codes are in `docker compose logs backend`.
 
 ## 5. Nginx in front
 
@@ -94,7 +100,7 @@ sudo nginx -t && sudo systemctl reload nginx
 **From the host**, open:
 
 - Site: **http://SERVER-IP**
-- Dashboard: **http://SERVER-IP/admin/** (log in with `ADMIN_PASSCODE`)
+- Dashboard: **http://SERVER-IP/admin/** (sign in with `SUPER_ADMIN_EMAIL` and `ADMIN_PASSCODE`, then the emailed code)
 
 And check that only Nginx is exposed:
 
@@ -175,14 +181,14 @@ sudo nginx -t && sudo systemctl reload nginx
 
 Run these from the **host** against the VM.
 
-**a) The project's security check:** [deploy/test/security-check.mjs](test/security-check.mjs) (Node 20+). It covers headers, open redirects, hidden files, size limits, bad input, access control, cross-site requests, photo uploads (fake, oversized, SVG, image bombs), order floods and passcode guessing.
+**a) The project's security check:** [deploy/test/security-check.mjs](test/security-check.mjs) (Node 20+). It covers headers, open redirects, hidden files, size limits, bad input, access control, cross-site requests, photo uploads (fake, oversized, SVG, image bombs), order floods and password guessing.
 
 ```bash
 cd ~/Documents/chicken
 node deploy/test/security-check.mjs http://SERVER-IP                                   # safe checks
-ADMIN_PASSCODE='your passcode' node deploy/test/security-check.mjs http://SERVER-IP    # + uploads & admin input
-ADMIN_PASSCODE='…' ORDERS=1 node deploy/test/security-check.mjs http://SERVER-IP       # + order flood (adds ~25 test orders)
-BRUTE=1 node deploy/test/security-check.mjs http://SERVER-IP                           # + passcode guessing: LOCKS your IP 15 min, run last
+ADMIN_EMAIL='you@…' ADMIN_PASSCODE='your password' node deploy/test/security-check.mjs http://SERVER-IP    # + uploads & admin input (asks for the code)
+ORDERS=1 node deploy/test/security-check.mjs http://SERVER-IP       # + order flood (adds ~25 test orders)
+BRUTE=1 node deploy/test/security-check.mjs http://SERVER-IP                           # + password guessing: LOCKS your IP 15 min, run last
 ```
 
 Every line should say `PASS` or `SKIP`. The two skips are HTTPS-only checks that pass in production. Afterwards:
@@ -213,7 +219,8 @@ git pull && docker compose up -d --build            # manual update (the runner 
 docker compose restart backend                      # clears login lockouts and rate-limit counters
 docker compose down -v && docker compose up -d      # WIPE the test database and photos, start fresh
 docker compose exec backend node src/db.js reset-menu   # replace only the menu with the one in the code (keeps orders, settings, photos)
-docker compose exec backend node src/db.js set-passcode # staff forgot the passcode: set a new one (signs everyone out)
+docker compose exec backend node src/db.js set-password you@example.com   # administrator locked out: set a new password
+docker compose logs backend | grep 'Sign-in code'                       # sign-in codes, while email isn't working
 docker compose exec -T backend node src/db.js customers > customers.csv   # opt-in customer list (keep the file private)
 docker compose exec backend node src/db.js forget-customer 98XXXXXXXX     # remove someone on request
 docker compose logs backup && ls -lh backups/          # automatic backups (start-up + nightly 3 AM)

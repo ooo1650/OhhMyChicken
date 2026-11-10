@@ -163,3 +163,30 @@ CREATE TABLE IF NOT EXISTS data_changes (
   id TEXT PRIMARY KEY,
   at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- v1.9: named dashboard accounts. Signing in takes the password and then a code sent by
+-- email. "super" accounts (whoever runs the site) manage the others; "staff" run the restaurant.
+-- (admin_auth, the old shared passcode, is only read once to create the first super account.)
+CREATE TABLE IF NOT EXISTS admin_users (
+  id          SERIAL PRIMARY KEY,
+  email       TEXT        NOT NULL UNIQUE,          -- stored lowercase
+  name        TEXT        NOT NULL DEFAULT '',
+  role        TEXT        NOT NULL DEFAULT 'staff' CHECK (role IN ('super', 'staff')),
+  pass_hash   TEXT        NOT NULL,
+  active      BOOLEAN     NOT NULL DEFAULT TRUE,
+  must_change BOOLEAN     NOT NULL DEFAULT FALSE,   -- a temporary password: choose a new one first
+  last_login  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- A sign-in half done: the password was right, the emailed code is awaited.
+CREATE TABLE IF NOT EXISTS admin_challenges (
+  token_hash TEXT        PRIMARY KEY,
+  user_id    INTEGER     NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+  code_hash  TEXT        NOT NULL,
+  tries      INTEGER     NOT NULL DEFAULT 0,
+  sent_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE admin_sessions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES admin_users(id) ON DELETE CASCADE;
+DELETE FROM admin_sessions WHERE user_id IS NULL; -- sessions from the shared-passcode days
+ALTER TABLE admin_logins ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT '';
