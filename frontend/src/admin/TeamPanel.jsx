@@ -33,7 +33,7 @@ export function TeamPanel({ hidden, me }) {
     if (u.active && !(await confirm('Switch off ' + u.email + '? They are signed out and can\'t sign in until you switch the account back on.', 'Switch off'))) return;
     act(() => admin.updateUser(u.id, { active: !u.active }), u.email + (u.active ? ' switched off' : ' switched on'));
   }
-  const setRole = (u, role) => act(() => admin.updateUser(u.id, { role }), u.email + ' is now ' + (role === 'super' ? 'an administrator' : 'staff'));
+  const setRole = (u, role) => act(() => admin.updateUser(u.id, { role }), u.email + ' is now ' + (role === 'super' ? 'a site admin' : 'a restaurant account'));
   const signOut = (u) => act(() => admin.signOutUser(u.id), u.email + ' signed out everywhere');
 
   return (
@@ -41,7 +41,7 @@ export function TeamPanel({ hidden, me }) {
       <div className="panel-head">
         <div>
           <h2><Icon name="users" /> Team</h2>
-          <p className="muted tiny">Only you see this tab. Staff sign in with their own email and password, then a code sent to that email.</p>
+          <p className="muted tiny">Only site admins (PaperKite) see this tab. Restaurant accounts sign in with their own email and password, then a code sent to that email.</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function TeamPanel({ hidden, me }) {
                       <b>{u.name || u.email}</b>
                       <span className="tiny muted">{u.name ? u.email + ' · ' : ''}last sign-in {when(u.lastLogin)}</span>
                       <span className="team-tags">
-                        <em className={'team-role ' + u.role}>{u.role === 'super' ? 'Administrator' : 'Staff'}</em>
+                        <em className={'team-role ' + u.role}>{u.role === 'super' ? 'Site admin (PaperKite)' : 'Restaurant'}</em>
                         {!u.active && <em className="team-tag bad">Switched off</em>}
                         {u.mustChange && <em className="team-tag">Temporary password</em>}
                         {u.sessions > 0 && <em className="team-tag ok">Signed in on {u.sessions}</em>}
@@ -93,7 +93,7 @@ export function TeamPanel({ hidden, me }) {
                       <div className="team-actions">
                         <button type="button" className="btn btn-outline btn-sm" onClick={() => resetPassword(u)}>Reset password</button>
                         {u.sessions > 0 && <button type="button" className="btn btn-outline btn-sm" onClick={() => signOut(u)}>Sign out</button>}
-                        <button type="button" className="btn btn-link btn-sm" onClick={() => setRole(u, u.role === 'super' ? 'staff' : 'super')}>{u.role === 'super' ? 'Make staff' : 'Make administrator'}</button>
+                        <button type="button" className="btn btn-link btn-sm" onClick={() => setRole(u, u.role === 'super' ? 'staff' : 'super')}>{u.role === 'super' ? 'Make restaurant account' : 'Make site admin'}</button>
                         <button type="button" className={'btn btn-link btn-sm' + (u.active ? ' danger' : '')} onClick={() => toggleActive(u)}>{u.active ? 'Switch off' : 'Switch on'}</button>
                       </div>
                     )}
@@ -133,8 +133,8 @@ function AddAccount({ onAdded }) {
       <div className="team-add-row">
         <label className="field"><span>Role</span>
           <select value={f.role} onChange={set('role')}>
-            <option value="staff">Staff: the parts you tick (all, to start)</option>
-            <option value="super">Administrator: everything, plus this Team tab</option>
+            <option value="staff">Restaurant: the parts you tick (all, to start)</option>
+            <option value="super">Site admin (PaperKite): everything, plus this Team tab</option>
           </select>
         </label>
         <button type="submit" className="btn btn-red btn-sm"><Icon name="plus" /> Add</button>

@@ -348,16 +348,16 @@ function lastBackup() {
   } catch (e) { return null; }
 }
 
-// Recent sign-ins and wrong tries: staff see their own, the site administrator sees everyone's.
+// Your devices signed in now. The site administrator (the web provider) also gets the
+// sign-in log, wrong tries and backups; restaurant accounts don't, that's the provider's job.
 async function security(req, res) {
-  const all = req.user.role === 'super';
-  const mine = all ? '' : ' AND email = $1', args = all ? [] : [req.user.email];
-  const [recent, failed, sessions] = await Promise.all([
-    pool.query('SELECT at, ok, device, ip, email FROM admin_logins WHERE true' + mine + ' ORDER BY at DESC LIMIT 10', args),
-    pool.query("SELECT count(*)::int AS n FROM admin_logins WHERE NOT ok AND at > now() - interval '24 hours'" + mine, args),
-    pool.query('SELECT count(*)::int AS n FROM admin_sessions WHERE expires_at > now() AND user_id = $1', [req.user.id])
+  const { rows } = await pool.query('SELECT count(*)::int AS n FROM admin_sessions WHERE expires_at > now() AND user_id = $1', [req.user.id]);
+  if (req.user.role !== 'super') return res.json({ sessions: rows[0].n });
+  const [recent, failed] = await Promise.all([
+    pool.query('SELECT at, ok, device, ip, email FROM admin_logins ORDER BY at DESC LIMIT 10'),
+    pool.query("SELECT count(*)::int AS n FROM admin_logins WHERE NOT ok AND at > now() - interval '24 hours'")
   ]);
-  res.json({ recent: recent.rows, failed24h: failed.rows[0].n, sessions: sessions.rows[0].n, paused: failures.count(ALL) >= MAX_GLOBAL, lastBackup: lastBackup() });
+  res.json({ recent: recent.rows, failed24h: failed.rows[0].n, sessions: rows[0].n, paused: failures.count(ALL) >= MAX_GLOBAL, lastBackup: lastBackup() });
 }
 
 module.exports = {

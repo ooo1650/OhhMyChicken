@@ -452,7 +452,7 @@ it('accounts: the administrator adds staff, who must choose their own password f
   assert.equal((await as('/api/admin/users')).status, 403, 'staff can\'t manage accounts');
   assert.equal((await as('/api/admin/diagnostics')).status, 403);
   const staffSec = await (await as('/api/admin/security')).json();
-  assert.ok(staffSec.recent.every((r) => r.email === 'cook@example.com'), 'staff see only their own sign-ins');
+  assert.deepEqual(Object.keys(staffSec), ['sessions'], 'restaurant accounts get only their own device count: no log, wrong tries or backups');
 
   const list = (await req('GET', '/api/admin/users')).json, cook = list.find((u) => u.email === 'cook@example.com');
   assert.equal(cook.role, 'staff');

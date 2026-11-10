@@ -143,7 +143,8 @@ export function SettingsPanel({ hidden, canStore }) {
   );
 }
 
-// Who signed in recently, wrong tries, and a way to sign out lost or old devices.
+// Your devices, and a way to sign out lost or old ones. For the site administrator only, the
+// server also sends the sign-in log, wrong tries and the last backup.
 function SignIns({ visible }) {
   const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
   const [info, setInfo] = useState(null);
@@ -173,7 +174,7 @@ function SignIns({ visible }) {
         <p className={'signins-warn' + (info.failed24h >= 5 ? ' bad' : '')}><Icon name="alert" /> {info.failed24h} wrong password or code tr{info.failed24h === 1 ? 'y' : 'ies'} in the last 24 hours.
           {info.failed24h >= 5 && ' If that wasn\'t you or your staff, change your password.'}{info.paused && ' Sign-in is paused for a few minutes.'}</p>
       )}
-      {info.recent.length > 0 && (
+      {info.recent && info.recent.length > 0 && (
         <ul className="signins-list" aria-label="Recent sign-ins">
           {info.recent.map((r, i) => (
             <li key={i} className={r.ok ? '' : 'fail'}>
