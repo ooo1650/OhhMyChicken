@@ -102,6 +102,8 @@ export function AdminProvider({ boot, children }) {
     resetPassword: (id) => api('POST', 'admin/users/' + id + '/reset-password'), // → { tempPassword }
     signOutUser: (id) => api('POST', 'admin/users/' + id + '/sign-out'),
     signOutEveryone: () => api('POST', 'admin/sign-out-everyone'),
+    mailSettings: () => api('GET', 'admin/mail'),
+    saveMail: (m) => api('PUT', 'admin/mail', m), // a blank password keeps the saved one
     testEmail: () => api('POST', 'admin/test-email'),
     diagnostics: () => api('GET', 'admin/diagnostics'),
 

@@ -153,17 +153,13 @@ async function once(c, id, change) {
   if (rowCount) await change(c);
 }
 
-// The first dashboard account: the site administrator, from SUPER_ADMIN_EMAIL. Its password is
+// The first dashboard account: the site administrator (PaperKite unless SUPER_ADMIN_EMAIL says otherwise). Its password is
 // the shared passcode the dashboard used before accounts existed (so nobody is locked out by an
 // upgrade), or else ADMIN_PASSCODE. Once an administrator exists, neither setting is used again.
 async function firstAdministrator(c) {
   const { rows } = await c.query("SELECT count(*)::int AS n FROM admin_users WHERE role = 'super' AND active");
   if (rows[0].n) return;
-  const email = String(process.env.SUPER_ADMIN_EMAIL || '').trim().toLowerCase();
-  if (!email) {
-    console.warn('No dashboard account yet. Set SUPER_ADMIN_EMAIL and ADMIN_PASSCODE, or run: node src/db.js add-admin you@example.com --super');
-    return;
-  }
+  const email = String(process.env.SUPER_ADMIN_EMAIL || 'paperkite.contact@gmail.com').trim().toLowerCase();
   const old = await c.query('SELECT pass_hash FROM admin_auth WHERE id = 1');
   let hash = old.rows.length ? old.rows[0].pass_hash : '';
   const envPass = process.env.ADMIN_PASSCODE || '';
@@ -173,7 +169,7 @@ async function firstAdministrator(c) {
     hash = await hashPassword(envPass);
   }
   if (!hash) {
-    console.warn('SUPER_ADMIN_EMAIL is set but there is no password for it: set ADMIN_PASSCODE too.');
+    console.warn('No dashboard account yet: set ADMIN_PASSCODE (the first password for ' + email + '), or run: node src/db.js add-admin ' + email + ' --super');
     return;
   }
   await c.query(`INSERT INTO admin_users (email, name, role, pass_hash) VALUES ($1, 'Site administrator', 'super', $2)

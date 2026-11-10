@@ -9,6 +9,7 @@ const media = require('./media');
 const analytics = require('./analytics');
 const auth = require('./auth');
 const accounts = require('./accounts');
+const mail = require('./mail');
 const defaults = require('./defaults');
 const { totals } = require('./pricing');
 const validate = require('./validate');
@@ -206,6 +207,8 @@ router.patch('/admin/users/:id', sup, async (req, res) => res.json(await account
 router.post('/admin/users/:id/reset-password', sup, async (req, res) => res.json(await accounts.resetPassword(req.params.id)));
 router.post('/admin/users/:id/sign-out', sup, async (req, res) => res.json(await accounts.signOut(req.params.id, req)));
 router.post('/admin/sign-out-everyone', sup, async (req, res) => res.json(await accounts.signOutEveryone(req)));
+router.get('/admin/mail', sup, async (req, res) => res.json(await mail.status()));   // who sends sign-in codes
+router.put('/admin/mail', sup, async (req, res) => res.json(await mail.save(req.body || {}, fail)));
 router.post('/admin/test-email', sup, async (req, res) => res.json(await accounts.testEmail(req.user)));
 router.get('/admin/diagnostics', sup, async (req, res) => res.json(await accounts.diagnostics()));
 

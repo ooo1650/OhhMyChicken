@@ -481,9 +481,9 @@ it('accounts: the last administrator can\'t be removed, and you can\'t lock your
 it('troubleshooting: email check, health check, sign out everyone else', async () => {
   const mail = (await req('POST', '/api/admin/test-email', { body: {} })).json;
   assert.equal(mail.ok, false);
-  assert.match(mail.error, /not set up/);
+  assert.match(mail.error, /No password saved for paperkite\.contact@gmail\.com/);
   const d = (await req('GET', '/api/admin/diagnostics')).json;
-  assert.equal(d.email.configured, false);
+  assert.equal(d.email.ready, false);
   assert.equal(d.database.ok, true);
   assert.ok(d.accounts.supers >= 1);
   const other = await signIn();
@@ -664,6 +664,30 @@ it('menu: tuna has its own category, and it still counts as a pizza', async () =
   assert.equal(tuna.category, 'fish');
   assert.equal(tuna.isPizza, true);
   assert.match((await req('GET', '/api/settings')).json.deliveryNote, /outlet confirms/);
+});
+
+it('email sender: the administrator sets it; the password is never shown, and stays with its login', async () => {
+  const before = (await req('GET', '/api/admin/mail')).json;
+  assert.deepEqual(before, { from: 'paperkite.contact@gmail.com', host: 'smtp.gmail.com', port: 465, user: '', hasPassword: false, ready: false, source: 'default' });
+  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'not-an-email' } })).status, 400);
+  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'a@b.co', host: 'smtp.gmail.com; rm', port: 465 } })).status, 400);
+  const saved = (await req('PUT', '/api/admin/mail', { body: { from: 'Codes@PaperKite.com', password: 'abcd efgh ijkl mnop' } })).json;
+  assert.equal(saved.from, 'codes@paperkite.com');
+  assert.equal(saved.hasPassword, true);
+  assert.equal(saved.source, 'dashboard');
+  assert.ok(!JSON.stringify(saved).includes('abcd'), 'the password never comes back');
+  assert.ok(!JSON.stringify((await req('GET', '/api/settings')).json).includes('abcd'), 'nor appears in the public settings');
+  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'codes@paperkite.com', port: 587 } })).json.hasPassword, true, 'a blank password keeps it');
+  assert.equal((await req('PUT', '/api/admin/mail', { body: { from: 'other@paperkite.com' } })).json.hasPassword, false, 'a new sender needs its own password');
+  const staffTemp = (await req('POST', '/api/admin/users', { body: { email: 'mailtest@example.com' } })).json.tempPassword;
+  const staff = await signIn('mailtest@example.com', staffTemp);
+  assert.equal((await fetch(B + '/api/admin/mail', { headers: { Cookie: staff } })).status, 403);
+  // Back to the default, so nothing here tries to reach a real mail server.
+  const { Client } = require('pg');
+  const db = new Client({ connectionString: DB });
+  await db.connect();
+  await db.query('DELETE FROM mail_settings');
+  await db.end();
 });
 
 it('logout ends the session', async () => {

@@ -55,13 +55,9 @@ Set these lines (leave the rest as they are):
 
 ```ini
 POSTGRES_PASSWORD=<the openssl value>
-SUPER_ADMIN_EMAIL=<your email: the dashboard administrator account>
-ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # that account's first password
-SMTP_HOST=smtp.gmail.com     # email for sign-in codes; Gmail needs an app password:
-SMTP_PORT=465                #   myaccount.google.com/apppasswords
-SMTP_USER=<the sending Gmail address>
-SMTP_PASS=<the 16-letter app password>
-MAIL_FROM=<the same address>
+ADMIN_PASSCODE=<10+ characters, not easy to guess, only you know it>   # first password of the administrator account
+# The administrator account is paperkite.contact@gmail.com (set SUPER_ADMIN_EMAIL to use another).
+# After signing in, add the sender's Gmail app password in Team → Email (myaccount.google.com/apppasswords).
 PUBLIC_URL=http://SERVER-IP
 APP_PORT=3000
 APP_BIND=127.0.0.1          # only Nginx (step 5) can reach the app
@@ -100,7 +96,7 @@ sudo nginx -t && sudo systemctl reload nginx
 **From the host**, open:
 
 - Site: **http://SERVER-IP**
-- Dashboard: **http://SERVER-IP/admin/** (sign in with `SUPER_ADMIN_EMAIL` and `ADMIN_PASSCODE`, then the emailed code)
+- Dashboard: **http://SERVER-IP/admin/** (sign in with `paperkite.contact@gmail.com` and `ADMIN_PASSCODE`; until email is set up, the code is in `docker compose logs backend`)
 
 And check that only Nginx is exposed:
 

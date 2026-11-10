@@ -1,6 +1,7 @@
 /* Team — for the site administrator only: dashboard accounts (add, reset a
-   forgotten password, switch off, sign out) and checks for when something
-   isn't working (email, database, backups). The server enforces all of it. */
+   forgotten password, switch off, sign out), who sends the sign-in codes,
+   and checks for when something isn't working (email, database, backups).
+   The server enforces all of it. */
 import { useEffect, useState } from 'react';
 import { useAdmin } from './store.jsx';
 import { useConfirm } from './confirm.jsx';
@@ -85,7 +86,10 @@ export function TeamPanel({ hidden, me }) {
           )}
           <AddAccount onAdded={(email, password) => { setTemp({ email, password }); load(); }} />
         </div>
-        <Troubleshoot accounts={users} />
+        <div className="team-side">
+          <EmailSender />
+          <Troubleshoot accounts={users} />
+        </div>
       </div>
     </div>
   );
@@ -119,6 +123,41 @@ function AddAccount({ onAdded }) {
   );
 }
 
+// Who sends the sign-in codes. The password is write-only: the server never sends it back.
+function EmailSender() {
+  const admin = useAdmin(), toast = useToast();
+  const [m, setM] = useState(null);
+  const [f, setF] = useState(null);
+  const fill = (s) => { setM(s); setF({ from: s.from, password: '', host: s.host, port: s.port, user: s.user }); };
+  useEffect(() => { admin.mailSettings().then(fill, (e) => toast(e.message, 'error')); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
+  function submit(e) {
+    e.preventDefault();
+    admin.saveMail(f).then((s) => { fill(s); toast(s.ready ? 'Sender saved. Send yourself a test email below.' : 'Sender saved. Add its password to start sending.'); }, (err) => toast(err.message, 'error'));
+  }
+  if (!f) return <div className="panel-card"><h3>Email</h3><p className="muted">Loading…</p></div>;
+  const gmail = /gmail\.com$/.test(f.host);
+  return (
+    <form className="panel-card team-mail" onSubmit={submit}>
+      <h3>Email <small className={m.ready ? 'ok' : 'bad'}>{m.ready ? 'sending sign-in codes' : 'not sending yet: codes go to the server log'}</small></h3>
+      <label className="field"><span>Sender email</span><input type="email" required value={f.from} onChange={set('from')} /></label>
+      <label className="field"><span>{gmail ? 'Gmail app password' : 'Password'} {m.hasPassword && <em>(saved: leave blank to keep it)</em>}</span>
+        <input type="password" autoComplete="new-password" value={f.password} onChange={set('password')} placeholder={m.hasPassword ? '••••••••••••••••' : gmail ? '16 letters, from Google' : ''} />
+      </label>
+      {gmail && <p className="tiny muted"><Icon name="info" /> Not the Gmail password: an <b>app password</b>. Turn on 2-step verification for that Google account, then create one at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">myaccount.google.com/apppasswords</a>. Changing the sender address needs that account's app password.</p>}
+      <details className="team-mail-more">
+        <summary>Another email service</summary>
+        <div className="field-row">
+          <label className="field"><span>Server</span><input value={f.host} onChange={set('host')} placeholder="smtp.gmail.com" /></label>
+          <label className="field"><span>Port</span><input type="number" value={f.port} onChange={set('port')} placeholder="465" /></label>
+        </div>
+        <label className="field"><span>Login <em>(if it isn't the sender email)</em></span><input value={f.user} onChange={set('user')} /></label>
+      </details>
+      <button type="submit" className="btn btn-red btn-sm">Save sender</button>
+    </form>
+  );
+}
+
 // Answers "why isn't it working?" without logging in to the server.
 function Troubleshoot({ accounts }) {
   const admin = useAdmin(), toast = useToast(), confirm = useConfirm();
@@ -139,7 +178,7 @@ function Troubleshoot({ accounts }) {
     <div className="panel-card">
       <div className="panel-head"><h3>Checks</h3><button type="button" className="btn btn-link btn-sm" onClick={load}>Check again</button></div>
       <ul className="checks">
-        {row('Sign-in email', d.email.configured ? 'from ' + d.email.from : 'not set up: codes go to the server log', !d.email.configured)}
+        {row('Sign-in email', d.email.ready ? 'from ' + d.email.from : 'no password for ' + d.email.from + ': codes go to the server log', !d.email.ready)}
         {row('Database', 'answering in ' + d.database.ms + ' ms (' + d.database.version + ')')}
         {row('Last backup', d.lastBackup === 'not set up' ? 'not set up on this server' : d.lastBackup ? when(d.lastBackup) + (backupOld ? ': over 2 days ago' : '') : 'none found', !d.lastBackup || backupOld)}
         {row('Last order', when(d.lastOrder))}

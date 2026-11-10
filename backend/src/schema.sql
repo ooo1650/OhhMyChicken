@@ -190,3 +190,15 @@ CREATE TABLE IF NOT EXISTS admin_challenges (
 ALTER TABLE admin_sessions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES admin_users(id) ON DELETE CASCADE;
 DELETE FROM admin_sessions WHERE user_id IS NULL; -- sessions from the shared-passcode days
 ALTER TABLE admin_logins ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT '';
+
+-- v1.10: who sends the sign-in codes, set by the site administrator in Team → Email.
+-- Kept apart from `settings`, which the public site reads; the password never leaves the server.
+CREATE TABLE IF NOT EXISTS mail_settings (
+  id         SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  sender     TEXT        NOT NULL,            -- the "from" address (and the login, unless username is set)
+  host       TEXT        NOT NULL DEFAULT 'smtp.gmail.com',
+  port       INTEGER     NOT NULL DEFAULT 465,
+  username   TEXT        NOT NULL DEFAULT '', -- only for services whose login isn't the sender address
+  password   TEXT        NOT NULL DEFAULT '', -- e.g. a Gmail app password
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

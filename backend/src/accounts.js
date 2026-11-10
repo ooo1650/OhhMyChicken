@@ -101,7 +101,8 @@ async function signOutEveryone(req) {
 /* ---------- Troubleshooting ---------- */
 // Sends a test email to your own address and reports exactly what went wrong.
 async function testEmail(me) {
-  if (!mail.configured()) return { ok: false, error: 'Email is not set up: SMTP_HOST and MAIL_FROM are empty on the server.' };
+  const m = await mail.status();
+  if (!m.ready) return { ok: false, error: 'No password saved for ' + m.from + ': add it in Email above.' };
   try {
     await mail.send(me.email, 'Test email from your dashboard', 'This is a test. Sign-in codes will arrive like this.\n');
     return { ok: true, to: me.email };
@@ -120,7 +121,7 @@ async function diagnostics() {
     pool.query('SELECT max(created_at) AS last FROM orders')
   ]);
   return {
-    email: { configured: mail.configured(), from: mail.from() || null },
+    email: await mail.status(),
     database: { ok: true, ms: Date.now() - t0, version: db.rows[0].v.split(' ').slice(0, 2).join(' ') },
     accounts: accounts.rows[0],
     signedInNow: sessions.rows[0].n,
