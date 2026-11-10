@@ -220,6 +220,8 @@ router.get('/admin/session', async (req, res) => res.json(await auth.status(req)
 router.post('/admin/login', signInLimit, auth.login);   // email + password → a code by email
 router.post('/admin/verify', signInLimit, auth.verify); // the code → signed in
 router.post('/admin/resend', signInLimit, auth.resend);
+router.post('/admin/forgot', signInLimit, auth.forgot);         // forgot password: a code by email…
+router.post('/admin/reset', signInLimit, auth.resetPassword);   // …then the code and a new password
 router.post('/admin/logout', auth.logout);
 router.put('/admin/password', auth.signedIn, auth.changePassword);
 router.post('/admin/sign-out-others', admin, auth.signOutOthers);

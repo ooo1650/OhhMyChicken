@@ -164,7 +164,7 @@ docker compose exec backend node src/db.js forget-customer 9841234567       # so
 
 **Sessions:** a dashboard sign-in lasts one hour from login, whatever the staff do in that time. The dashboard warns 5 minutes before the end, then locks itself, and the server refuses the session from then on.
 
-**Forgotten password:** the administrator resets it in the Team tab. If the administrator is locked out, whoever runs the server sets a new one (the account is switched back on and signed out everywhere), or adds an account:
+**Forgotten password:** anyone, staff or administrator, uses *Forgot your password?* on the sign-in page: a 6-digit code goes to their email (only if it is an active account; the page says the same either way), and the code plus a new password set it. Every device is then signed out, and the change shows in *Recent changes*. The administrator can also reset anyone's password in the Team tab. If the administrator is locked out and email isn't working, whoever runs the server sets a new one (the account is switched back on and signed out everywhere), or adds an account:
 
 ```bash
 docker compose exec backend node src/db.js set-password owner@example.com         # asks twice, typing stays hidden

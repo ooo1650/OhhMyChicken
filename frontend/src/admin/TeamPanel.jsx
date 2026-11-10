@@ -147,7 +147,7 @@ function AddAccount({ onAdded }) {
 const ACTIONS = {
   'account.create': 'added an account', 'account.change': 'changed an account', 'account.reset-password': 'reset a password',
   'account.sign-out': 'signed someone out', 'sessions.sign-out-everyone': 'signed everyone out', feature: 'switched a feature',
-  'email.sender': 'changed the email sender', 'store.reset': 'reset the store settings', 'orders.clear': 'deleted all orders'
+  'email.sender': 'changed the email sender', 'password.forgot': 'set a new password (forgot password)', 'store.reset': 'reset the store settings', 'orders.clear': 'deleted all orders'
 };
 function RecentChanges() {
   const admin = useAdmin();
@@ -224,7 +224,7 @@ function EmailSender() {
       <label className="field"><span>Sender email {f.provider === 'brevo' && <em>(a sender verified in Brevo)</em>}</span><input type="email" required maxLength="254" value={f.from} onChange={set('from')} /></label>
       {f.provider !== 'gmail' && (
         <label className="field"><span>{f.provider === 'brevo' ? 'SMTP login' : 'Login'} {f.provider === 'other' && <em>(if it isn't the sender email)</em>}</span>
-          <input value={f.user} onChange={set('user')} required={f.provider === 'brevo'} maxLength="254" pattern="\\S+" title="No spaces" placeholder={f.provider === 'brevo' ? 'e.g. 8a1b2c001@smtp-brevo.com' : ''} />
+          <input value={f.user} onChange={set('user')} required={f.provider === 'brevo'} maxLength="254" pattern="\S+" title="No spaces" placeholder={f.provider === 'brevo' ? 'e.g. 8a1b2c001@smtp-brevo.com' : ''} />
         </label>
       )}
       <label className="field"><span>{f.provider === 'brevo' ? 'SMTP key' : f.provider === 'gmail' ? 'Gmail app password' : 'Password'} {keep}</span>

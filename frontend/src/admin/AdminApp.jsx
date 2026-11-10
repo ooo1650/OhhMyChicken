@@ -35,8 +35,11 @@ const tabsFor = (user) => TABS.filter((t) => (t.superOnly ? user.role === 'super
   .map((t) => (t.id === 'settings' && !user.permissions.includes('store') ? { ...t, label: 'Account' } : t));
 
 // Step 1: email and password. Step 2: the 6-digit code emailed to that address.
+// "Forgot your password?" switches to the reset screens below.
 function Login({ error: initialError, onUnlocked }) {
   const admin = useAdmin();
+  const [forgot, setForgot] = useState(null); // null, or { email } while resetting
+  const [notice, setNotice] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [step, setStep] = useState(null); // { challenge, sentTo, emailed } once the password was right
@@ -70,6 +73,9 @@ function Login({ error: initialError, onUnlocked }) {
     run(() => admin.resendCode(step.challenge).then((r) => { setError(''); setStep({ ...step, emailed: r.emailed }); }, failed));
   }
 
+  if (forgot) {
+    return <ForgotPassword email={forgot.email} onDone={(msg) => { setForgot(null); setStep(null); setPassword(''); setError(''); setNotice(msg || ''); }} />;
+  }
   return (
     <main className="login-screen">
       {!step ? (
@@ -77,14 +83,12 @@ function Login({ error: initialError, onUnlocked }) {
           <div className="lock-ico" aria-hidden="true"><Icon name="lock" /></div>
           <h1>Staff dashboard</h1>
           <p className="muted">Sign in to manage the menu and orders.</p>
+          {notice && <p className="login-notice" role="status">{notice}</p>}
           <input type="email" ref={firstRef} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="username" aria-label="Email" required maxLength="254" />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" aria-label="Password" required maxLength="128" />
           <p className="form-error" aria-live="assertive">{error}</p>
           <button type="submit" className="btn btn-red btn-block" disabled={busy}>{busy ? 'Checking…' : 'Continue'}</button>
-          <details className="login-help">
-            <summary>Forgot your password?</summary>
-            <p>Ask the site administrator. They can give you a new one from the Team tab in a minute, and your menu, orders and settings stay exactly as they are.</p>
-          </details>
+          <div className="login-links"><button type="button" className="btn btn-link btn-sm" onClick={() => setForgot({ email })}>Forgot your password?</button></div>
         </form>
       ) : (
         <form className={'login-card' + (shake ? ' shake' : '')} onSubmit={submitCode}>
@@ -101,6 +105,61 @@ function Login({ error: initialError, onUnlocked }) {
             <button type="button" className="btn btn-link btn-sm" onClick={resend} disabled={busy}>Send a new code</button>
             <button type="button" className="btn btn-link btn-sm" onClick={() => { setStep(null); setError(''); }}>Use another account</button>
           </div>
+        </form>
+      )}
+    </main>
+  );
+}
+
+// Forgot password: the email gets a 6-digit code; the code and a new password set it.
+// Every device is then signed out, and signing in works as usual (password, then a code).
+function ForgotPassword({ email: given, onDone }) {
+  const admin = useAdmin();
+  const [email, setEmail] = useState(given || '');
+  const [sent, setSent] = useState(null); // { challenge, sentTo }
+  const [code, setCode] = useState('');
+  const [next, setNext] = useState('');
+  const [again, setAgain] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const firstRef = useRef(null);
+  useEffect(() => { firstRef.current.focus(); }, [sent]);
+  const run = (work) => { setBusy(true); setError(''); return work().catch((e) => setError(e.message)).finally(() => setBusy(false)); };
+
+  const ask = (e) => { e.preventDefault(); run(() => admin.forgot(email).then((r) => { setSent(r); setCode(''); })); };
+  function save(e) {
+    e.preventDefault();
+    if (next !== again) { setError('The two new passwords are different.'); return; }
+    run(() => admin.setForgottenPassword(sent.challenge, code, next).then(() => onDone('Password changed. Sign in with your new password.')));
+  }
+  return (
+    <main className="login-screen">
+      {!sent ? (
+        <form className="login-card" onSubmit={ask}>
+          <div className="lock-ico" aria-hidden="true"><Icon name="lock" /></div>
+          <h1>Forgot your password?</h1>
+          <p className="muted">Enter your account's email. We'll send a code to set a new password.</p>
+          <input type="email" ref={firstRef} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="username" aria-label="Email" required maxLength="254" />
+          <p className="form-error" aria-live="assertive">{error}</p>
+          <button type="submit" className="btn btn-red btn-block" disabled={busy}>{busy ? 'Sending…' : 'Send me a code'}</button>
+          <div className="login-links"><button type="button" className="btn btn-link btn-sm" onClick={() => onDone()}>Back to sign in</button></div>
+        </form>
+      ) : (
+        <form className="login-card" onSubmit={save}>
+          <div className="lock-ico" aria-hidden="true"><Icon name="shield" /></div>
+          <h1>Set a new password</h1>
+          <p className="muted">If <b>{sent.sentTo}</b> has an account, a 6-digit code is on its way. It works for 10 minutes.</p>
+          <input ref={firstRef} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code"
+            inputMode="numeric" autoComplete="one-time-code" aria-label="Code from the email" className="code-input" required minLength="6" maxLength="6" />
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (10+ characters)" autoComplete="new-password" aria-label="New password" minLength="10" maxLength="128" required />
+          <input type="password" value={again} onChange={(e) => setAgain(e.target.value)} placeholder="New password again" autoComplete="new-password" aria-label="New password again" minLength="10" maxLength="128" required />
+          <p className="form-error" aria-live="assertive">{error}</p>
+          <button type="submit" className="btn btn-red btn-block" disabled={busy || code.length !== 6}>{busy ? 'Saving…' : 'Save new password'}</button>
+          <div className="login-links">
+            <button type="button" className="btn btn-link btn-sm" onClick={() => setSent(null)}>Send another code</button>
+            <button type="button" className="btn btn-link btn-sm" onClick={() => onDone()}>Back to sign in</button>
+          </div>
+          <p className="tiny muted">No email? The site administrator can reset your password from the Team tab.</p>
         </form>
       )}
     </main>

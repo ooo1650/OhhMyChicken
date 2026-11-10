@@ -820,6 +820,42 @@ it('change log: the administrator sees who changed what, never a password; staff
   assert.equal((await fetch(B + '/api/admin/audit', { headers: { Cookie: peek } })).status, 403);
 });
 
+it('forgot password: a code by email sets a new password; unknown emails get the same answer and no email', async () => {
+  const resetCode = async (email, since) => {
+    for (let i = 0; i < 60; i++) {
+      const m = log.slice(since).match(new RegExp('Password reset code for ' + email.split('.').join('[.]') + ': (\\d{6})'));
+      if (m) return m[1];
+      await sleep(50);
+    }
+    throw new Error('no reset code');
+  };
+  const temp = (await req('POST', '/api/admin/users', { body: { email: 'forgetful@example.com' } })).json.tempPassword;
+  const before = await signIn('forgetful@example.com', temp);
+
+  let since = log.length;
+  const unknown = await req('POST', '/api/admin/forgot', { body: { email: 'nobody@example.com' } });
+  assert.equal(unknown.status, 200);
+  assert.deepEqual(Object.keys(unknown.json).sort(), ['challenge', 'sentTo'], 'looks like any other answer');
+  await sleep(300);
+  assert.doesNotMatch(log.slice(since), /reset code for nobody/, 'no email to an address without an account');
+  assert.equal((await req('POST', '/api/admin/reset', { body: { challenge: unknown.json.challenge, code: '123456', password: 'brand-new-door-55' } })).json.error, 'That code is wrong or has expired. Ask for a new one.');
+
+  since = log.length;
+  const asked = (await req('POST', '/api/admin/forgot', { body: { email: 'Forgetful@Example.com' } })).json;
+  const code = await resetCode('forgetful@example.com', since);
+  assert.equal((await req('POST', '/api/admin/verify', { body: { challenge: asked.challenge, code } })).status, 400, 'a reset code can\'t sign you in');
+  assert.match((await req('POST', '/api/admin/reset', { body: { challenge: asked.challenge, code, password: 'pizza12345' } })).json.error, /Too easy to guess/);
+  assert.equal((await req('POST', '/api/admin/reset', { body: { challenge: asked.challenge, code: code === '000000' ? '111111' : '000000', password: 'brand-new-door-55' } })).status, 400);
+  assert.equal((await req('POST', '/api/admin/reset', { body: { challenge: asked.challenge, code, password: 'brand-new-door-55' } })).status, 200);
+  assert.equal((await req('POST', '/api/admin/reset', { body: { challenge: asked.challenge, code, password: 'brand-new-door-56' } })).status, 400, 'a code works once');
+
+  assert.equal((await fetch(B + '/api/admin/session', { headers: { Cookie: before } }).then((r) => r.json())).authed, false, 'every device is signed out');
+  assert.equal((await postJson(B, '/api/admin/login', { email: 'forgetful@example.com', password: temp })).status, 401, 'the old password stops working');
+  const after = await signIn('forgetful@example.com', 'brand-new-door-55');
+  assert.equal((await fetch(B + '/api/admin/session', { headers: { Cookie: after } }).then((r) => r.json())).user.mustChange, false);
+  assert.ok((await req('GET', '/api/admin/audit')).json.some((r) => r.action === 'password.forgot' && r.actor === 'forgetful@example.com'));
+});
+
 it('logout ends the session', async () => {
   assert.equal((await req('POST', '/api/admin/logout', { body: {} })).status, 200);
   assert.equal((await req('GET', '/api/orders')).status, 401);

@@ -6,6 +6,8 @@
    stored) that lasts one hour from sign-in. Wrong tries are limited per IP,
    per account and overall, and every sign-in is logged. Codes are emailed only
    to active accounts, after the right password, at most 10 an hour each.
+   Forgot password: a code to the account's email sets a new password; the
+   answer is the same whether or not the email has an account.
    ========================================================================== */
 'use strict';
 const crypto = require('crypto');
@@ -166,15 +168,20 @@ const newCode = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 const codeHash = (token, code) => sha(token + ':' + code);
 
 // Emails the code. If that fails, the code goes to the server log instead, so whoever
-// runs the server can still sign in (they can read the database anyway).
-async function sendCode(email, code) {
+// runs the server can still get in (they can read the database anyway).
+const MESSAGES = {
+  login: { log: 'Sign-in code', subject: 'Your dashboard sign-in code: ',
+    body: (code) => 'Your Ohh My Chicken Pizza Hub dashboard sign-in code is ' + code + '.\n\nIt works for 10 minutes. If you did not try to sign in, someone knows your password: change it in Store → Security.\n' },
+  reset: { log: 'Password reset code', subject: 'Your dashboard password reset code: ',
+    body: (code) => 'Someone asked to set a new password for your Ohh My Chicken Pizza Hub dashboard account. The code is ' + code + '.\n\nIt works for 10 minutes. If it wasn\'t you, ignore this email: your password stays as it is.\n' }
+};
+async function sendCode(email, code, purpose = 'login') {
+  const m = MESSAGES[purpose];
   try {
-    await mail.send(email, 'Your dashboard sign-in code: ' + code,
-      'Your Ohh My Chicken Pizza Hub dashboard sign-in code is ' + code + '.\n\n' +
-      'It works for 10 minutes. If you did not try to sign in, someone knows your password: change it in Store → Security.\n');
+    await mail.send(email, m.subject + code, m.body(code));
     return true;
   } catch (e) {
-    console.warn('Sign-in code for ' + email + ': ' + code + ' (not emailed: ' + e.message + ')');
+    console.warn(m.log + ' for ' + email + ': ' + code + ' (not emailed: ' + e.message + ')');
     return false;
   }
 }
@@ -200,12 +207,12 @@ async function login(req, res) {
   res.json({ challenge: token, sentTo: maskEmail(email), emailed });
 }
 
-async function findChallenge(token) {
+async function findChallenge(token, purpose = 'login') {
   if (!isToken(token)) return null;
   const { rows } = await pool.query(
     `SELECT c.token_hash, c.code_hash, c.tries, c.sent_at, u.id AS user_id, u.email
      FROM admin_challenges c JOIN admin_users u ON u.id = c.user_id
-     WHERE c.token_hash = $1 AND c.expires_at > now() AND u.active`, [sha(token)]);
+     WHERE c.token_hash = $1 AND c.purpose = $2 AND c.expires_at > now() AND u.active`, [sha(token), purpose]);
   return rows[0] || null;
 }
 const EXPIRED = 'That code has expired. Sign in again to get a new one.';
@@ -252,6 +259,50 @@ async function resend(req, res) {
   await pool.query('UPDATE admin_challenges SET code_hash = $1, tries = 0, sent_at = now(), expires_at = $2 WHERE token_hash = $3',
     [codeHash(req.body.challenge, code), new Date(Date.now() + CODE_MS), ch.token_hash]);
   res.json({ emailed: await sendCode(ch.email, code) });
+}
+
+/* ---------- Forgot password: a code by email, then a new password ---------- */
+// The answer looks the same whether or not the email has an account, so this can't be
+// used to find out who works here. Only a real, active account is ever emailed.
+async function forgot(req, res) {
+  const email = normEmail((req.body || {}).email);
+  const stop = blocked(req, email);
+  if (stop) return res.status(429).json({ error: stop });
+  if (!/^[^\s@]+@[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Enter your email address.' });
+  const token = crypto.randomBytes(32).toString('hex');
+  const { rows } = await pool.query('SELECT id FROM admin_users WHERE email = $1 AND active', [email]);
+  if (rows.length && codesSent.count(email) < CODES_PER_HOUR) {
+    codesSent.hit(email, CODES_PER_HOUR);
+    const code = newCode();
+    await pool.query('DELETE FROM admin_challenges WHERE expires_at < now()');
+    await pool.query("INSERT INTO admin_challenges (token_hash, user_id, code_hash, expires_at, purpose) VALUES ($1, $2, $3, $4, 'reset')",
+      [sha(token), rows[0].id, codeHash(token, code), new Date(Date.now() + CODE_MS)]);
+    await sendCode(email, code, 'reset');
+  }
+  res.json({ challenge: token, sentTo: maskEmail(email) });
+}
+
+const RESET_FAILED = 'That code is wrong or has expired. Ask for a new one.';
+async function resetPassword(req, res) {
+  const b = req.body || {};
+  const stop = blocked(req);
+  if (stop) return res.status(429).json({ error: stop });
+  const weak = weakness(b.password);
+  if (weak) return res.status(400).json({ error: 'New password: ' + weak });
+  const ch = await findChallenge(b.challenge, 'reset');
+  const code = String(b.code || '').replace(/\D/g, '');
+  const right = ch && ch.tries < CODE_TRIES && code.length === 6 &&
+    crypto.timingSafeEqual(Buffer.from(codeHash(b.challenge, code)), Buffer.from(ch.code_hash));
+  if (!right) {
+    countFailure(req, ch && ch.email);
+    if (ch) await pool.query('UPDATE admin_challenges SET tries = tries + 1 WHERE token_hash = $1', [ch.token_hash]);
+    return res.status(400).json({ error: RESET_FAILED });
+  }
+  await pool.query('DELETE FROM admin_challenges WHERE token_hash = $1', [ch.token_hash]);
+  await pool.query('UPDATE admin_users SET pass_hash = $1, must_change = false WHERE id = $2', [await hashPassword(b.password), ch.user_id]);
+  await pool.query('DELETE FROM admin_sessions WHERE user_id = $1', [ch.user_id]); // every device signs in again
+  await pool.query("INSERT INTO admin_audit (actor, action, detail) VALUES ($1, 'password.forgot', 'new password set with an emailed code')", [ch.email]);
+  res.json({ ok: true });
 }
 
 async function logout(req, res) {
@@ -310,6 +361,6 @@ async function security(req, res) {
 }
 
 module.exports = {
-  PERMISSIONS, can, capSessions, signedIn, requireAdmin, requireSuper, status, login, verify, resend, logout,
+  PERMISSIONS, can, capSessions, signedIn, requireAdmin, requireSuper, status, login, verify, resend, forgot, resetPassword, logout,
   changePassword, signOutOthers, security, lastBackup, sha, myToken
 };

@@ -405,3 +405,4 @@ body.admin-page { background: #F6F4EE; }
 .recent-changes[open] summary h3::after { content: ' –'; }
 .recent-changes .signins-list { margin-top: 10px; }
 .recent-changes .signins-list li { grid-template-columns: 8.5em 11em 1fr; }
+.login-notice { padding: 8px 12px; border-radius: 10px; background: #E8F6EC; color: #145C2B; font-size: var(--fs-sm); font-weight: 600; }

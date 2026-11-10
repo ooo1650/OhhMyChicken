@@ -222,3 +222,6 @@ CREATE TABLE IF NOT EXISTS admin_audit (
   detail TEXT        NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS admin_audit_at_idx ON admin_audit (at DESC);
+
+-- v1.13: a code is for signing in or for setting a new password (forgot password).
+ALTER TABLE admin_challenges ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT 'login';

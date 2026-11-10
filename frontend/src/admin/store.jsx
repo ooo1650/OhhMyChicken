@@ -90,6 +90,8 @@ export function AdminProvider({ boot, children }) {
     login: (email, password) => api('POST', 'admin/login', { email, password }), // → { challenge, sentTo, emailed }
     verify: (challenge, code) => api('POST', 'admin/verify', { challenge, code }),
     resendCode: (challenge) => api('POST', 'admin/resend', { challenge }),
+    forgot: (email) => api('POST', 'admin/forgot', { email }), // → { challenge, sentTo }, the same for any email
+    setForgottenPassword: (challenge, code, password) => api('POST', 'admin/reset', { challenge, code, password }),
     logout: () => api('POST', 'admin/logout').catch(() => {}),
     setPassword: (current, password) => api('PUT', 'admin/password', { current, password }),
     security: () => api('GET', 'admin/security'),
