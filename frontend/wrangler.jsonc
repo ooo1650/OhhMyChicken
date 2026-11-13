@@ -2,7 +2,7 @@
 // /api and /media to the backend (worker/index.js). With this folder as the repository's
 // top level, Cloudflare's defaults work as they are: `npm run build`, then `npx wrangler deploy`.
 {
-  "name": "ohhmychicken",
+  "name": "chicken-frontend-pages", // must match the Worker's name in Cloudflare
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
   // The site's own domain (and www). Deploys create and keep these; Cloudflare adds the DNS
