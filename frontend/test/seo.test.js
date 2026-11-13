@@ -2,12 +2,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolveRoute, pageMeta, jsonLd, faqs, meals, safeJson, headHtml, categoryPath } from '../src/shared/seo.js';
 
 // The real factory defaults from the backend, so tests follow menu changes.
 const require = createRequire(import.meta.url);
-const d = require('../../backend/src/defaults.js');
+// The backend's default menu and settings; in a frontend-only copy of the project, the
+// snapshot the static pages are built from (scripts/prerender-data.json) stands in.
+const BACKEND = new URL('../../backend/src/defaults.js', import.meta.url);
+const withBackend = existsSync(BACKEND);
+const d = withBackend ? require(BACKEND.pathname) : (() => {
+  const snap = JSON.parse(readFileSync(new URL('../scripts/prerender-data.json', import.meta.url), 'utf8'));
+  return { ...snap.defaults, MENU: snap.menu, SETTINGS: snap.settings, PIZZA_CATEGORIES: [...new Set(snap.menu.filter((m) => m.isPizza).map((m) => m.category))] };
+})();
 const isPizza = (c) => d.PIZZA_CATEGORIES.includes(c);
 const boot = (over = {}) => ({
   defaults: { SIZES: d.SIZES, CATEGORIES: d.CATEGORIES },
@@ -121,7 +128,7 @@ test('seo.js stands alone: the Docker image copies only this file from src/', ()
   assert.doesNotMatch(src, /^\s*(import|export)\b.*\bfrom\s+['"]/m);
 });
 
-test('the static pages are built from the current default menu', () => {
+test('the static pages are built from the current default menu', { skip: !withBackend && 'frontend-only copy: no backend to compare with' }, () => {
   const { text } = require('../scripts/sync-prerender-data.cjs');
   assert.equal(readFileSync(new URL('../scripts/prerender-data.json', import.meta.url), 'utf8'), text, 'run: node scripts/sync-prerender-data.cjs');
 });

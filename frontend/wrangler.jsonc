@@ -1,13 +1,12 @@
-// Cloudflare (Workers with static assets) hosting for the frontend: serves the built site
-// (frontend/dist) and passes /api and /media to the backend (frontend/worker/index.js).
-// Kept at the top of the repository, so Cloudflare's defaults work as they are:
-// build command `npm run build` (see package.json here), deploy command `npx wrangler deploy`.
+// Cloudflare (Workers with static assets) hosting: serves the built site (dist/) and passes
+// /api and /media to the backend (worker/index.js). With this folder as the repository's
+// top level, Cloudflare's defaults work as they are: `npm run build`, then `npx wrangler deploy`.
 {
   "name": "ohhmychicken",
-  "main": "frontend/worker/index.js",
+  "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
   "assets": {
-    "directory": "./frontend/dist",
+    "directory": "./dist",
     "binding": "ASSETS",
     // Paths that aren't files (/sizes, /find, /menu/…) get index.html; the app routes them.
     "not_found_handling": "single-page-application",

@@ -1,5 +1,5 @@
 /* Cloudflare Worker for hosting the site on Cloudflare: the built pages come from
-   frontend/dist (see wrangler.jsonc at the top of the repository), and /api and /media go to the backend, so the browser
+   dist/ (see wrangler.jsonc), and /api and /media go to the backend, so the browser
    sees one site and the dashboard's sign-in cookie just works.
    The backend needs, on its side: ALLOWED_ORIGINS=https://<this site> (writes from
    here are allowed) and TRUST_PROXY=2 (this Worker + the host's proxy), so it sees
