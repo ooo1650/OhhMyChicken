@@ -291,3 +291,28 @@ Same steps on a real Ubuntu server, with these changes:
 9. **Uptime alerts:** a free monitor (e.g. UptimeRobot) checking `https://your-domain/healthz` every 5 minutes, alerting the owner's phone.
 10. **Optional:** Cloudflare (free plan) in front for large-scale DDoS protection.
 11. **Re-run** the load and security tests (steps 7–8) against the production URL. The two HTTPS checks then pass instead of being skipped.
+
+## Hosting without Docker (shared Node.js hosting with PostgreSQL)
+
+For plans with a Node.js app screen (cPanel "Setup Node.js App" or similar) and PostgreSQL, but no Docker. The frontend goes on Cloudflare (see the main README); only the backend runs here.
+
+1. **Database:** create a PostgreSQL database and user in the control panel. Note the name, user and password.
+2. **Code:** over SSH, `git clone` the repository (say into `~/omc`), then `cd ~/omc/backend && npm ci --omit=dev`. Node 20.12 or newer; 22 is best.
+3. **Settings:** create `~/omc/backend/.env` (`chmod 600` it; it holds secrets):
+   ```ini
+   NODE_ENV=production
+   DATABASE_URL=postgres://USER:PASSWORD@localhost:5432/DBNAME
+   ADMIN_PASSCODE=<first password for paperkite.contact@gmail.com, 10+ characters>
+   TRUST_PROXY=2                       # the host's web server + Cloudflare
+   ALLOWED_ORIGINS=https://<the site on Cloudflare>
+   UPLOAD_DIR=/home/<you>/omc-uploads
+   BACKUP_DIR=/home/<you>/omc-backups
+   ```
+   The backend reads this file itself; anything set in the control panel wins.
+4. **App:** in the Node.js app screen, application root `omc/backend`, startup file `src/index.js`, mode production, then start it. It creates the tables and the administrator account on first start. Check `https://<backend address>/healthz` answers `{"ok":true}`.
+5. **Frontend:** set `BACKEND_URL` in `frontend/wrangler.jsonc` to the backend's address and redeploy on Cloudflare.
+6. **Backups:** add a cron job in the control panel (every night at 3:00):
+   `0 3 * * * /bin/sh $HOME/omc/deploy/backup-cron.sh $HOME/omc/backend/.env`
+   The dashboard's checks show when it last succeeded. Copy the files off the server now and then.
+7. **Updates:** `cd ~/omc && git pull && cd backend && npm ci --omit=dev`, then restart the app in the control panel.
+8. **Codes before email works:** they are in the app's log (the control panel shows it, or `stderr.log` in the app folder). Then add the Brevo login and key in Team → Email.

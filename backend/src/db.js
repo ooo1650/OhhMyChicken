@@ -12,6 +12,10 @@ const { Pool } = require('pg');
 const defaults = require('./defaults');
 const { hashPassword, weakness } = require('./password');
 
+// Settings from backend/.env when there is one (hosting without Docker, e.g. a control
+// panel's Node.js app). Values set by the host or Docker win; this only fills gaps.
+try { process.loadEnvFile(path.join(__dirname, '..', '.env')); } catch (e) { /* no .env file: fine */ }
+
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is not set. Copy .env.example to .env and fill it in.');
   process.exit(1);
