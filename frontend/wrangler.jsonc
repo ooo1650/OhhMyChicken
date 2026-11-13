@@ -5,6 +5,12 @@
   "name": "ohhmychicken",
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
+  // The site's own domain (and www). Deploys create and keep these; Cloudflare adds the DNS
+  // records and the HTTPS certificate. The workers.dev address keeps working for testing.
+  "routes": [
+    { "pattern": "ohhmychickenpizzahub.com", "custom_domain": true },
+    { "pattern": "www.ohhmychickenpizzahub.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
