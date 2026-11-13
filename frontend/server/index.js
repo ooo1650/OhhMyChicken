@@ -163,7 +163,8 @@ const assets = express.static(DIST, {
   }
 });
 // HTML files are only served through the page routes below (so /admin.html is a 404).
-app.use((req, res, next) => (/\.html$/i.test(req.path) ? next() : assets(req, res, next)));
+// (_headers is the static-host version of the headers above; it isn't served from here.)
+app.use((req, res, next) => (/\.html$/i.test(req.path) || req.path === '/_headers' ? next() : assets(req, res, next)));
 
 /* ---------- Pages ---------- */
 app.get(/.*/, async (req, res) => {

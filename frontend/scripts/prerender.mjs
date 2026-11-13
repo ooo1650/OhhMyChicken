@@ -12,8 +12,11 @@ const DIST = path.join(ROOT, 'dist');
 const { render } = await import(path.join(ROOT, 'dist-ssr', 'entry-server.js'));
 const boot = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts', 'prerender-data.json'), 'utf8'));
 
-const template = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
-fs.writeFileSync(path.join(ROOT, 'dist-ssr', 'template.html'), template);
+// The untouched page from `vite build` (kept in dist-ssr, so running this twice still works).
+const fresh = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
+const saved = path.join(ROOT, 'dist-ssr', 'template.html');
+const template = fresh.includes('<!--app:start-->') ? fresh : fs.readFileSync(saved, 'utf8');
+fs.writeFileSync(saved, template);
 
 // Links in social cards need the site's address: PUBLIC_URL, or the one Vercel provides.
 const host = process.env.VERCEL_PROJECT_PRODUCTION_URL;
@@ -34,5 +37,13 @@ for (const url of ['/', '/menu'].concat(cats.map(categoryPath))) {
   const file = path.join(DIST, url.slice(1), 'index.html');
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, html);
+}
+// Static hosts have no server to answer /robots.txt and /sitemap.xml: write them now
+// (the Node server answers both itself, from live data). The dashboard stays out of both.
+if (origin) {
+  fs.writeFileSync(path.join(DIST, 'robots.txt'), 'User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin\n\nSitemap: ' + origin + '/sitemap.xml\n');
+  const urls = ['/', '/menu'].concat(cats.map(categoryPath));
+  fs.writeFileSync(path.join(DIST, 'sitemap.xml'), '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map((u) => '  <url><loc>' + origin + u + '</loc></url>').join('\n') + '\n</urlset>\n');
 }
 console.log('Prerendered ' + (2 + cats.length) + ' pages' + (origin ? ' for ' + origin : ''));

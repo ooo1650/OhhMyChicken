@@ -83,6 +83,11 @@ test('pages may be kept by a CDN for a minute; 404s, the dashboard and the API n
   assert.equal((await get('/api/bootstrap')).headers.get('cache-control'), 'no-store');
 });
 
+test('the static-host headers file is not published by the Node server', { skip }, async () => {
+  assert.notEqual((await get('/_headers')).status, 200);
+  assert.match(await (await get('/robots.txt')).text(), /Sitemap: https:\/\/example.com\/sitemap.xml/, 'robots.txt comes from the server, not a built file');
+});
+
 test('category page 200, unknown page real 404 with noindex', { skip }, async () => {
   const cat = await get('/menu/chicken-pizza');
   assert.equal(cat.status, 200);
