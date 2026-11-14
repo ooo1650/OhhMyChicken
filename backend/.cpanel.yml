@@ -1,0 +1,6 @@
+# cPanel → Git Version Control runs this on "Deploy HEAD Commit".
+# It copies the code into the Node.js app's folder and restarts the app (see README).
+---
+deployment:
+  tasks:
+    - /bin/sh scripts/deploy-cpanel.sh

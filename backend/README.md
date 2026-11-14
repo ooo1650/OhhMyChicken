@@ -29,15 +29,16 @@ account name in front of both, e.g. `cpuser_omc`).
 add an `A` record `api` → the server's IP, **DNS only** (grey cloud). Then cPanel →
 *SSL/TLS Status*: run AutoSSL so `https://api.…` has a certificate.
 
-**3. Code.** Over SSH (cPanel → *Terminal*), outside `public_html`:
+**3. Code.** cPanel → *Git Version Control* → *Create*:
+turn on **Clone a Repository**, Clone URL `https://github.com/<you>/<backend repo>.git`,
+Repository Path `repositories/omc-api-repo`. A private repository needs a deploy key:
+cPanel → *SSH Access* → generate a key, add its public half on GitHub (repo → Settings →
+Deploy keys, read-only) and use the `git@github.com:<you>/<backend repo>.git` URL instead.
 
-```sh
-git clone https://github.com/<you>/<backend repo>.git ~/omc-api
-```
+This folder only holds the code; the app runs from `~/omc-api` (next steps), where
+`.cpanel.yml` copies it on every deploy.
 
-A private repository needs a deploy key or a personal access token; don't save the token in any file.
-
-**4. Settings.** Create `~/omc-api/.env` and lock it (`chmod 600 ~/omc-api/.env`):
+**4. Settings.** Create `~/omc-api/.env` (cPanel → *File Manager*, or the Terminal) and lock it (`chmod 600 ~/omc-api/.env`):
 
 ```ini
 NODE_ENV=production
@@ -66,9 +67,10 @@ under Team → Email. The app reads this file itself; values set on the cPanel a
 | Application URL | `api.ohhmychickenpizzahub.com` |
 | Application startup file | `src/index.js` |
 
-Create it, then click **Run NPM Install** and **Start/Restart**. Don't keep a
-`node_modules` folder of your own in `omc-api`: cPanel installs the packages in its own place.
-On first start the app creates the tables and the administrator account.
+Create it. Then back in *Git Version Control* → *Manage* → *Pull or Deploy*, click
+**Deploy HEAD Commit**: it copies the code into `omc-api`, installs the packages and
+restarts the app (`scripts/deploy-cpanel.sh`). Don't put a `node_modules` folder of your
+own in `omc-api`: cPanel keeps the packages in its own place. On first start the app creates the tables and the administrator account.
 Check that `https://api.ohhmychickenpizzahub.com/healthz` answers `{"ok":true}`.
 
 **6. Point the website here.** In the frontend repository, set `BACKEND_URL` in
@@ -87,12 +89,9 @@ email is handled by Cloudflare, not this server.
 
 ## Updating
 
-```sh
-cd ~/omc-api && git pull
-```
-
-Then, on the Node.js app screen, click **Run NPM Install** (only needed when `package.json`
-changed) and **Restart**.
+Push to GitHub, then in cPanel → *Git Version Control* → *Manage* → *Pull or Deploy*:
+**Update from Remote**, then **Deploy HEAD Commit**. Packages are reinstalled only when
+`package-lock.json` changed. The deploy's output is in `~/.cpanel/logs/` if it fails.
 
 ## When something is wrong
 
@@ -116,5 +115,6 @@ changed) and **Restart**.
 | `src/models.js`, `pricing.js`, `validate.js` | Menu, settings, orders; prices; input checks |
 | `src/media.js` | Photo uploads, resized to WebP |
 | `src/db.js`, `schema.sql` | Database connection, tables, one-time changes; `node src/db.js set-password <email>` |
+| `.cpanel.yml`, `scripts/deploy-cpanel.sh` | Deploying on cPanel |
 | `scripts/backup-cron.sh` | Nightly database backup |
 | `test/` | `npm test` |
