@@ -1,0 +1,25 @@
+# Secrets: real settings never go in git (.env.example does)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+
+# Runtime data: uploaded photos, database dumps, logs
+uploads/
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.log
+logs/
+
+# The host's restart marker (cPanel / Passenger: touch tmp/restart.txt)
+tmp/
+
+.DS_Store
+.vscode/
+.idea/

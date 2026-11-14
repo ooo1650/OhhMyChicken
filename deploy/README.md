@@ -312,7 +312,7 @@ For plans with a Node.js app screen (cPanel "Setup Node.js App" or similar) and 
 4. **App:** in the Node.js app screen, application root `omc/backend`, startup file `src/index.js`, mode production, then start it. It creates the tables and the administrator account on first start. Check `https://<backend address>/healthz` answers `{"ok":true}`.
 5. **Frontend:** set `BACKEND_URL` in `frontend/wrangler.jsonc` to the backend's address and redeploy on Cloudflare.
 6. **Backups:** add a cron job in the control panel (every night at 3:00):
-   `0 3 * * * /bin/sh $HOME/omc/deploy/backup-cron.sh $HOME/omc/backend/.env`
+   `0 3 * * * /bin/sh $HOME/omc/backend/scripts/backup-cron.sh $HOME/omc/backend/.env`
    The dashboard's checks show when it last succeeded. Copy the files off the server now and then.
 7. **Updates:** `cd ~/omc && git pull && cd backend && npm ci --omit=dev`, then restart the app in the control panel.
 8. **Codes before email works:** they are in the app's log (the control panel shows it, or `stderr.log` in the app folder). Then add the Brevo login and key in Team → Email.

@@ -4,13 +4,13 @@
 # menu, settings, outlets, accounts and orders, files older than BACKUP_KEEP_DAYS
 # (default 14) deleted, and BACKUP_DIR/last-success written for the dashboard's check.
 #
-#   Cron (every night at 3:00):  0 3 * * * /bin/sh $HOME/omc/deploy/backup-cron.sh $HOME/omc/backend/.env
+#   Cron (every night at 3:00):  0 3 * * * /bin/sh $HOME/omc-api/scripts/backup-cron.sh $HOME/omc-api/.env
 #
 # Reads DATABASE_URL and BACKUP_DIR from that .env file. Set BACKUP_DIR there to a
 # folder outside the website's public folder, e.g. /home/you/omc-backups.
 # The files hold customers' names and phone numbers: only their owner can read them.
 set -u
-ENV_FILE=${1:?give the path to backend/.env}
+ENV_FILE=${1:?give the path to the backend .env file}
 val() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -e 's/^["'"'"']//' -e 's/["'"'"']$//'; }
 DATABASE_URL=$(val DATABASE_URL)
 DIR=$(val BACKUP_DIR)

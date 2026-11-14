@@ -2,3 +2,8 @@ node_modules/
 dist/
 dist-ssr/
 .wrangler/
+
+# Secrets (none are needed here, but never commit one)
+.env
+.env.*
+!.env.example
