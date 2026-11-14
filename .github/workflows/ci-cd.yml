@@ -193,3 +193,46 @@ jobs:
       - name: Remove the SSH key
         if: always() && vars.DEPLOY_MODE == 'ssh'
         run: rm -f ~/.ssh/deploy_key
+
+  # backend/ and frontend/ each have their own repository too (the cPanel server
+  # deploys from the backend one, Cloudflare from the frontend one). After the tests
+  # pass on main, copy each folder there. Needs, per folder, in Settings → Secrets
+  # and variables → Actions:
+  #   variable BACKEND_REPO  = ooo1650/OhhMyChicken-backend    (owner/name)
+  #   secret   BACKEND_DEPLOY_KEY = private half of an SSH key whose public half is a
+  #            Deploy key with write access on that repository
+  # (FRONTEND_REPO / FRONTEND_DEPLOY_KEY the same way). A folder without them is skipped.
+  sync-repos:
+    name: Copy folders to their own repositories
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: sync-repos
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the whole history, to rebuild each folder's commits
+
+      - name: Trust GitHub's SSH host key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          echo 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' >> ~/.ssh/known_hosts
+
+      - name: backend/ → its repository
+        env:
+          REPO: ${{ vars.BACKEND_REPO }}
+          SYNC_KEY: ${{ secrets.BACKEND_DEPLOY_KEY }}
+        run: sh .github/sync-folder.sh backend "$REPO"
+
+      - name: frontend/ → its repository
+        env:
+          REPO: ${{ vars.FRONTEND_REPO }}
+          SYNC_KEY: ${{ secrets.FRONTEND_DEPLOY_KEY }}
+        run: sh .github/sync-folder.sh frontend "$REPO"
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/sync_key
